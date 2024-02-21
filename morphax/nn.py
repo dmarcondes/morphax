@@ -193,7 +193,7 @@ def cmnn(x,type,width,size,shape_x,mask = 'inf',key = 0):
                 m = ll
                 for j in range(width[i] - 1):
                     m = jnp.append(m,interval,0)
-            mask_list.append(p)
+            mask_list.append(m)
 
     #Forward pass
     @jax.jit
