@@ -516,5 +516,6 @@ def slda(x,y,x_val,y_val,forward,params,loss,epochs_nn,epochs_slda,sample_neigh,
         #Update
         mask = min_mask
         params = min_params
+        current_error = min_error
 
     return {'params': params,'mask': mask}
