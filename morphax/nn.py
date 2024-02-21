@@ -140,7 +140,7 @@ def apply_morph_layer_iter(x,type,params,index_x,w,forward_inner,d):
     return fx
 
 #Canonical Morphological NN
-def cmnn(x,type,width,size,shape_x,key = 0):
+def cmnn(x,type,width,size,shape_x,mask = 'inf',key = 0):
     key = jax.random.split(jax.random.PRNGKey(key),(len(width),max(width)))[:,:,0]
 
     #Index window
@@ -155,8 +155,6 @@ def cmnn(x,type,width,size,shape_x,key = 0):
             if type[i] == 'supgen' or type[i] == 'infgen':
                 ll = jnp.arctanh(jnp.maximum(jnp.minimum(mp.struct_lower(x,size[i])/2,1-1e-5),-1 + 1e-5)).reshape((1,1,size[i],size[i]))
                 ul = jnp.arctanh(jnp.maximum(jnp.minimum(mp.struct_upper(x,size[i])/2,1-1e-5),-1 + 1e-5)).reshape((1,1,size[i],size[i]))
-                su = jnp.std(ul)
-                sl = jnp.std(ll)
                 p = jnp.append(ll + sl*jax.random.normal(jax.random.PRNGKey(key[i,-1]),ll.shape),ul + ul*jax.random.normal(jax.random.PRNGKey(key[i,-1]),ul.shape),1)
                 for j in range(width[i] - 1):
                     interval = jnp.append(ll + sl*jax.random.normal(jax.random.PRNGKey(key[i,j]),ll.shape),ul + ul*jax.random.normal(jax.random.PRNGKey(key[i,j]),ul.shape),1)
@@ -169,6 +167,33 @@ def cmnn(x,type,width,size,shape_x,key = 0):
                     interval = ll + sl*jax.random.normal(jax.random.PRNGKey(key[i,j]),ll.shape)
                     p = jnp.append(p,interval,0)
             params.append(p)
+
+    #Initialize mask
+    mask_list = list()
+    for i in range(len(width)):
+        if type[i] in ['sup','inf','complement']:
+            mask_list.append(jnp.array(0.0))
+        else:
+            if type[i] == 'supgen' or type[i] == 'infgen':
+                if mask == 'inf':
+                    ll = jnp.array(math.floor((size[i] ** 2)/2) * [0] + [1] + math.floor((size[i] ** 2)/2) * [0]).reshape((1,1,size[i],size[i]))
+                    ul = jnp.array(math.floor((size[i] ** 2)/2) * [0] + [1] + math.floor((size[i] ** 2)/2) * [0]).reshape((1,1,size[i],size[i]))
+                else:
+                    ll = jnp.array((size[i] ** 2) * [1]).reshape((1,1,size[i],size[i]))
+                    ul = jnp.array((size[i] ** 2) * [1]).reshape((1,1,size[i],size[i]))
+                m = jnp.append(ll,ul,1)
+                for j in range(width[i] - 1):
+                    interval = jnp.append(ll,ul,1)
+                    m = jnp.append(m,interval,0)
+            else:
+                if mask == 'inf':
+                    ll = jnp.array(math.floor((size[i] ** 2)/2) * [0] + [1] + math.floor((size[i] ** 2)/2) * [0]).reshape((1,1,size[i],size[i]))
+                else:
+                    ll = jnp.array((size[i] ** 2) * [1]).reshape((1,1,size[i],size[i]))
+                m = ll
+                for j in range(width[i] - 1):
+                    m = jnp.append(m,interval,0)
+            mask_list.append(p)
 
     #Forward pass
     @jax.jit
@@ -188,7 +213,7 @@ def cmnn(x,type,width,size,shape_x,key = 0):
         return x[0,:,:,:]
 
     #Return initial parameters and forward function
-    return {'params': params,'forward': forward}
+    return {'params': params,'forward': forward,'mask': mask_list}
 
 #Canonical Morphological NN with iterated NN
 def cmnn_iter(type,width,width_str,size,shape_x,x = None,activation = jax.nn.tanh,key = 0,init = 'identity',loss = MSE_SA,sa = True,epochs = 1000,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False):
