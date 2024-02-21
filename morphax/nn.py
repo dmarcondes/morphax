@@ -454,7 +454,7 @@ def train_fcnn(x,y,forward,params,loss,sa = False,epochs = 1,batches = 1,lr = 0.
 
 #SLDA for training DMNN
 def slda(x,y,forward,params,loss,epochs_nn,epochs_slda,mask = None,sa = False,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 100):
-#Find out width
-width = []
-for i in range(len(params)):
-    width = width + [params[i].shape[0]]
+    #Find out width
+    width = []
+    for i in range(len(params)):
+        width = width + [params[i].shape[0]]
