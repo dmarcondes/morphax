@@ -150,7 +150,7 @@ def cmnn(x,type,width,size,shape_x,mask = 'inf',key = 0):
     params = list()
     for i in range(len(width)):
         if type[i] in ['sup','inf','complement']:
-            params.append(jnp.array(0.0))
+            params.append(jnp.array(0.0).reshape((1,1)))
         else:
             if type[i] == 'supgen' or type[i] == 'infgen':
                 ll = jnp.arctanh(jnp.maximum(jnp.minimum(mp.struct_lower(x,size[i])/2,1-1e-5),-1 + 1e-5)).reshape((1,1,size[i],size[i]))
@@ -451,3 +451,10 @@ def train_fcnn(x,y,forward,params,loss,sa = False,epochs = 1,batches = 1,lr = 0.
 
     del params[-1]
     return params
+
+#SLDA for training DMNN
+def slda(x,y,forward,params,loss,epochs_nn,epochs_slda,mask = None,sa = False,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 100):
+#Find out width
+width = []
+for i in range(len(params)):
+    width = width + [params[i].shape[0]]
