@@ -150,7 +150,7 @@ def cmnn(x,type,width,size,shape_x,mask = 'inf',key = 0):
     params = list()
     for i in range(len(width)):
         if type[i] in ['sup','inf','complement']:
-            params.append(jnp.array(0.0).reshape((1,1)))
+            params.append(jnp.array(0.0).reshape((1,1,1)))
         else:
             if type[i] == 'supgen' or type[i] == 'infgen':
                 ll = jnp.arctanh(jnp.maximum(jnp.minimum(mp.struct_lower(x,size[i])/2,1-1e-5),-1 + 1e-5)).reshape((1,1,size[i],size[i]))
@@ -458,3 +458,7 @@ def slda(x,y,forward,params,loss,epochs_nn,epochs_slda,mask = None,sa = False,ba
     width = []
     for i in range(len(params)):
         width = width + [params[i].shape[0]]
+    #Find out size
+    size = []
+    for i in range(len(params)):
+        size = size + [params[i].shape[2]]
