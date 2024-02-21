@@ -502,7 +502,7 @@ def slda(x,y,x_val,y_val,forward,params,loss,epochs_nn,epochs_slda,sample_neigh,
             new_mask[layer] = new_mask[layer].at[node,limit,pos[0],pos[1]].set(jnp.abs(1 - new_mask[layer][node,limit,pos[0],pos[1]]))
 
             #Train
-            res_neigh = nn.train_morph(x,y,forward,params,loss,new_mask,sa,epochs_nn,batches,lr,b1,b2,eps,eps_root,key,notebook,epoch_print)
+            res_neigh = train_morph(x,y,forward,params,loss,new_mask,sa,epochs_nn,batches,lr,b1,b2,eps,eps_root,key,notebook,epoch_print)
 
             #Val error
             error_neigh = loss(forward(x_val,res_neigh),y_val).tolist()
