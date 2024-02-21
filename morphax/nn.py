@@ -319,8 +319,9 @@ def cmnn_iter(type,width,width_str,size,shape_x,x = None,activation = jax.nn.tan
 
     #Return initial parameters and forward function
     return {'params': params,'forward': forward,'ll': ll,'ul': ul,'compute_struct': compute_struct}
+
 #Training function MNN
-def train_morph(x,y,forward,params,loss,sa = False,epochs = 1,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 100):
+def train_morph(x,y,forward,params,loss,mask = None,sa = False,epochs = 1,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 100):
     #Key
     key = jax.random.split(jax.random.PRNGKey(key),epochs)
 
@@ -346,10 +347,16 @@ def train_morph(x,y,forward,params,loss,sa = False,epochs = 1,batches = 1,lr = 0
     #Training function
     grad_loss = jax.jit(jax.grad(lf,0))
     @jax.jit
-    def update(opt_state,params,x,y):
+    def update(opt_state,params,x,y,mask):
       grads = grad_loss(params,x,y)
       if sa:
           grads[-1]['w'] = - grads[-1]['w']
+          if mask is not None:
+              for i in range(len(grads) - 1):
+                  grads[i] = vmap(lambda x,y: x*y)(grads[i],mask[i])
+      if mask is not None:
+          for i in range(len(grads)):
+              grads[i] = vmap(lambda x,y: x*y)(grads[i],mask[i])
       updates, opt_state = optimizer.update(grads, opt_state)
       params = optax.apply_updates(params, updates)
       return opt_state,params
@@ -368,9 +375,9 @@ def train_morph(x,y,forward,params,loss,sa = False,epochs = 1,batches = 1,lr = 0
                     else:
                         xb = x[b*bsize:x.shape[0],:,:]
                         yb = y[b*bsize:y.shape[0],:,:]
-                    opt_state,params = update(opt_state,params,xb,yb)
+                    opt_state,params = update(opt_state,params,xb,yb,mask)
             else:
-                opt_state,params = update(opt_state,params,x,y)
+                opt_state,params = update(opt_state,params,x,y,mask)
             l = str(jnp.round(lf(params,x,y),10))
             if(e % epoch_print == 0 and notebook):
                 print('Epoch: ' + str(e) + ' Time: ' + str(jnp.round(time.time() - t0,2)) + ' s Loss: ' + l)
