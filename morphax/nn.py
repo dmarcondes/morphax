@@ -353,10 +353,10 @@ def train_morph(x,y,forward,params,loss,mask = None,sa = False,epochs = 1,batche
           grads[-1]['w'] = - grads[-1]['w']
           if mask is not None:
               for i in range(len(grads) - 1):
-                  grads[i] = vmap(lambda x,y: x*y)(grads[i],mask[i])
+                  grads[i] = jax.vmap(lambda x,y: x*y)(grads[i],mask[i])
       if mask is not None:
           for i in range(len(grads)):
-              grads[i] = vmap(lambda x,y: x*y)(grads[i],mask[i])
+              grads[i] = jax.vmap(lambda x,y: x*y)(grads[i],mask[i])
       updates, opt_state = optimizer.update(grads, opt_state)
       params = optax.apply_updates(params, updates)
       return opt_state,params
