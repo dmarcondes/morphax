@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 from morphax import morph as mp
+import sys
 
 __docformat__ = "numpy"
 
@@ -453,12 +454,67 @@ def train_fcnn(x,y,forward,params,loss,sa = False,epochs = 1,batches = 1,lr = 0.
     return params
 
 #SLDA for training DMNN
-def slda(x,y,forward,params,loss,epochs_nn,epochs_slda,mask = None,sa = False,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 100):
-    #Find out width
+def slda(x,y,forward,params,loss,epochs_nn,epochs_slda,sample_neigh,mask = None,sa = False,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 100):
+    #Find out width,size, type and calculate probabilities
     width = []
+    size = []
+    prob = []
+    type = []
     for i in range(len(params)):
         width = width + [params[i].shape[0]]
-    #Find out size
-    size = []
-    for i in range(len(params)):
         size = size + [params[i].shape[2]]
+        if params[i].shape[2] > 1:
+            prob  = prob + [params[i].shape[0] * (params[i].shape[2] ** 2)]
+        else:
+            prob  = prob + [0]
+        if params[i].shape[1] == 2:
+            type = type + ['gen']
+            prob[-1] = 2*prob[-1]
+        else:
+            type = type + ['other']
+
+    prob = [x/sum(prob) for x in prob]
+
+    #Current error
+    current_error = loss(forward(x_val,params),y_val).tolist()
+
+    #Epochs of SLDA
+    for e in range(epochs_slda):
+        print("Epoch SLDA " + str(e) + ' Current validation error: ' + str(jnp.round(current_error,6)))
+        min_error = jnp.inf
+        #Sample neighbors
+        for n in range(sample_neigh):
+            print("Sample neighbor " + str(n) + ' Min local validation error :' + str(jnp.round(min_error,6)))
+            #Sample layer
+            layer = np.random.choice(list(range(len(width))),1,p = prob)[0]
+            #Sample node
+            node = np.random.choice(list(range(width[layer])),1)[0]
+            #Position
+            pos = np.random.choice(list(range(size[layer] ** 2)),1)[0]
+            pos = [math.floor(pos/size[layer]),pos - (math.floor(pos/size[layer]))*size[layer]]
+            #Limit of interval
+            if type[layer] == 'gen':
+                limit = np.random.choice([0,1],1)[0]
+            else:
+                limit = 0
+            #New mask
+            new_mask = mask
+            new_mask[layer] = new_mask[layer].at[node,limit,pos[0],pos[1]].set(jnp.abs(1 - new_mask[layer][node,limit,pos[0],pos[1]]))
+
+            #Train
+            res_neigh = nn.train_morph(x,y,forward,params,loss,new_mask,sa,epochs_nn,batches,lr,b1,b2,eps,eps_root,key,notebook,epoch_print)
+
+            #Val error
+            error_neigh = loss(forward(x_val,res_neigh),y_val).tolist()
+
+            #Store is best
+            if error_neigh < min_error:
+                min_error = error_neigh
+                min_mask = new_mask
+                min_params = res_neigh
+
+        #Update
+        mask = min_mask
+        params = min_params
+
+    return {'params': params,'mask': mask}
