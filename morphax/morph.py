@@ -3,6 +3,20 @@ import jax
 import jax.numpy as jnp
 import math
 
+#Approximate maximum
+def max(x,h = 1/25):
+    return jnp.sum(x * jax.nn.softmax(x/h,None))
+
+def maximum(x,y,h = 1/25):
+    return jax.vmap(lambda x,y: jnp.append(x,y) * jax.nn.softmax(jnp.append(x,y)/h,None))(x,y)
+
+#Approximate maximum
+def min(x,h = 1/25):
+    return - max(-x,h)
+
+def minimum(x,y,h = 1/25):
+    return jax.vmap(lambda x,y: jnp.append(x,y) * jax.nn.softmax(-jnp.append(x,y)/h,None))(x,y)
+
 #Structuring element from function
 def struct_function(k,d):
     w = jnp.array([[x1.tolist(),x2.tolist()] for x1 in jnp.linspace(-jnp.floor(d/2),jnp.floor(d/2),d) for x2 in jnp.linspace(jnp.floor(d/2),-jnp.floor(d/2),d)])
@@ -21,7 +35,7 @@ def index_array(shape):
 def local_erosion(f,k,l):
     def jit_local_erosion(index):
         fw = jax.lax.dynamic_slice(f, (index[0], index[1]), (2*l + 1, 2*l + 1))
-        return jnp.minimum(jnp.maximum(jnp.min(fw - k),0.0),1.0)
+        return jnp.minimum(jnp.maximum(min(fw - k),0.0),1.0)
     return jit_local_erosion
 
 #Erosion of f by k
@@ -43,7 +57,7 @@ def erosion(f,index_f,k):
 def local_dilation(f,k,l):
     def jit_local_dilation(index):
         fw = jax.lax.dynamic_slice(f, (index[0], index[1]), (2*l + 1, 2*l + 1))
-        return jnp.minimum(jnp.maximum(jnp.max(fw + k),0.0),1.0)
+        return jnp.minimum(jnp.maximum(max(fw + k),0.0),1.0)
     return jit_local_dilation
 
 #Dilation of f by k
@@ -93,22 +107,21 @@ def complement(f):
 
 #Sup-generating with interval [k1,k2]
 def supgen(f,index_f,k1,k2):
-    K1 = jnp.minimum(k1,k2)
-    K2 = jnp.maximum(k1,k2)
-    return jnp.minimum(erosion(f,index_f,K1),1 - dilation(f,index_f,1 - K2.transpose()))
+    K1 = minimum(k1,k2)
+    K2 = maximum(k1,k2)
+    return minimum(erosion(f,index_f,K1),1 - dilation(f,index_f,1 - K2.transpose()))
 
 #Inf-generating with interval [k1,k2]
 def infgen(f,index_f,k1,k2):
-    K1 = jnp.minimum(k1,k2)
-    K2 = jnp.maximum(k1,k2)
-    return jnp.maximum(dilation(f,index_f,K1),1 - erosion(f,index_f,1 - K2.transpose()))
+    K1 = minimum(k1,k2)
+    K2 = maximum(k1,k2)
+    return maximum(dilation(f,index_f,K1),1 - erosion(f,index_f,1 - K2.transpose()))
 
 #Sup of array of images
 @jax.jit
-def sup(f,h = 1/5):
-    fs = f[0,:,:]
-    for i in range(f.shape[0] - 1):
-        fs = h * jnp.log(jnp.exp(fs/h) + jnp.exp(f[i,:,:]/h))
+def sup(f,h = 1/25):
+    fs = f * jax.nn.softmax(f/h,0)
+    fs = jnp.apply_along_axis(jnp.sum,0,fs)
     return fs.reshape((1,f.shape[1],f.shape[2]))
 
 #Sup vmap for arch
