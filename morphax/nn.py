@@ -179,8 +179,8 @@ def cmnn(x,type,width,size,shape_x,mask = 'inf',key = 0):
         else:
             if type[i] == 'supgen' or type[i] == 'infgen':
                 if mask == 'inf':
-                    ll = jnp.array(math.floor((size[i] ** 2)/2) * [0] + [1] + math.floor((size[i] ** 2)/2) * [0]).reshape((1,1,size[i],size[i]))
-                    ul = jnp.array(math.floor((size[i] ** 2)/2) * [0] + [1] + math.floor((size[i] ** 2)/2) * [0]).reshape((1,1,size[i],size[i]))
+                    ll = jnp.array(math.floor((size[i] ** 2)/2) * [0] + [0] + math.floor((size[i] ** 2)/2) * [0]).reshape((1,1,size[i],size[i]))
+                    ul = jnp.array(math.floor((size[i] ** 2)/2) * [0] + [0] + math.floor((size[i] ** 2)/2) * [0]).reshape((1,1,size[i],size[i]))
                 else:
                     ll = jnp.array((size[i] ** 2) * [1]).reshape((1,1,size[i],size[i]))
                     ul = jnp.array((size[i] ** 2) * [1]).reshape((1,1,size[i],size[i]))
