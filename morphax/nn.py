@@ -381,12 +381,13 @@ def train_morph(x,y,forward,params,loss,mask = None,sa = False,epochs = 1,batche
                     opt_state,params = update(opt_state,params,xb,yb,mask)
             else:
                 opt_state,params = update(opt_state,params,x,y,mask)
-            l = str(jnp.round(lf(params,x,y),10))
             if e % epoch_print == 0 and notebook:
-                print('Epoch: ' + str(e) + ' Time: ' + str(jnp.round(time.time() - t0,2)) + ' s Loss: ' + l)
-            if not notebook:
-                bar.title("Loss: " + l)
-                bar()
+                l = str(jnp.round(lf(params,x,y),10))
+                if notebook:
+                    print('Epoch: ' + str(e) + ' Time: ' + str(jnp.round(time.time() - t0,2)) + ' s Loss: ' + l)
+                if not notebook:
+                    bar.title("Loss: " + l)
+            bar()
 
     return params
 
