@@ -91,7 +91,7 @@ def fconNN_str(width,activation = jax.nn.tanh,key = 0):
       *hidden,output = params
       for layer in hidden:
         x = activation(x @ layer['W'] + layer['B'])
-      return 2*jax.nn.tanh(x @ output['W'] + output['B'])
+      return x @ output['W'] + output['B'] #2*jax.nn.tanh(x @ output['W'] + output['B'])
 
     #Return initial parameters and forward function
     return {'params': params,'forward': forward}
@@ -99,7 +99,7 @@ def fconNN_str(width,activation = jax.nn.tanh,key = 0):
 #Apply a morphological layer
 def apply_morph_layer(x,type,params,index_x):
     #Apply each operator
-    params = 2 * jax.nn.tanh(params)
+    #params = 2 * jax.nn.tanh(params)
     oper = mp.operator(type)
     fx = None
     for i in range(params.shape[0]):
@@ -154,8 +154,8 @@ def cmnn(x,type,width,size,shape_x,mask = 'inf',key = 0):
             params.append(jnp.array(0.0).reshape((1,1,1)))
         else:
             if type[i] == 'supgen' or type[i] == 'infgen':
-                ll = jnp.arctanh(jnp.maximum(jnp.minimum(mp.struct_lower(x,size[i])/2,1-1e-5),-1 + 1e-5)).reshape((1,1,size[i],size[i]))
-                ul = jnp.arctanh(jnp.maximum(jnp.minimum(mp.struct_upper(x,size[i])/2,1-1e-5),-1 + 1e-5)).reshape((1,1,size[i],size[i]))
+                ll = mp.struct_lower(x,size[i]).reshape((1,1,size[i],size[i])) #jnp.arctanh(jnp.maximum(jnp.minimum(mp.struct_lower(x,size[i])/2,1-1e-5),-1 + 1e-5)).reshape((1,1,size[i],size[i]))
+                ul = mp.struct_upper(x,size[i]).reshape((1,1,size[i],size[i])) #jnp.arctanh(jnp.maximum(jnp.minimum(mp.struct_upper(x,size[i])/2,1-1e-5),-1 + 1e-5)).reshape((1,1,size[i],size[i]))
                 sl = jnp.std(ll)
                 su = jnp.std(ul)
                 p = jnp.append(ll + sl*jax.random.normal(jax.random.PRNGKey(key[i,-1]),ll.shape),ul + su*jax.random.normal(jax.random.PRNGKey(key[i,-1]),ul.shape),1)
@@ -163,7 +163,7 @@ def cmnn(x,type,width,size,shape_x,mask = 'inf',key = 0):
                     interval = jnp.append(ll + sl*jax.random.normal(jax.random.PRNGKey(key[i,j]),ll.shape),ul + su*jax.random.normal(jax.random.PRNGKey(key[i,j]),ul.shape),1)
                     p = jnp.append(p,interval,0)
             else:
-                ll = jnp.arctanh(jnp.maximum(jnp.minimum(mp.struct_lower(x,size[i])/2,1-1e-5),-1 + 1e-5)).reshape((1,1,size[i],size[i]))
+                ll = mp.struct_lower(x,size[i]).reshape((1,1,size[i],size[i])) #jnp.arctanh(jnp.maximum(jnp.minimum(mp.struct_lower(x,size[i])/2,1-1e-5),-1 + 1e-5)).reshape((1,1,size[i],size[i]))
                 sl = jnp.std(ll)
                 p = ll + sl*jax.random.normal(jax.random.PRNGKey(key[i,-1]),ll.shape)
                 for j in range(width[i] - 1):
@@ -190,7 +190,7 @@ def cmnn(x,type,width,size,shape_x,mask = 'inf',key = 0):
                     m = jnp.append(m,interval,0)
             else:
                 if mask == 'inf':
-                    ll = jnp.array(math.floor((size[i] ** 2)/2) * [0] + [1] + math.floor((size[i] ** 2)/2) * [0]).reshape((1,1,size[i],size[i]))
+                    ll = jnp.array(math.floor((size[i] ** 2)/2) * [0] + [0] + math.floor((size[i] ** 2)/2) * [0]).reshape((1,1,size[i],size[i]))
                 else:
                     ll = jnp.array((size[i] ** 2) * [1]).reshape((1,1,size[i],size[i]))
                 m = ll
