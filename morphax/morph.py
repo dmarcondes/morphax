@@ -13,7 +13,7 @@ def maximum(x,y,h = 1/100):
         y = y.reshape((1,y.shape[0],y.shape[1]))
     return jax.vmap(jax.vmap(jax.vmap(lambda x,y: jnp.sum(jnp.append(x,y) * jax.nn.softmax(jnp.append(x,y)/h),None))))(x,y)
 
-#Approximate maximum
+#Approximate minimum
 def min(x,h = 1/100):
     return - max(-x,h)
 
@@ -41,7 +41,7 @@ def index_array(shape):
 def local_erosion(f,k,l):
     def jit_local_erosion(index):
         fw = jax.lax.dynamic_slice(f, (index[0], index[1]), (2*l + 1, 2*l + 1))
-        return jnp.minimum(jnp.maximum(min(fw - k),0.0),1.0)
+        return jnp.minimum(jnp.maximum(min(fw - k),-jnp.inf),jnp.inf)
     return jit_local_erosion
 
 #Erosion of f by k
@@ -63,7 +63,7 @@ def erosion(f,index_f,k):
 def local_dilation(f,k,l):
     def jit_local_dilation(index):
         fw = jax.lax.dynamic_slice(f, (index[0], index[1]), (2*l + 1, 2*l + 1))
-        return jnp.minimum(jnp.maximum(max(fw + k),0.0),1.0)
+        return jnp.minimum(jnp.maximum(max(fw + k),-jnp.inf),jnp.inf)
     return jit_local_dilation
 
 #Dilation of f by k
