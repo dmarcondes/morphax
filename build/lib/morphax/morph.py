@@ -4,20 +4,20 @@ import jax.numpy as jnp
 import math
 
 #Approximate maximum
-def max(x,h = 1/100):
+def max(x,h = 1/5):
     return jnp.sum(x * jax.nn.softmax(x/h,None))
 
-def maximum(x,y,h = 1/100):
+def maximum(x,y,h = 1/5):
     if len(x.shape) == 2:
         x = x.reshape((1,x.shape[0],x.shape[1]))
         y = y.reshape((1,y.shape[0],y.shape[1]))
     return jax.vmap(jax.vmap(jax.vmap(lambda x,y: jnp.sum(jnp.append(x,y) * jax.nn.softmax(jnp.append(x,y)/h),None))))(x,y)
 
 #Approximate minimum
-def min(x,h = 1/100):
+def min(x,h = 1/5):
     return - max(-x,h)
 
-def minimum(x,y,h = 1/100):
+def minimum(x,y,h = 1/5):
     if len(x.shape) == 2:
         x = x.reshape((1,x.shape[0],x.shape[1]))
         y = y.reshape((1,y.shape[0],y.shape[1]))
@@ -125,7 +125,7 @@ def infgen(f,index_f,k1,k2):
 
 #Sup of array of images
 @jax.jit
-def sup(f,h = 1/100):
+def sup(f,h = 1/5):
     fs = f * jax.nn.softmax(f/h,0)
     fs = jnp.apply_along_axis(jnp.sum,0,fs)
     return fs.reshape((1,f.shape[1],f.shape[2]))

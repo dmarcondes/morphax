@@ -213,7 +213,7 @@ def cmnn(x,type,width,size,shape_x,mask = 'inf',key = 0):
             else:
                 #Apply other layer
                 x = apply_morph_layer(x[0,:,:,:],type[i],params[i],index_x)
-        return jnp.maximum(jnp.minimum(x[0,:,:,:],1.0),0.0)
+        return x[0,:,:,:]
 
     #Return initial parameters and forward function
     return {'params': params,'forward': forward,'mask': mask_list}
@@ -299,7 +299,7 @@ def cmnn_iter(type,width,width_str,size,shape_x,x = None,activation = jax.nn.tan
             else:
                 #Apply other layer
                 x = apply_morph_layer_iter(x[0,:,:,:],type[i],params[i],index_x,w[str(size[i])],forward_inner,size[i])
-        return jnp.maximum(jnp.minimum(x[0,:,:,:],1.0),0.0)
+        return x[0,:,:,:]
 
     #Compute structuring elements
     @jax.jit
