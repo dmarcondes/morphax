@@ -97,10 +97,10 @@ def fconNN_str(width,activation = jax.nn.tanh,key = 0):
     return {'params': params,'forward': forward}
 
 #Apply a morphological layer
-def apply_morph_layer(x,type,params,index_x):
+def apply_morph_layer(x,type,params,index_x,h):
     #Apply each operator
     #params = 2 * jax.nn.tanh(params)
-    oper = mp.operator(type)
+    oper = mp.operator(type,h)
     fx = None
     for i in range(params.shape[0]):
         if fx is None:
@@ -110,7 +110,7 @@ def apply_morph_layer(x,type,params,index_x):
     return fx
 
 #Apply a morphological layer in iterated NN
-def apply_morph_layer_iter(x,type,params,index_x,w,forward_inner,d):
+def apply_morph_layer_iter(x,type,params,index_x,w,forward_inner,d,h):
     #Compute structural elements
     k = None
     if type == 'supgen' or type == 'infgen':
@@ -131,7 +131,7 @@ def apply_morph_layer_iter(x,type,params,index_x,w,forward_inner,d):
     params = k
 
     #Apply each operator
-    oper = mp.operator(type)
+    oper = mp.operator(type,h)
     fx = None
     for i in range(params.shape[0]):
         if fx is None:
@@ -141,7 +141,7 @@ def apply_morph_layer_iter(x,type,params,index_x,w,forward_inner,d):
     return fx
 
 #Canonical Morphological NN
-def cmnn(x,type,width,size,shape_x,mask = 'inf',key = 0):
+def cmnn(x,type,width,size,shape_x,h = 1/100,mask = 'inf',key = 0):
     key = jax.random.split(jax.random.PRNGKey(key),(len(width),max(width)))[:,:,0]
 
     #Index window
@@ -205,21 +205,21 @@ def cmnn(x,type,width,size,shape_x,mask = 'inf',key = 0):
         for i in range(len(type)):
             #Apply sup and inf
             if type[i] == 'sup':
-                x = mp.vmap_sup(x)
+                x = mp.vmap_sup(x,h)
             elif type[i] == 'inf':
-                x = mp.vmap_inf(x)
+                x = mp.vmap_inf(x,h)
             elif type[i] == 'complement':
                 x = 1 - x
             else:
                 #Apply other layer
-                x = apply_morph_layer(x[0,:,:,:],type[i],params[i],index_x)
-        return x[0,:,:,:]
+                x = apply_morph_layer(x[0,:,:,:],type[i],params[i],index_x,h)
+        return mp.maximum_array_number(mp.minimum_array_number(x[0,:,:,:],1.0,h),0.0,h)
 
     #Return initial parameters and forward function
     return {'params': params,'forward': forward,'mask': mask_list}
 
 #Canonical Morphological NN with iterated NN
-def cmnn_iter(type,width,width_str,size,shape_x,x = None,activation = jax.nn.tanh,key = 0,init = 'identity',loss = MSE_SA,sa = True,epochs = 1000,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False):
+def cmnn_iter(type,width,width_str,size,shape_x,h = 1/100,x = None,activation = jax.nn.tanh,key = 0,init = 'identity',loss = MSE_SA,sa = True,epochs = 1000,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False):
     #Index window
     index_x = mp.index_array(shape_x)
 
@@ -291,15 +291,15 @@ def cmnn_iter(type,width,width_str,size,shape_x,x = None,activation = jax.nn.tan
         for i in range(len(type)):
             #Apply sup and inf
             if type[i] == 'sup':
-                x = mp.vmap_sup(x)
+                x = mp.vmap_sup(x,h)
             elif type[i] == 'inf':
-                x = mp.vmap_inf(x)
+                x = mp.vmap_inf(x,h)
             elif type[i] == 'complement':
                 x = 1 - x
             else:
                 #Apply other layer
-                x = apply_morph_layer_iter(x[0,:,:,:],type[i],params[i],index_x,w[str(size[i])],forward_inner,size[i])
-        return x[0,:,:,:]
+                x = apply_morph_layer_iter(x[0,:,:,:],type[i],params[i],index_x,w[str(size[i])],forward_inner,size[i],h)
+        return mp.maximum_array_number(mp.minimum_array_number(x[0,:,:,:],1.0,h),0.0,h)
 
     #Compute structuring elements
     @jax.jit
