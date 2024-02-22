@@ -2,16 +2,12 @@ Metadata-Version: 2.1
 Name: morphax
 Version: 0.0.1
 Summary: Interface to train Discrete Morphological Neural Networks in JAX
-Home-page: UNKNOWN
 Author: Diego Marcondes
 Author-email: <dmarcondes@ime.usp.br>
-License: UNKNOWN
 Keywords: python,JAX,morphology
-Platform: UNKNOWN
 Classifier: Development Status :: 3 - Alpha
 Classifier: Intended Audience :: Researchers
 Classifier: Programming Language :: Python :: 3
 Classifier: Operating System :: Linux :: Ubuntu
 
 Interface to train Discrete Morphological Neural Networks in JAX
-
