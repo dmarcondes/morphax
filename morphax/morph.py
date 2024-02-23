@@ -5,35 +5,29 @@ import math
 
 #Approximate maximum
 def max(x,h = 1/5):
-    return jnp.sum(x * jax.nn.softmax(x/h,None))
+    return h * jnp.sum(jnp.exp(x/h)) #jnp.sum(x * jax.nn.softmax(x/h,None))
 
 def maximum(x,y,h = 1/5):
     if len(x.shape) == 2:
         x = x.reshape((1,x.shape[0],x.shape[1]))
         y = y.reshape((1,y.shape[0],y.shape[1]))
-    return jax.vmap(jax.vmap(jax.vmap(lambda x,y: jnp.sum(jnp.append(x,y) * jax.nn.softmax(jnp.append(x,y)/h),None))))(x,y)
+    return jax.vmap(jax.vmap(jax.vmap(lambda x,y: h*jnp.log(jnp.sum(jnp.exp(jnp.append(x,y)))))))(x,y) #jnp.sum(jnp.append(x,y) * jax.nn.softmax(jnp.append(x,y)/h)
 
 def maximum_array_number(arr,x,h = 1/5):
     earr = jnp.exp(arr/h)
     ex = jnp.exp(x/h)
-    s = earr + ex
-    return arr * (earr/s) + x * (ex/s)
+    #s = earr + ex
+    return h * jnp.log(earr + ex) #arr * (earr/s) + x * (ex/s)
 
 #Approximate minimum
 def min(x,h = 1/5):
-    return - max(-x,h)
+    return - max(x,-h)
 
 def minimum(x,y,h = 1/5):
-    if len(x.shape) == 2:
-        x = x.reshape((1,x.shape[0],x.shape[1]))
-        y = y.reshape((1,y.shape[0],y.shape[1]))
-    return jax.vmap(jax.vmap(jax.vmap(lambda x,y: jnp.sum(jnp.append(x,y) * jax.nn.softmax(-jnp.append(x,y)/h),None))))(x,y)
+    return - maximum(x,y,-h)
 
 def minimum_array_number(arr,x,h = 1/5):
-    earr = jnp.exp(-arr/h)
-    ex = jnp.exp(-x/h)
-    s = earr + ex
-    return arr * (earr/s) + x * (ex/s)
+    return - minimum_array_number(arr,x,-h)
 
 #Structuring element from function
 def struct_function(k,d):
