@@ -133,7 +133,7 @@ def infgen(f,index_f,k1,k2,h = 1/5,m = 1):
 @jax.jit
 def sup(f,h = 1/5):
     #fs = f * jax.nn.softmax(f/h,0)
-    fs = jnp.apply_along_axis(jnp.max,0,fs)
+    fs = jnp.apply_along_axis(jnp.max,0,f)
     return fs.reshape((1,f.shape[1],f.shape[2]))
 
 #Sup vmap for arch
