@@ -119,50 +119,224 @@ def inf(f):
 vmap_inf = lambda f,h: jax.jit(jax.vmap(lambda f: inf(f),in_axes = (1),out_axes = 1))(f)
 
 #Return operator by name
-def operator(type,h):
+def operator(type):
     if type == 'erosion':
-        oper = lambda x,index_x,k: erosion(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),h)
+        oper = lambda x,index_x,k: erosion(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
     elif type == 'dilation':
-        oper = lambda x,index_x,k: dilation(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),h)
+        oper = lambda x,index_x,k: dilation(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
     elif type == 'opening':
-        oper = lambda x,index_x,k: opening(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),h)
+        oper = lambda x,index_x,k: opening(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
     elif type == 'closing':
-        oper = lambda x,index_x,k: closing(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),h)
+        oper = lambda x,index_x,k: closing(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
     elif type == 'asf':
-        oper = lambda x,index_x,k: asf(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),h)
+        oper = lambda x,index_x,k: asf(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
     elif type == 'supgen':
-        oper = lambda x,index_x,k: supgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])),h)
+        oper = lambda x,index_x,k: supgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])))
     elif type == 'infgen':
-        oper = lambda x,index_x,k: infgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])),h)
+        oper = lambda x,index_x,k: infgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])))
     else:
         print('Type of layer ' + type + 'is wrong!')
         return 1
     return oper
 
-#Structuring element of the approximate identity operator in a sample
-def struct_lower(x,d):
-    #Function to apply to each index
-    l = math.floor(d/2)
-    x = jax.lax.pad(x,0.0,((0,0,0),(l,l,0),(l,l,0)))
-    index_x = index_array((x.shape[1],x.shape[2]))
-    def struct_lower(index,x):
-        fw = jax.lax.dynamic_slice(x, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
-        return fw - x[index[0],index[1]]
-    k = jax.vmap(lambda x: jnp.apply_along_axis(lambda index: struct_lower(index,x),1,index_x))(x).reshape((x.shape[0],x.shape[1],x.shape[2],d,d))
-    k = k.reshape((k.shape[0]*k.shape[1]*k.shape[2],d,d))
-    k = jnp.apply_along_axis(lambda k: jnp.min(k),0,k)
-    return k
+####Discrete Morphological Neural Networks####
 
-#Structuring element of upper limit of interval of supgen approximating identity operator
-def struct_upper(x,d):
-    #Function to apply to each index
-    l = math.floor(d/2)
-    x = jax.lax.pad(x,0.0,((0,0,0),(l,l,0),(l,l,0)))
-    index_x = index_array((x.shape[1],x.shape[2]))
-    def struct_upper(index,x):
-        fw = jax.lax.dynamic_slice(x, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
-        return 1 - fw - x[index[0],index[1]]
-    k = jax.vmap(lambda x: jnp.apply_along_axis(lambda index: struct_upper(index,x),1,index_x))(x).reshape((x.shape[0],x.shape[1],x.shape[2],d,d))
-    k = k.reshape((k.shape[0]*k.shape[1]*k.shape[2],d,d))
-    k = jnp.apply_along_axis(lambda k: jnp.min(k),0,k)
-    return k
+#MSE
+@jax.jit
+def MSE(true,pred):
+  return jnp.mean((true - pred)**2)
+
+#L2 error
+@jax.jit
+def L2error(pred,true):
+  return jnp.sqrt(jnp.sum((true - pred)**2))/jnp.sqrt(jnp.sum(true ** 2))
+
+#Croos entropy
+@jax.jit
+def CE(true,pred):
+  return jnp.mean((- true * jnp.log(pred + 1e-5) - (1 - true) * jnp.log(1 - pred + 1e-5)))
+
+#IoU
+@jax.jit
+def IoU(true,pred):
+  return 1 - (jnp.sum(2 * true * pred) + 1)/(jnp.sum(true + pred) + 1)
+
+#Apply a morphological layer
+def apply_morph_layer(x,type,params,index_x):
+    #Apply each operator
+    oper = operator(type)
+    fx = None
+    for i in range(params.shape[0]):
+        if fx is None:
+            fx = oper(x,index_x,params[i,:,:,:]).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+        else:
+            fx = jnp.append(fx,oper(x,index_x,params[i,:,:,:]).reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
+    return fx
+
+#Canonical Discrete Morphological NN
+def cdmnn(type,width,size,shape_x,key = 0):
+    key = jax.random.split(jax.random.PRNGKey(key),(len(width),max(width)))
+
+    #Initialize parameters
+    params = list()
+    for i in range(len(width)):
+        if type[i] in ['sup','inf','complement']:
+            params.append(jnp.array(0.0).reshape((1,1,1)))
+        else:
+            if type[i] == 'supgen' or type[i] == 'infgen':
+                ll = np.zeros((1,1,size[i],size[i]),dtype = int)
+                ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 1
+                ll = jnp.array(ll)
+                ul = 1 + jnp.zeros((1,1,size[i],size[i]),dtype = int)
+                p = jnp.append(ll,ul,1)
+                for j in range(width[i] - 1):
+                    interval = jnp.append(ll,ul,1)
+                    p = jnp.append(p,interval,0)
+            else:
+                ll = np.zeros((1,1,size[i],size[i]),dtype = int)
+                ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 1
+                ll = jnp.array(ll)
+                p = ll
+                for j in range(width[i] - 1):
+                    interval = ll
+                    p = jnp.append(p,interval,0)
+            params.append(p)
+
+    #Forward pass
+    @jax.jit
+    def forward(x,params):
+        x = x.reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+        for i in range(len(type)):
+            #Apply sup and inf
+            if type[i] == 'sup':
+                x = vmap_sup(x)
+            elif type[i] == 'inf':
+                x = vmap_inf(x)
+            elif type[i] == 'complement':
+                x = 1 - x
+            else:
+                #Apply other layer
+                x = apply_morph_layer(x[0,:,:,:],type[i],params[i],index_x)
+        return x[0,:,:,:]
+
+    #Return initial parameters and forward function
+    return {'params': params,'forward': forward}
+
+#Step SLDA
+def step_slda(params,x,y,forward,sample = False,neighbors = None):
+    #Number of layers
+    nlayers = len(params)
+
+#Training function MNN
+def train_dmnn(x,y,forward,params,loss,sample = False,neighbors = None,epochs = 1,batches = 1,key = 0,notebook = False,epoch_print = 100):
+    #Key
+    key = jax.random.split(jax.random.PRNGKey(key),epochs)
+
+    #Batch size
+    bsize = int(math.floor(x.shape[0]/batches))
+
+    #Loss function
+    @jax.jit
+    def lf(params,x,y):
+        return jnp.mean(jax.vmap(loss,in_axes = (0,0))(forward(x,params),y))
+
+    #Training function
+    @jax.jit
+    def update(params,x,y):
+      params = step_slda(params,x,y,forward,sample,neighbors)
+      return params
+
+    #Train
+    t0 = time.time()
+    with alive_bar(epochs) as bar:
+        for e in range(epochs):
+            if not sa:
+                #Permutate x
+                x = jax.random.permutation(jax.random.PRNGKey(key[e,0]),x,0)
+                for b in range(batches):
+                    if b < batches - 1:
+                        xb = jax.lax.dynamic_slice(x,(b*bsize,0,0),(bsize,x.shape[1],x.shape[2]))
+                        yb = jax.lax.dynamic_slice(x,(b*bsize,0,0),(bsize,x.shape[1],x.shape[2]))
+                    else:
+                        xb = x[b*bsize:x.shape[0],:,:]
+                        yb = y[b*bsize:y.shape[0],:,:]
+                    params = update(params,xb,yb)
+            else:
+                params = update(params,x,y)
+            if e % epoch_print == 0:
+                l = str(jnp.round(lf(params,x,y),10))
+                if notebook:
+                    print('Epoch: ' + str(e) + ' Time: ' + str(jnp.round(time.time() - t0,2)) + ' s Loss: ' + l)
+                if not notebook:
+                    bar.title("Loss: " + l)
+            bar()
+
+    return params
+
+
+#SLDA for training DMNN
+def slda(x,y,x_val,y_val,forward,params,loss,epochs_nn,epochs_slda,sample_neigh,mask = None,sa = False,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 100):
+    #Find out width,size, type and calculate probabilities
+    width = []
+    size = []
+    prob = []
+    type = []
+    for i in range(len(params)):
+        width = width + [params[i].shape[0]]
+        size = size + [params[i].shape[2]]
+        if params[i].shape[2] > 1:
+            prob  = prob + [params[i].shape[0] * (params[i].shape[2] ** 2)]
+        else:
+            prob  = prob + [0]
+        if params[i].shape[1] == 2:
+            type = type + ['gen']
+            prob[-1] = 2*prob[-1]
+        else:
+            type = type + ['other']
+
+    prob = [x/sum(prob) for x in prob]
+
+    #Current error
+    current_error = loss(forward(x_val,params),y_val).tolist()
+
+    #Epochs of SLDA
+    for e in range(epochs_slda):
+        print("Epoch SLDA " + str(e) + ' Current validation error: ' + str(jnp.round(current_error,6)))
+        min_error = jnp.inf
+        #Sample neighbors
+        for n in range(sample_neigh):
+            print("Sample neighbor " + str(n) + ' Min local validation error :' + str(jnp.round(min_error,6)))
+            #Sample layer
+            layer = np.random.choice(list(range(len(width))),1,p = prob)[0]
+            #Sample node
+            node = np.random.choice(list(range(width[layer])),1)[0]
+            #Position
+            pos = np.random.choice(list(range(size[layer] ** 2)),1)[0]
+            pos = [math.floor(pos/size[layer]),pos - (math.floor(pos/size[layer]))*size[layer]]
+            #Limit of interval
+            if type[layer] == 'gen':
+                limit = np.random.choice([0,1],1)[0]
+            else:
+                limit = 0
+            #New mask
+            new_mask = mask
+            new_mask[layer] = new_mask[layer].at[node,limit,pos[0],pos[1]].set(jnp.abs(1 - new_mask[layer][node,limit,pos[0],pos[1]]))
+
+            #Train
+            res_neigh = train_morph(x,y,forward,params,loss,new_mask,sa,epochs_nn,batches,lr,b1,b2,eps,eps_root,key,notebook,epoch_print)
+
+            #Val error
+            error_neigh = loss(forward(x_val,res_neigh),y_val).tolist()
+
+            #Store is best
+            if error_neigh < min_error:
+                min_error = error_neigh
+                min_mask = new_mask
+                min_params = res_neigh
+
+        #Update
+        mask = min_mask
+        params = min_params
+        current_error = min_error
+
+    return {'params': params,'mask': mask}
