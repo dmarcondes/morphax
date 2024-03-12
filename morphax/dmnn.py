@@ -35,7 +35,7 @@ def erosion_2D(f,index_f,k):
 @jax.jit
 def erosion(f,index_f,k):
     l = math.floor(k.shape[0]/2)
-    f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
+    f = jax.lax.pad(f,0,((0,0,0),(l,l,0),(l,l,0)))
     eb = jax.vmap(lambda f: erosion_2D(f,index_f,k),in_axes = (0),out_axes = 0)(f)
     return eb
 
@@ -57,7 +57,7 @@ def dilation_2D(f,index_f,k):
 @jax.jit
 def dilation(f,index_f,k,h = 1/5):
     l = math.floor(k.shape[0]/2)
-    f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
+    f = jax.lax.pad(f,0,((0,0,0),(l,l,0),(l,l,0)))
     k = transpose_se(k)
     db = jax.vmap(lambda f: dilation_2D(f,index_f,k),in_axes = (0),out_axes = 0)(f)
     return db
@@ -65,21 +65,21 @@ def dilation(f,index_f,k,h = 1/5):
 #Opening of f by k
 def opening(f,index_f,k):
     l = math.floor(k.shape[0]/2)
-    f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
+    f = jax.lax.pad(f,0,((0,0,0),(l,l,0),(l,l,0)))
     eb = jax.vmap(lambda f: erosion_2D(f,index_f,k),in_axes = (0),out_axes = 0)
     db = jax.vmap(lambda f: dilation_2D(f,index_f,transpose_se(k)),in_axes = (0),out_axes = 0)
     f = eb(f)
-    f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
+    f = jax.lax.pad(f,0,((0,0,0),(l,l,0),(l,l,0)))
     return db(f)
 
 #Colosing of f by k
 def closing(f,index_f,k):
     l = math.floor(k.shape[0]/2)
-    f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
+    f = jax.lax.pad(f,0,((0,0,0),(l,l,0),(l,l,0)))
     eb = jax.vmap(lambda f: erosion_2D(f,index_f,k),in_axes = (0),out_axes = 0)
     db = jax.vmap(lambda f: dilation_2D(f,index_f,transpose_se(k)),in_axes = (0),out_axes = 0)
     f = db(f)
-    f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
+    f = jax.lax.pad(f,0,((0,0,0),(l,l,0),(l,l,0)))
     return eb(f)
 
 #Alternate-sequential filter of f by k
