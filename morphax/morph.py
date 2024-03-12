@@ -47,7 +47,7 @@ def index_array(shape):
 def local_erosion(f,k,l,h = 1/5):
     def jit_local_erosion(index):
         fw = jax.lax.dynamic_slice(f, (index[0], index[1]), (2*l + 1, 2*l + 1))
-        return jnp.minimum(jnp.maximum(jnp.min(fw - k),0.0),1.0)
+        return jnp.minimum(jnp.maximum(min(fw - k,h),0.0),1.0)
     return jit_local_erosion
 
 #Erosion of f by k
@@ -69,7 +69,7 @@ def erosion(f,index_f,k,h = 1/5):
 def local_dilation(f,k,l,h = 1/5):
     def jit_local_dilation(index):
         fw = jax.lax.dynamic_slice(f, (index[0], index[1]), (2*l + 1, 2*l + 1))
-        return jnp.minimum(jnp.maximum(jnp.max(fw + k),0.0),1.0)
+        return jnp.minimum(jnp.maximum(max(fw + k,h),0.0),1.0)
     return jit_local_dilation
 
 #Dilation of f by k
@@ -121,13 +121,13 @@ def complement(f,m = 1):
 def supgen(f,index_f,k1,k2,h = 1/5,m = 1):
     #K1 = minimum(k1,k2)
     #K2 = maximum(k1,k2)
-    return jnp.minimum(erosion(f,index_f,k1,h),complement(dilation(f,index_f,k2,h),m))
+    return minimum(erosion(f,index_f,k1,h),complement(dilation(f,index_f,k2,h),m),h)
 
 #Inf-generating with interval [k1,k2]
 def infgen(f,index_f,k1,k2,h = 1/5,m = 1):
     #K1 = minimum(k1,k2,h)
     #K2 = maximum(k1,k2,h)
-    return jnp.maximum(dilation(f,index_f,k1,h),complement(erosion(f,index_f,k2,h),m))
+    return maximum(dilation(f,index_f,k1,h),complement(erosion(f,index_f,k2,h),m),h)
 
 #Sup of array of images
 @jax.jit
