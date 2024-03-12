@@ -216,7 +216,7 @@ def cdmnn(type,width,size,shape_x,key = 0):
                 x = 1 - x
             else:
                 #Apply other layer
-                x = apply_morph_layer(x[0,:,:,:],type[i],params[i],index_x)
+                x = apply_morph_layer(x[0,:,:,:],type[i],params[i],shape_x)
         return x[0,:,:,:]
 
     #Return initial parameters and forward function
