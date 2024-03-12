@@ -114,20 +114,20 @@ def asf(f,index_f,k,h = 1/5):
 
 #Complement
 @jax.jit
-def complement(f):
-    return 1 - f
+def complement(f,m = 1):
+    return m - f
 
 #Sup-generating with interval [k1,k2]
-def supgen(f,index_f,k1,k2,h = 1/5):
+def supgen(f,index_f,k1,k2,h = 1/5,m = 1):
     K1 = minimum(k1,k2)
     K2 = maximum(k1,k2)
-    return minimum(erosion(f,index_f,K1,h),1 - dilation(f,index_f,1 - K2.transpose(),h),h)
+    return minimum(erosion(f,index_f,K1,h),complement(dilation(f,index_f,K2,h),m),h)
 
 #Inf-generating with interval [k1,k2]
-def infgen(f,index_f,k1,k2,h = 1/5):
+def infgen(f,index_f,k1,k2,h = 1/5,m = 1):
     K1 = minimum(k1,k2,h)
     K2 = maximum(k1,k2,h)
-    return maximum(dilation(f,index_f,K1,h),1 - erosion(f,index_f,1 - K2.transpose(),h),h)
+    return maximum(dilation(f,index_f,K1,h),complement(erosion(f,index_f,K2,h),m),h)
 
 #Sup of array of images
 @jax.jit
