@@ -47,7 +47,7 @@ def index_array(shape):
 def local_erosion(f,k,l,h = 1/5):
     def jit_local_erosion(index):
         fw = jax.lax.dynamic_slice(f, (index[0], index[1]), (2*l + 1, 2*l + 1))
-        return jnp.minimum(jnp.maximum(min(fw - k,h),0.0),1.0)
+        return minimum_array_number(maximum_array_number(min(fw - k,h),0.0,h),1.0,h)
     return jit_local_erosion
 
 #Erosion of f by k
@@ -69,7 +69,7 @@ def erosion(f,index_f,k,h = 1/5):
 def local_dilation(f,k,l,h = 1/5):
     def jit_local_dilation(index):
         fw = jax.lax.dynamic_slice(f, (index[0], index[1]), (2*l + 1, 2*l + 1))
-        return jnp.minimum(jnp.maximum(max(fw + k,h),0.0),1.0)
+        return minimum_array_number(maximum_array_number(max(fw + k,h),0.0,h),1.0,h)
     return jit_local_dilation
 
 #Dilation of f by k
@@ -132,8 +132,8 @@ def infgen(f,index_f,k1,k2,h = 1/5,m = 1):
 #Sup of array of images
 @jax.jit
 def sup(f,h = 1/5):
-    #fs = f * jax.nn.softmax(f/h,0)
-    fs = jnp.apply_along_axis(jnp.max,0,f)
+    fs = f * jax.nn.softmax(f/h,0)
+    fs = jnp.apply_along_axis(jnp.sum,0,fs)
     return fs.reshape((1,f.shape[1],f.shape[2]))
 
 #Sup vmap for arch
