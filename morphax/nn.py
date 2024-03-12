@@ -175,16 +175,15 @@ def cmnn(x,type,width,size,shape_x,h = 1/100,mask = 'inf',key = 0,init = 'random
                 if type[i] == 'supgen' or type[i] == 'infgen':
                     ll = mp.struct_lower(x,size[i]).reshape((1,1,size[i],size[i]))
                     ul = mp.struct_upper(x,size[i]).reshape((1,1,size[i],size[i]))
-                    p = jnp.append(ll,ul,1)
+                    p = jnp.append(ll + sd*jax.random.normal(key[i,0,:],(size[i],size[i])).reshape((1,1,size[i],size[i])),ul + sd*jax.random.normal(key[i,0,:],(size[i],size[i])).reshape((1,1,size[i],size[i])),1)
                     for j in range(width[i] - 1):
-                        interval = jnp.append(ll,ul,1)
+                        interval = jnp.append(ll + sd*jax.random.normal(key[i,j+1,:],(size[i],size[i])).reshape((1,1,size[i],size[i])),ul + sd*jax.random.normal(key[i,j+1,:],(size[i],size[i])).reshape((1,1,size[i],size[i])),1)
                         p = jnp.append(p,interval,0)
                 else:
                     ll = mp.struct_lower(x,size[i]).reshape((1,1,size[i],size[i])) #jnp.arctanh(jnp.maximum(jnp.minimum(mp.struct_lower(x,size[i])/2,1-1e-5),-1 + 1e-5)).reshape((1,1,size[i],size[i]))
-                    # sl = jnp.std(ll)
-                    p = ll# + sl*jax.random.normal(jax.random.PRNGKey(key[i,-1]),ll.shape)
+                    p = ll + sd*jax.random.normal(key[i,0,:],(size[i],size[i])).reshape((1,1,size[i],size[i]))
                     for j in range(width[i] - 1):
-                        interval = ll #+ sl*jax.random.normal(jax.random.PRNGKey(key[i,j]),ll.shape)
+                        interval = ll + sd*jax.random.normal(key[i,j + 1,:],(size[i],size[i])).reshape((1,1,size[i],size[i]))
                         p = jnp.append(p,interval,0)
                 params.append(p)
 
