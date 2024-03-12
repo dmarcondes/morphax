@@ -156,18 +156,18 @@ def cmnn(x,type,width,size,shape_x,h = 1/100,mask = 'inf',key = 0):
             if type[i] == 'supgen' or type[i] == 'infgen':
                 ll = mp.struct_lower(x,size[i]).reshape((1,1,size[i],size[i])) #jnp.arctanh(jnp.maximum(jnp.minimum(mp.struct_lower(x,size[i])/2,1-1e-5),-1 + 1e-5)).reshape((1,1,size[i],size[i]))
                 ul = mp.struct_upper(x,size[i]).reshape((1,1,size[i],size[i])) #jnp.arctanh(jnp.maximum(jnp.minimum(mp.struct_upper(x,size[i])/2,1-1e-5),-1 + 1e-5)).reshape((1,1,size[i],size[i]))
-                sl = jnp.std(ll)
-                su = jnp.std(ul)
-                p = jnp.append(ll + sl*jax.random.normal(jax.random.PRNGKey(key[i,-1]),ll.shape),ul + su*jax.random.normal(jax.random.PRNGKey(key[i,-1]),ul.shape),1)
+                #sl = jnp.std(ll)
+                #su = jnp.std(ul)
+                p = jnp.append(ll,ul,1)
                 for j in range(width[i] - 1):
-                    interval = jnp.append(ll + sl*jax.random.normal(jax.random.PRNGKey(key[i,j]),ll.shape),ul + su*jax.random.normal(jax.random.PRNGKey(key[i,j]),ul.shape),1)
+                    interval = jnp.append(ll,ul,1)
                     p = jnp.append(p,interval,0)
             else:
                 ll = mp.struct_lower(x,size[i]).reshape((1,1,size[i],size[i])) #jnp.arctanh(jnp.maximum(jnp.minimum(mp.struct_lower(x,size[i])/2,1-1e-5),-1 + 1e-5)).reshape((1,1,size[i],size[i]))
-                sl = jnp.std(ll)
-                p = ll + sl*jax.random.normal(jax.random.PRNGKey(key[i,-1]),ll.shape)
+                # sl = jnp.std(ll)
+                p = ll# + sl*jax.random.normal(jax.random.PRNGKey(key[i,-1]),ll.shape)
                 for j in range(width[i] - 1):
-                    interval = ll + sl*jax.random.normal(jax.random.PRNGKey(key[i,j]),ll.shape)
+                    interval = ll #+ sl*jax.random.normal(jax.random.PRNGKey(key[i,j]),ll.shape)
                     p = jnp.append(p,interval,0)
             params.append(p)
 
