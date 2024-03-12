@@ -177,7 +177,7 @@ def struct_lower(x,d):
     def struct_lower(index,x):
         fw = jax.lax.dynamic_slice(x, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
         return fw - x[index[0],index[1]]
-    k = jax.vmap(lambda x: jnp.apply_along_axis(lambda index: struct_lower(index,x),1,index_x))(x).reshape((x.shape[0],x.shape[1],x.shape[2],3,3))
+    k = jax.vmap(lambda x: jnp.apply_along_axis(lambda index: struct_lower(index,x),1,index_x))(x).reshape((x.shape[0],x.shape[1],x.shape[2],d,d))
     k = k.reshape((k.shape[0]*k.shape[1]*k.shape[2],d,d))
     k = jnp.apply_along_axis(lambda k: jnp.min(k),0,k)
     return k
@@ -191,7 +191,7 @@ def struct_upper(x,d):
     def struct_upper(index,x):
         fw = jax.lax.dynamic_slice(x, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
         return 1 - fw - x[index[0],index[1]]
-    k = jax.vmap(lambda x: jnp.apply_along_axis(lambda index: struct_upper(index,x),1,index_x))(x).reshape((x.shape[0],x.shape[1],x.shape[2],3,3))
+    k = jax.vmap(lambda x: jnp.apply_along_axis(lambda index: struct_upper(index,x),1,index_x))(x).reshape((x.shape[0],x.shape[1],x.shape[2],d,d))
     k = k.reshape((k.shape[0]*k.shape[1]*k.shape[2],d,d))
     k = jnp.apply_along_axis(lambda k: jnp.min(k),0,k)
     return k
