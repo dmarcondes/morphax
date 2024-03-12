@@ -1,82 +1,56 @@
-#Morphology module
+#Discrete morphology module
 import jax
 import jax.numpy as jnp
 import math
-
-#Approximate maximum
-def max(x,h = 1/5):
-    return jnp.sum(x * jax.nn.softmax(x/h,None))
-
-def maximum(x,y,h = 1/5):
-    if len(x.shape) == 2:
-        x = x.reshape((1,x.shape[0],x.shape[1]))
-        y = y.reshape((1,y.shape[0],y.shape[1]))
-    return jax.vmap(jax.vmap(jax.vmap(lambda x,y: jnp.sum(jnp.append(x,y) * jax.nn.softmax(jnp.append(x,y)/h,None)))))(x,y)
-
-def maximum_array_number(arr,x,h = 1/5):
-    earr = jnp.exp(arr/h)
-    ex = jnp.exp(x/h)
-    s = earr + ex
-    return arr * (earr/s) + x * (ex/s)
-
-#Approximate minimum
-def min(x,h = 1/5):
-    return max(x,-h)
-
-def minimum(x,y,h = 1/5):
-    return maximum(x,y,-h)
-
-def minimum_array_number(arr,x,h = 1/5):
-    return maximum_array_number(arr,x,-h)
-
-#Structuring element from function
-def struct_function(k,d):
-    w = jnp.array([[x1.tolist(),x2.tolist()] for x1 in jnp.linspace(-jnp.floor(d/2),jnp.floor(d/2),d) for x2 in jnp.linspace(jnp.floor(d/2),-jnp.floor(d/2),d)])
-    k = jnp.array(k(w))
-    return jnp.transpose(k.reshape((d,d)))
-
-def struct_function_w(k,w,d):
-    k = jnp.array(k(w))
-    return jnp.transpose(k.reshape((d,d)))
+import numpy as np
 
 #Create an index array for an array
 def index_array(shape):
     return jnp.array([[x,y] for x in range(shape[0]) for y in range(shape[1])])
 
+#Transpose a structuring element
+def transpose_se(k):
+    d = k.shape[0]
+    kt = np.zeros((d,d),dtype = int)
+    for i in range(d):
+        for j in range(d):
+            kt[i,j] = kt[i,j] + k[d - 1 - i,d - 1 - j]
+    return jnp.array(kt)
+
 #Local erosion of f by k for pixel (i,j)
-def local_erosion(f,k,l,h = 1/5):
+def local_erosion(f,k,l):
     def jit_local_erosion(index):
         fw = jax.lax.dynamic_slice(f, (index[0], index[1]), (2*l + 1, 2*l + 1))
-        return jnp.minimum(jnp.maximum(min(fw - k,h),0.0),1.0)
+        return jnp.min(fw[k == 1])
     return jit_local_erosion
 
 #Erosion of f by k
 @jax.jit
-def erosion_2D(f,index_f,k,h = 1/5):
+def erosion_2D(f,index_f,k):
     l = math.floor(k.shape[0]/2)
-    jit_local_erosion = local_erosion(f,k,l,h)
+    jit_local_erosion = local_erosion(f,k,l)
     return jnp.apply_along_axis(jit_local_erosion,1,index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
 
 #Erosion in batches
 @jax.jit
-def erosion(f,index_f,k,h = 1/5):
+def erosion(f,index_f,k):
     l = math.floor(k.shape[0]/2)
     f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
-    eb = jax.vmap(lambda f: erosion_2D(f,index_f,k,h),in_axes = (0),out_axes = 0)(f)
+    eb = jax.vmap(lambda f: erosion_2D(f,index_f,k),in_axes = (0),out_axes = 0)(f)
     return eb
 
 #Local dilation of f by k for pixel (i,j)
-def local_dilation(f,k,l,h = 1/5):
+def local_dilation(f,k,l):
     def jit_local_dilation(index):
         fw = jax.lax.dynamic_slice(f, (index[0], index[1]), (2*l + 1, 2*l + 1))
-        return jnp.minimum(jnp.maximum(max(fw + k,h),0.0),1.0)
+        return jnp.max(fw[k == 1])
     return jit_local_dilation
 
 #Dilation of f by k
 @jax.jit
-def dilation_2D(f,index_f,k,h = 1/5):
+def dilation_2D(f,index_f,k):
     l = math.floor(k.shape[0]/2)
-    jit_local_dilation = local_dilation(f,k,l,h)
+    jit_local_dilation = local_dilation(f,k,l)
     return jnp.apply_along_axis(jit_local_dilation,1,index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
 
 #Dilation in batches
@@ -84,68 +58,65 @@ def dilation_2D(f,index_f,k,h = 1/5):
 def dilation(f,index_f,k,h = 1/5):
     l = math.floor(k.shape[0]/2)
     f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
-    db = jax.vmap(lambda f: dilation_2D(f,index_f,k,h),in_axes = (0),out_axes = 0)(f)
+    k = transpose_se(k)
+    db = jax.vmap(lambda f: dilation_2D(f,index_f,k),in_axes = (0),out_axes = 0)(f)
     return db
 
 #Opening of f by k
-def opening(f,index_f,k,h = 1/5):
+def opening(f,index_f,k):
     l = math.floor(k.shape[0]/2)
     f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
-    eb = jax.vmap(lambda f: erosion_2D(f,index_f,k,h),in_axes = (0),out_axes = 0)
-    db = jax.vmap(lambda f: dilation_2D(f,index_f,k,h),in_axes = (0),out_axes = 0)
+    eb = jax.vmap(lambda f: erosion_2D(f,index_f,k),in_axes = (0),out_axes = 0)
+    db = jax.vmap(lambda f: dilation_2D(f,index_f,transpose_se(k)),in_axes = (0),out_axes = 0)
     f = eb(f)
     f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
     return db(f)
 
 #Colosing of f by k
-def closing(f,index_f,k,h = 1/5):
+def closing(f,index_f,k):
     l = math.floor(k.shape[0]/2)
     f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
-    eb = jax.vmap(lambda f: erosion_2D(f,index_f,k,h),in_axes = (0),out_axes = 0)
-    db = jax.vmap(lambda f: dilation_2D(f,index_f,k,h),in_axes = (0),out_axes = 0)
+    eb = jax.vmap(lambda f: erosion_2D(f,index_f,k),in_axes = (0),out_axes = 0)
+    db = jax.vmap(lambda f: dilation_2D(f,index_f,transpose_se(k)),in_axes = (0),out_axes = 0)
     f = db(f)
     f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
     return eb(f)
 
 #Alternate-sequential filter of f by k
-def asf(f,index_f,k,h = 1/5):
-    fo = opening(f,index_f,k,h)
-    return closing(fo,index_f,k,h)
+def asf(f,index_f,k):
+    fo = opening(f,index_f,k)
+    return closing(fo,index_f,k)
 
 #Complement
 @jax.jit
-def complement(f,m = 1):
-    return m - f
+def complement(f):
+    return 1 - f
 
 #Sup-generating with interval [k1,k2]
-def supgen(f,index_f,k1,k2,h = 1/5,m = 1):
-    #K1 = minimum(k1,k2)
-    #K2 = maximum(k1,k2)
-    return minimum(erosion(f,index_f,k1,h),complement(dilation(f,index_f,k2,h),m),h)
+def supgen(f,index_f,k1,k2):
+    return jnp.minimum(erosion(f,index_f,k1),complement(dilation(f,index_f,complement(transpose_se(k2)))))
 
 #Inf-generating with interval [k1,k2]
-def infgen(f,index_f,k1,k2,h = 1/5,m = 1):
-    #K1 = minimum(k1,k2,h)
-    #K2 = maximum(k1,k2,h)
-    return maximum(dilation(f,index_f,k1,h),complement(erosion(f,index_f,k2,h),m),h)
+def infgen(f,index_f,k1,k2):
+    return maximum(dilation(f,index_f,k1),complement(erosion(f,index_f,complement(transpose_se(k2)))))
 
 #Sup of array of images
 @jax.jit
-def sup(f,h = 1/5):
-    fs = f * jax.nn.softmax(f/h,0)
-    fs = jnp.apply_along_axis(jnp.sum,0,fs)
-    return fs.reshape((1,f.shape[1],f.shape[2]))
+def sup(f):
+    f = jnp.apply_along_axis(jnp.maximum,0,f)
+    return f.reshape((1,f.shape[1],f.shape[2]))
 
 #Sup vmap for arch
-vmap_sup = lambda f,h: jax.jit(jax.vmap(lambda f: sup(f,h),in_axes = (1),out_axes = 1))(f)
+vmap_sup = lambda f,h: jax.jit(jax.vmap(lambda f: sup(f),in_axes = (1),out_axes = 1))(f)
 
 #Inf of array of images
 @jax.jit
-def inf(f,h = 1/5):
-    return - sup(-f,h)
+def inf(f):
+    f = jnp.apply_along_axis(jnp.minimum,0,f)
+    return f.reshape((1,f.shape[1],f.shape[2]))
 
 #Inf vmap for arch
-vmap_inf = lambda f,h: jax.jit(jax.vmap(lambda f: inf(f,h),in_axes = (1),out_axes = 1))(f)
+vmap_inf = lambda f,h: jax.jit(jax.vmap(lambda f: inf(f),in_axes = (1),out_axes = 1))(f)
 
 #Return operator by name
 def operator(type,h):
