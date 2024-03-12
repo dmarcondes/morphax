@@ -121,13 +121,13 @@ def complement(f,m = 1):
 def supgen(f,index_f,k1,k2,h = 1/5,m = 1):
     #K1 = minimum(k1,k2)
     #K2 = maximum(k1,k2)
-    return minimum(erosion(f,index_f,k1,h),complement(dilation(f,index_f,k2,h),m),h)
+    return jnp.minimum(erosion(f,index_f,k1,h),complement(dilation(f,index_f,k2,h),m))
 
 #Inf-generating with interval [k1,k2]
 def infgen(f,index_f,k1,k2,h = 1/5,m = 1):
     #K1 = minimum(k1,k2,h)
     #K2 = maximum(k1,k2,h)
-    return maximum(dilation(f,index_f,k1,h),complement(erosion(f,index_f,k2,h),m),h)
+    return jnp.maximum(dilation(f,index_f,k1,h),complement(erosion(f,index_f,k2,h),m))
 
 #Sup of array of images
 @jax.jit
