@@ -143,7 +143,7 @@ def apply_morph_layer_iter(x,type,params,index_x,w,forward_inner,d,h):
 #Canonical Morphological NN
 def cmnn(x,type,width,size,shape_x,h = 1/100,mask = 'inf',key = 0,init = 'random'):
     key = jax.random.split(jax.random.PRNGKey(key),(len(width),max(width)))
-    initializer = jax.nn.initializers.glorot_normal()
+    sd = 1/255
 
     #Index window
     index_x = mp.index_array(shape_x)
@@ -156,19 +156,19 @@ def cmnn(x,type,width,size,shape_x,h = 1/100,mask = 'inf',key = 0,init = 'random
         else:
             if init == 'random':
                 if type[i] == 'supgen' or type[i] == 'infgen':
-                    ll = initializer(key[i,0,:],(size[i],size[i]),jnp.float32).reshape((1,1,size[i],size[i]))
+                    ll = sd*jax.random.normal(key[i,0,:],(size[i],size[i])).reshape((1,1,size[i],size[i]))
                     ul = ll
                     p = jnp.append(ll,ul,1)
                     for j in range(width[i] - 1):
-                        ll = initializer(key[i,j,:],(size[i],size[i]),jnp.float32).reshape((1,1,size[i],size[i]))
+                        ll = sd*jax.random.normal(key[i,j,:],(size[i],size[i])).reshape((1,1,size[i],size[i]))
                         ul = ll
                         interval = jnp.append(ll,ul,1)
                         p = jnp.append(p,interval,0)
                 else:
-                    ll = initializer(key[i,0,:],(size[i],size[i]),jnp.float32).reshape((1,1,size[i],size[i]))
+                    ll = sd*jax.random.normal(key[i,0,:],(size[i],size[i])).reshape((1,1,size[i],size[i]))
                     p = ll
                     for j in range(width[i] - 1):
-                        interval = initializer(key[i,j,:],(size[i],size[i]),jnp.float32).reshape((1,1,size[i],size[i]))
+                        interval = sd*jax.random.normal(key[i,j,:],(size[i],size[i])).reshape((1,1,size[i],size[i]))
                         p = jnp.append(p,interval,0)
                 params.append(p)
             else:
