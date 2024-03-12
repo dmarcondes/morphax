@@ -27,7 +27,7 @@ def minimum(x,y,h = 1/5):
     return - maximum(x,y,-h)
 
 def minimum_array_number(arr,x,h = 1/5):
-    return - minimum_array_number(arr,x,-h)
+    return - maximum_array_number(arr,x,-h)
 
 #Structuring element from function
 def struct_function(k,d):
