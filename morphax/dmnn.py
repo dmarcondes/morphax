@@ -3,6 +3,7 @@ import jax
 import jax.numpy as jnp
 import math
 import numpy as np
+import random
 
 #Create an index array for an array
 def index_array(shape):
@@ -223,15 +224,59 @@ def cdmnn(type,width,size,shape_x,key = 0):
         return x[0,:,:,:]
 
     #Return initial parameters and forward function
-    return {'params': params,'forward': forward}
+    return {'params': params,'forward': forward,'width': width,'size': size,'type': type}
 
 #Step SLDA
-def step_slda(params,x,y,forward,sample = False,neighbors = None):
-    #Number of layers
-    nlayers = len(params)
+def step_slda(params,x,y,forward,lf,type,sample = False,neighbors = None):
+    #Current error
+    error = lf(params,x,y).tolist()
+
+    #Sample
+    if sample:
+        #Calculate probabilities
+        prob = []
+        for i in range(len(params)):
+            if params[i].shape[2] > 1:
+                prob  = prob + [params[i].shape[0] * (params[i].shape[2] ** 2)]
+            else:
+                prob  = prob + [0]
+            if params[i].shape[1] == 2:
+                prob[-1] = 2*prob[-1]
+
+        prob = [x/sum(prob) for x in prob]
+        # TBD
+    else:
+        new_par = None
+        range_layers = list(range(len(params)))
+        random.shuffle(range_layers)
+        for l in range_layers:
+            if type[l] != 'inf' and type[l] != 'sup' and type[l] != 'complement':
+                range_nodes = list(range(params[l].shape[0]))
+                random.shuffle(range_nodes)
+                for n in range_nodes:
+                    range_lim = list(range(params[l].shape[1]))
+                    random.shuffle(range_lim)
+                    for lm in range_lim:
+                        range_row = list(range(params[l].shape[2]))
+                        random.shuffle(range_row)
+                        range_col = list(range(params[l].shape[3]))
+                        random.shuffle(range_col)
+                        for i in range_row:
+                            for j in range_col:
+                                if (lm == 0 and params[l][n,l,i,j] == 1) or (lm == 0 and params[l][n,1,i,j] == 1) or (lm == 1 and params[l][n,l,i,j] == 0) or (lm == 1 and params[l][n,1,i,j] == 0):
+                                    test_par = params.copy()
+                                    test_par[l] = params[l].at[n,lm,i,j].set(1 - params[l][n,lm,i,j])
+                                    test_error = lf(test_par,x,y).tolist()
+                                    print(test_error)
+                                    if test_error <= error:
+                                        print("JUMP!")
+                                        new_par = test_par.copy()
+                                        error = test_error
+                                    del test_par, test_error
+    return new_par
 
 #Training function MNN
-def train_dmnn(x,y,forward,params,loss,sample = False,neighbors = None,epochs = 1,batches = 1,key = 0,notebook = False,epoch_print = 100):
+def train_dmnn(x,y,forward,params,loss,type,sample = False,neighbors = None,epochs = 1,batches = 1,key = 0,notebook = False,epoch_print = 100):
     #Key
     key = jax.random.split(jax.random.PRNGKey(key),epochs)
 
@@ -246,7 +291,7 @@ def train_dmnn(x,y,forward,params,loss,sample = False,neighbors = None,epochs = 
     #Training function
     @jax.jit
     def update(params,x,y):
-      params = step_slda(params,x,y,forward,sample,neighbors)
+      params = step_slda(params,x,y,forward,lf,type,sample,neighbors)
       return params
 
     #Train
