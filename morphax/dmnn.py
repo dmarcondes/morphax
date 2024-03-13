@@ -107,7 +107,7 @@ def sup(f):
     return f.reshape((1,f.shape[1],f.shape[2]))
 
 #Sup vmap for arch
-vmap_sup = lambda f,h: jax.jit(jax.vmap(lambda f: sup(f),in_axes = (1),out_axes = 1))(f)
+vmap_sup = lambda f: jax.jit(jax.vmap(lambda f: sup(f),in_axes = (1),out_axes = 1))(f)
 
 #Inf of array of images
 @jax.jit
@@ -116,7 +116,7 @@ def inf(f):
     return f.reshape((1,f.shape[1],f.shape[2]))
 
 #Inf vmap for arch
-vmap_inf = lambda f,h: jax.jit(jax.vmap(lambda f: inf(f),in_axes = (1),out_axes = 1))(f)
+vmap_inf = lambda f: jax.jit(jax.vmap(lambda f: inf(f),in_axes = (1),out_axes = 1))(f)
 
 #Return operator by name
 def operator(type):
