@@ -265,12 +265,12 @@ def step_slda(params,x,y,forward,lf,type,sample = False,neighbors = None):
                         random.shuffle(range_col)
                         for i in range_row:
                             for j in range_col:
-                                #if (lm == 0 and params[l][n,l,i,j] == 1) or (lm == 0 and params[l][n,1,i,j] == 1) or (lm == 1 and params[l][n,l,i,j] == 0) or (lm == 1 and params[l][n,1,i,j] == 0):
-                                test_par = params.copy()
-                                test_par[l] = params[l].at[n,lm,i,j].set(1 - params[l][n,lm,i,j])
-                                test_error = lf(test_par,x,y)
-                                new_par,error = jax.lax.cond(test_error <= error, lambda x = 0: (test_par.copy(),test_error), lambda x = 0: (new_par,error))
-                                del test_par, test_error
+                                if (lm == 0 and params[l][n,l,i,j] == 1) or (lm == 0 and params[l][n,1,i,j] == 1) or (lm == 1 and params[l][n,l,i,j] == 0) or (lm == 1 and params[l][n,1,i,j] == 0):
+                                    test_par = params.copy()
+                                    test_par[l] = params[l].at[n,lm,i,j].set(1 - params[l][n,lm,i,j])
+                                    test_error = lf(test_par,x,y)
+                                    new_par,error = jax.lax.cond(test_error <= error, lambda x = 0: (test_par.copy(),test_error), lambda x = 0: (new_par,error))
+                                    del test_par, test_error
     return new_par
 
 #Training function MNN
@@ -287,7 +287,7 @@ def train_dmnn(x,y,forward,params,loss,type,sample = False,neighbors = None,epoc
         return jnp.mean(jax.vmap(loss,in_axes = (0,0))(forward(x,params),y))
 
     #Training function
-    @jax.jit
+    #@jax.jit
     def update(params,x,y):
       params = step_slda(params,x,y,forward,lf,type,sample,neighbors)
       return params
