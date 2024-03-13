@@ -269,7 +269,7 @@ def step_slda(params,x,y,forward,lf,type,sample = False,neighbors = None):
                                 test_par = params.copy()
                                 test_par[l] = params[l].at[n,lm,i,j].set(1 - params[l][n,lm,i,j])
                                 test_error = lf(test_par,x,y)
-                                new_par,error = jax.lax.cond(test_error <= error, lambda x: (test_par.copy(),test_error), lambda x: (new_par,error))
+                                new_par,error = jax.lax.cond(test_error <= error, lambda x = 0: (test_par.copy(),test_error), lambda x = 0: (new_par,error))
                                 del test_par, test_error
     return new_par
 
