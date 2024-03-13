@@ -5,6 +5,7 @@ import math
 import numpy as np
 import random
 import time
+from alive_progress import alive_bar
 
 #Create an index array for an array
 def index_array(shape):
