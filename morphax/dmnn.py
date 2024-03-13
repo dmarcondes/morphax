@@ -289,7 +289,7 @@ def train_dmnn(x,y,forward,params,loss,type,sample = False,neighbors = None,epoc
         return jnp.mean(jax.vmap(loss,in_axes = (0,0))(forward(x,params),y))
 
     #Training function
-    @jax.jit
+    #@jax.jit
     def update(params,x,y):
       params = step_slda(params,x,y,forward,lf,type,sample,neighbors)
       return params
