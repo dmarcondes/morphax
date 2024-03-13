@@ -12,10 +12,9 @@ def index_array(shape):
 def transpose_se(k):
     d = k.shape[0]
     kt = np.zeros((d,d),dtype = int)
-    k = np.array(k)
     for i in range(d):
         for j in range(d):
-            kt[i,j] = kt[i,j] + k[d - 1 - i,d - 1 - j]
+            kt[i,j] = kt[i,j] + k[d - 1 - i,d - 1 - j].tolist()
     return jnp.array(kt)
 
 #Local erosion of f by k for pixel (i,j)
