@@ -231,7 +231,7 @@ def cdmnn(type,width,size,shape_x,key = 0):
 #Step SLDA
 def step_slda(params,x,y,forward,lf,type,sample = False,neighbors = None):
     #Current error
-    error = lf(params,x,y).tolist()
+    error = lf(params,x,y)
 
     #Sample
     if sample:
@@ -268,10 +268,8 @@ def step_slda(params,x,y,forward,lf,type,sample = False,neighbors = None):
                                 if (lm == 0 and params[l][n,l,i,j] == 1) or (lm == 0 and params[l][n,1,i,j] == 1) or (lm == 1 and params[l][n,l,i,j] == 0) or (lm == 1 and params[l][n,1,i,j] == 0):
                                     test_par = params.copy()
                                     test_par[l] = params[l].at[n,lm,i,j].set(1 - params[l][n,lm,i,j])
-                                    test_error = lf(test_par,x,y).tolist()
-                                    print(test_error)
+                                    test_error = lf(test_par,x,y)
                                     if test_error <= error:
-                                        print("JUMP!")
                                         new_par = test_par.copy()
                                         error = test_error
                                     del test_par, test_error
