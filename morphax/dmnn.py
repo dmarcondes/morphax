@@ -248,7 +248,7 @@ def step_slda(params,x,y,forward,lf,type,sample = False,neighbors = None):
         prob = [x/sum(prob) for x in prob]
         # TBD
     else:
-        new_par = None
+        new_par = params.copy()
         range_layers = list(range(len(params)))
         random.shuffle(range_layers)
         for l in range_layers:
