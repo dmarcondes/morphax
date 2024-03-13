@@ -4,6 +4,7 @@ import jax.numpy as jnp
 import math
 import numpy as np
 import random
+import time
 
 #Create an index array for an array
 def index_array(shape):
