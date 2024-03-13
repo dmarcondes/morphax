@@ -11,11 +11,11 @@ def index_array(shape):
 #Transpose a structuring element
 def transpose_se(k):
     d = k.shape[0]
-    kt = np.zeros((d,d),dtype = int)
+    kt = k
     for i in range(d):
         for j in range(d):
-            kt[i,j] = kt[i,j] + k[d - 1 - i,d - 1 - j].tolist()
-    return jnp.array(kt)
+            kt.at[i,j].set(k[d - 1 - i,d - 1 - j])
+    return kt
 
 #Local erosion of f by k for pixel (i,j)
 def local_erosion(f,k,l):
