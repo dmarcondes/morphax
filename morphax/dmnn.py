@@ -300,19 +300,16 @@ def train_dmnn(x,y,forward,params,loss,type,sample = False,neighbors = None,epoc
     t0 = time.time()
     with alive_bar(epochs) as bar:
         for e in range(epochs):
-            if not sa:
-                #Permutate x
-                x = jax.random.permutation(jax.random.PRNGKey(key[e,0]),x,0)
-                for b in range(batches):
-                    if b < batches - 1:
-                        xb = jax.lax.dynamic_slice(x,(b*bsize,0,0),(bsize,x.shape[1],x.shape[2]))
-                        yb = jax.lax.dynamic_slice(x,(b*bsize,0,0),(bsize,x.shape[1],x.shape[2]))
-                    else:
-                        xb = x[b*bsize:x.shape[0],:,:]
-                        yb = y[b*bsize:y.shape[0],:,:]
-                    params = update(params,xb,yb)
-            else:
-                params = update(params,x,y)
+            #Permutate x
+            x = jax.random.permutation(jax.random.PRNGKey(key[e,0]),x,0)
+            for b in range(batches):
+                if b < batches - 1:
+                    xb = jax.lax.dynamic_slice(x,(b*bsize,0,0),(bsize,x.shape[1],x.shape[2]))
+                    yb = jax.lax.dynamic_slice(x,(b*bsize,0,0),(bsize,x.shape[1],x.shape[2]))
+                else:
+                    xb = x[b*bsize:x.shape[0],:,:]
+                    yb = y[b*bsize:y.shape[0],:,:]
+                params = update(params,xb,yb)
             if e % epoch_print == 0:
                 l = str(jnp.round(lf(params,x,y),10))
                 if notebook:
