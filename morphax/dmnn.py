@@ -12,12 +12,13 @@ def index_array(shape):
     return jnp.array([[x,y] for x in range(shape[0]) for y in range(shape[1])])
 
 #Transpose a structuring element
+@jax.jit
 def transpose_se(k):
     d = k.shape[0]
     kt = k
     for i in range(d):
         for j in range(d):
-            kt.at[i,j].set(k[d - 1 - i,d - 1 - j])
+            kt = kt.at[i,j].set(k[d - 1 - i,d - 1 - j])
     return kt
 
 #Local erosion of f by k for pixel (i,j)
@@ -66,6 +67,7 @@ def dilation(f,index_f,k,h = 1/5):
     return db
 
 #Opening of f by k
+@jax.jit
 def opening(f,index_f,k):
     l = math.floor(k.shape[0]/2)
     f = jax.lax.pad(f,0,((0,0,0),(l,l,0),(l,l,0)))
@@ -76,6 +78,7 @@ def opening(f,index_f,k):
     return db(f)
 
 #Colosing of f by k
+@jax.jit
 def closing(f,index_f,k):
     l = math.floor(k.shape[0]/2)
     f = jax.lax.pad(f,0,((0,0,0),(l,l,0),(l,l,0)))
@@ -86,6 +89,7 @@ def closing(f,index_f,k):
     return eb(f)
 
 #Alternate-sequential filter of f by k
+@jax.jit
 def asf(f,index_f,k):
     fo = opening(f,index_f,k)
     return closing(fo,index_f,k)
@@ -101,7 +105,7 @@ def supgen(f,index_f,k1,k2):
 
 #Inf-generating with interval [k1,k2]
 def infgen(f,index_f,k1,k2):
-    return maximum(dilation(f,index_f,k1),complement(erosion(f,index_f,complement(transpose_se(k2)))))
+    return jnp.maximum(dilation(f,index_f,k1),complement(erosion(f,index_f,complement(transpose_se(k2)))))
 
 #Sup of array of images
 @jax.jit

@@ -5,19 +5,16 @@ import math
 
 #Approximate maximum
 def max(x,h = 1/5):
-    return jnp.sum(x * jax.nn.softmax(x/h,None))
+    return h * jnp.log(jnp.sum(jnp.exp(x/h)))
 
 def maximum(x,y,h = 1/5):
     if len(x.shape) == 2:
         x = x.reshape((1,x.shape[0],x.shape[1]))
         y = y.reshape((1,y.shape[0],y.shape[1]))
-    return jax.vmap(jax.vmap(jax.vmap(lambda x,y: jnp.sum(jnp.append(x,y) * jax.nn.softmax(jnp.append(x,y)/h,None)))))(x,y)
+    return jax.vmap(jax.vmap(jax.vmap(lambda x,y: h * jnp.log(jnp.sum(jnp.exp(jnp.append(x,y)/h))))))(x,y)
 
 def maximum_array_number(arr,x,h = 1/5):
-    earr = jnp.exp(arr/h)
-    ex = jnp.exp(x/h)
-    s = earr + ex
-    return arr * (earr/s) + x * (ex/s)
+    return h * jnp.log(jnp.exp(arr/h) + jnp.exp(x/h))
 
 #Approximate minimum
 def min(x,h = 1/5):
@@ -28,6 +25,16 @@ def minimum(x,y,h = 1/5):
 
 def minimum_array_number(arr,x,h = 1/5):
     return maximum_array_number(arr,x,-h)
+
+#Transpose a structuring element
+@jax.jit
+def transpose_se(k):
+    d = k.shape[0]
+    kt = k
+    for i in range(d):
+        for j in range(d):
+            kt = kt.at[i,j].set(k[d - 1 - i,d - 1 - j])
+    return kt
 
 #Structuring element from function
 def struct_function(k,d):
@@ -65,14 +72,14 @@ def erosion(f,index_f,k,h = 1/5):
     eb = jax.vmap(lambda f: erosion_2D(f,index_f,k,h),in_axes = (0),out_axes = 0)(f)
     return eb
 
-#Local dilation of f by k for pixel (i,j)
+#Local dilation of f by k for pixel (i,j) assuming k already transposed
 def local_dilation(f,k,l,h = 1/5):
     def jit_local_dilation(index):
         fw = jax.lax.dynamic_slice(f, (index[0], index[1]), (2*l + 1, 2*l + 1))
         return jnp.minimum(jnp.maximum(max(fw + k,h),0.0),1.0)
     return jit_local_dilation
 
-#Dilation of f by k
+#Dilation of f by k assuming k already transposed
 @jax.jit
 def dilation_2D(f,index_f,k,h = 1/5):
     l = math.floor(k.shape[0]/2)
@@ -84,30 +91,34 @@ def dilation_2D(f,index_f,k,h = 1/5):
 def dilation(f,index_f,k,h = 1/5):
     l = math.floor(k.shape[0]/2)
     f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
+    k = transpose_se(k)
     db = jax.vmap(lambda f: dilation_2D(f,index_f,k,h),in_axes = (0),out_axes = 0)(f)
     return db
 
 #Opening of f by k
+@jax.jit
 def opening(f,index_f,k,h = 1/5):
     l = math.floor(k.shape[0]/2)
     f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
     eb = jax.vmap(lambda f: erosion_2D(f,index_f,k,h),in_axes = (0),out_axes = 0)
-    db = jax.vmap(lambda f: dilation_2D(f,index_f,k,h),in_axes = (0),out_axes = 0)
+    db = jax.vmap(lambda f: dilation_2D(f,index_f,transpose_se(k),h),in_axes = (0),out_axes = 0)
     f = eb(f)
     f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
     return db(f)
 
 #Colosing of f by k
+@jax.jit
 def closing(f,index_f,k,h = 1/5):
     l = math.floor(k.shape[0]/2)
     f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
     eb = jax.vmap(lambda f: erosion_2D(f,index_f,k,h),in_axes = (0),out_axes = 0)
-    db = jax.vmap(lambda f: dilation_2D(f,index_f,k,h),in_axes = (0),out_axes = 0)
+    db = jax.vmap(lambda f: dilation_2D(f,index_f,transpose_se(k),h),in_axes = (0),out_axes = 0)
     f = db(f)
     f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
     return eb(f)
 
 #Alternate-sequential filter of f by k
+@jax.jit
 def asf(f,index_f,k,h = 1/5):
     fo = opening(f,index_f,k,h)
     return closing(fo,index_f,k,h)
@@ -118,22 +129,24 @@ def complement(f,m = 1):
     return m - f
 
 #Sup-generating with interval [k1,k2]
+@jax.jit
 def supgen(f,index_f,k1,k2,h = 1/5,m = 1):
-    #K1 = minimum(k1,k2)
-    #K2 = maximum(k1,k2)
-    return minimum(erosion(f,index_f,k1,h),complement(dilation(f,index_f,k2,h),m),h)
+    K1 = minimum(k1,k2,h)
+    K2 = maximum(k1,k2,h)
+    return minimum(erosion(f,index_f,K1,h),complement(dilation(f,index_f,K2,h),m),h)
 
 #Inf-generating with interval [k1,k2]
+@jax.jit
 def infgen(f,index_f,k1,k2,h = 1/5,m = 1):
-    #K1 = minimum(k1,k2,h)
-    #K2 = maximum(k1,k2,h)
-    return maximum(dilation(f,index_f,k1,h),complement(erosion(f,index_f,k2,h),m),h)
+    K1 = minimum(k1,k2,h)
+    K2 = maximum(k1,k2,h)
+    return maximum(dilation(f,index_f,K1,h),complement(erosion(f,index_f,K2,h),m),h)
 
 #Sup of array of images
 @jax.jit
 def sup(f,h = 1/5):
-    fs = f * jax.nn.softmax(f/h,0)
-    fs = jnp.apply_along_axis(jnp.sum,0,fs)
+    fs = jnp.exp(f/h)
+    fs = h * jnp.log(jnp.apply_along_axis(jnp.sum,0,fs))
     return fs.reshape((1,f.shape[1],f.shape[2]))
 
 #Sup vmap for arch
@@ -142,7 +155,7 @@ vmap_sup = lambda f,h: jax.jit(jax.vmap(lambda f: sup(f,h),in_axes = (1),out_axe
 #Inf of array of images
 @jax.jit
 def inf(f,h = 1/5):
-    return - sup(-f,h)
+    return sup(f,-h)
 
 #Inf vmap for arch
 vmap_inf = lambda f,h: jax.jit(jax.vmap(lambda f: inf(f,h),in_axes = (1),out_axes = 1))(f)
