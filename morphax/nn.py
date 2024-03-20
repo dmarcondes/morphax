@@ -51,7 +51,7 @@ def IoU_SA(true,pred,wheight,c = 100,q = 2):
 
 #activation
 def cut2(x):
-    return jnp.minimum(jnp.maximum(x,-2.0),2.0)
+    return jnp.minimum(jnp.maximum(x,-1.0),2.0)
 
 #Simple fully connected architecture. Return params and the function for the forward pass
 def fconNN(width,activation = jax.nn.tanh,key = 0):
