@@ -103,9 +103,9 @@ def apply_morph_layer(x,type,params,index_x,h):
     fx = None
     for i in range(params.shape[0]):
         if fx is None:
-            fx = oper(x,index_x,params[i,:,:,:]).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+            fx = oper(x,index_x,2 * jax.nn.tanh(params[i,:,:,:])).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
         else:
-            fx = jnp.append(fx,oper(x,index_x,params[i,:,:,:]).reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
+            fx = jnp.append(fx,oper(x,index_x,2 * jax.nn.tanh(params[i,:,:,:])).reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
     return fx
 
 #Apply a morphological layer in iterated NN
@@ -134,9 +134,9 @@ def apply_morph_layer_iter(x,type,params,index_x,w,forward_inner,d,h):
     fx = None
     for i in range(params.shape[0]):
         if fx is None:
-            fx = oper(x,index_x,params[i,:,:,:]).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+            fx = oper(x,index_x,2 * jax.nn.tanh(params[i,:,:,:])).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
         else:
-            fx = jnp.append(fx,oper(x,index_x,params[i,:,:,:]).reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
+            fx = jnp.append(fx,oper(x,index_x,2 * jax.nn.tanh(params[i,:,:,:])).reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
     return fx
 
 #Canonical Morphological NN
@@ -172,14 +172,14 @@ def cmnn(x,type,width,size,shape_x,h = 1/100,mask = 'inf',key = 0,init = 'random
                 params.append(p)
             else:
                 if type[i] == 'supgen' or type[i] == 'infgen':
-                    ll = mp.struct_lower(x,size[i]).reshape((1,1,size[i],size[i]))
-                    ul = mp.struct_upper(x,size[i]).reshape((1,1,size[i],size[i]))
+                    ll = jnp.arctanh(mp.struct_lower(x,size[i]).reshape((1,1,size[i],size[i]))/2)
+                    ul = jnp.arctanh(mp.struct_upper(x,size[i]).reshape((1,1,size[i],size[i]))/2)
                     p = jnp.append(ll + sd*jax.random.normal(key[i,0,:],(size[i],size[i])).reshape((1,1,size[i],size[i])),ul + sd*jax.random.normal(key[i,0,:],(size[i],size[i])).reshape((1,1,size[i],size[i])),1)
                     for j in range(width[i] - 1):
                         interval = jnp.append(ll + sd*jax.random.normal(key[i,j+1,:],(size[i],size[i])).reshape((1,1,size[i],size[i])),ul + sd*jax.random.normal(key[i,j+1,:],(size[i],size[i])).reshape((1,1,size[i],size[i])),1)
                         p = jnp.append(p,interval,0)
                 else:
-                    ll = mp.struct_lower(x,size[i]).reshape((1,1,size[i],size[i])) #jnp.arctanh(jnp.maximum(jnp.minimum(mp.struct_lower(x,size[i])/2,1-1e-5),-1 + 1e-5)).reshape((1,1,size[i],size[i]))
+                    ll = jnp.arctanh(mp.struct_lower(x,size[i]).reshape((1,1,size[i],size[i]))/2) #jnp.arctanh(jnp.maximum(jnp.minimum(mp.struct_lower(x,size[i])/2,1-1e-5),-1 + 1e-5)).reshape((1,1,size[i],size[i]))
                     p = ll + sd*jax.random.normal(key[i,0,:],(size[i],size[i])).reshape((1,1,size[i],size[i]))
                     for j in range(width[i] - 1):
                         interval = ll + sd*jax.random.normal(key[i,j + 1,:],(size[i],size[i])).reshape((1,1,size[i],size[i]))
@@ -256,7 +256,7 @@ def cmnn_iter(type,width,width_str,size,shape_x,h = 1/100,x = None,activation = 
         #Lower limit
         nn = fconNN_str(width_str,activation,key)
         forward_inner = nn['forward']
-        w_y = mp.struct_lower(x,max_size).reshape((w_max.shape[0],1))
+        w_y = jnp.arctanh(mp.struct_lower(x,max_size).reshape((w_max.shape[0],1))/2)
         params_ll = train_fcnn(w_max,w_y,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
         ll = forward_inner(w_max,params_ll).reshape((max_size,max_size))
 
@@ -264,7 +264,7 @@ def cmnn_iter(type,width,width_str,size,shape_x,h = 1/100,x = None,activation = 
             #Upper limit
             nn = fconNN_str(width_str,activation,key)
             forward_inner = nn['forward']
-            w_y = mp.struct_upper(x,max_size).reshape((w_max.shape[0],1))
+            w_y = jnp.arctanh(mp.struct_upper(x,max_size).reshape((w_max.shape[0],1))/2)
             params_ul = train_fcnn(w_max,w_y,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
             ul = forward_inner(w_max,params_ul).reshape((max_size,max_size))
 
@@ -332,7 +332,7 @@ def cmnn_iter(type,width,width_str,size,shape_x,h = 1/100,x = None,activation = 
             else:
                 for j in range(width[i]):
                     struct[i].append(forward_inner(w[str(size[i])],params[i][j]).reshape((size[i],size[i])))
-        return struct
+        return jax.nn.tanh(struct)
 
     #Return initial parameters and forward function
     return {'params': params,'forward': forward,'ll': ll,'ul': ul,'compute_struct': compute_struct}
