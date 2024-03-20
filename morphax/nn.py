@@ -21,8 +21,8 @@ def MSE(true,pred):
 
 #MSE self-adaptative
 @jax.jit
-def MSE_SA(true,pred,wheight):
-  return jnp.mean(jax.nn.sigmoid(wheight) * (true - pred)**2)
+def MSE_SA(true,pred,wheight,c = 100,q = 2):
+  return jnp.mean(c * (wheight ** q) * (true - pred)**2)
 
 #L2 error
 @jax.jit
@@ -36,8 +36,8 @@ def CE(true,pred):
 
 #Croos entropy self-adaptative
 @jax.jit
-def CE_SA(true,pred,wheight):
-  return jnp.mean(jax.nn.sigmoid(wheight) * (- true * jnp.log(pred + 1e-5) - (1 - true) * jnp.log(1 - pred + 1e-5)))
+def CE_SA(true,pred,wheight,c = 100,q = 2):
+  return jnp.mean(c * (wheight ** q) * (- true * jnp.log(pred + 1e-5) - (1 - true) * jnp.log(1 - pred + 1e-5)))
 
 #IoU
 @jax.jit
@@ -46,14 +46,14 @@ def IoU(true,pred):
 
 #IoU self-adaptative
 @jax.jit
-def IoU_SA(true,pred,wheight):
-  return 1 - (jnp.sum(jax.nn.sigmoid(wheight) *2 * true * pred) + 1)/(jnp.sum(jax.nn.sigmoid(wheight) * (true + pred + 1)))
+def IoU_SA(true,pred,wheight,c = 100,q = 2):
+  return 1 - (jnp.sum(c * (wheight ** q) * 2 * true * pred) + 1)/(jnp.sum(c * (wheight ** q) * (true + pred + 1)))
 
-#Simple fully connected architecture. Return the function for the forward pass
+#Simple fully connected architecture. Return params and the function for the forward pass
 def fconNN(width,activation = jax.nn.tanh,key = 0):
     #Initialize parameters with Glorot initialization
     initializer = jax.nn.initializers.glorot_normal()
-    key = jax.random.split(jax.random.PRNGKey(key),len(width)-1) #Seed for initialization
+    key = jax.random.split(jax.random.PRNGKey(key),len(width) - 1) #Seed for initialization
     params = list()
     for key,lin,lout in zip(key,width[:-1],width[1:]):
         W = initializer(key,(lin,lout),jnp.float32)
@@ -91,7 +91,7 @@ def fconNN_str(width,activation = jax.nn.tanh,key = 0):
       *hidden,output = params
       for layer in hidden:
         x = activation(x @ layer['W'] + layer['B'])
-      return x @ output['W'] + output['B'] #2*jax.nn.tanh(x @ output['W'] + output['B'])
+      return x @ output['W'] + output['B']
 
     #Return initial parameters and forward function
     return {'params': params,'forward': forward}
@@ -99,7 +99,6 @@ def fconNN_str(width,activation = jax.nn.tanh,key = 0):
 #Apply a morphological layer
 def apply_morph_layer(x,type,params,index_x,h):
     #Apply each operator
-    #params = 2 * jax.nn.tanh(params)
     oper = mp.operator(type,h)
     fx = None
     for i in range(params.shape[0]):
@@ -235,7 +234,7 @@ def cmnn(x,type,width,size,shape_x,h = 1/100,mask = 'inf',key = 0,init = 'random
     return {'params': params,'forward': forward,'mask': mask_list}
 
 #Canonical Morphological NN with iterated NN
-def cmnn_iter(type,width,width_str,size,shape_x,h = 1/100,x = None,activation = jax.nn.tanh,key = 0,init = 'identity',loss = MSE_SA,sa = True,epochs = 1000,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False):
+def cmnn_iter(type,width,width_str,size,shape_x,h = 1/100,x = None,activation = jax.nn.tanh,key = 0,init = 'identity',loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 1000,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False):
     #Index window
     index_x = mp.index_array(shape_x)
 
@@ -258,16 +257,15 @@ def cmnn_iter(type,width,width_str,size,shape_x,h = 1/100,x = None,activation = 
         nn = fconNN_str(width_str,activation,key)
         forward_inner = nn['forward']
         w_y = mp.struct_lower(x,max_size).reshape((w_max.shape[0],1))
-        params_ll = train_fcnn(w_max,w_y,forward_inner,nn['params'],loss,sa,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
+        params_ll = train_fcnn(w_max,w_y,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
         ll = forward_inner(w_max,params_ll).reshape((max_size,max_size))
 
-        #infgen does not work, fix later
         if 'supgen' in type or 'infgen' in type:
             #Upper limit
             nn = fconNN_str(width_str,activation,key)
             forward_inner = nn['forward']
             w_y = mp.struct_upper(x,max_size).reshape((w_max.shape[0],1))
-            params_ul = train_fcnn(w_max,w_y,forward_inner,nn['params'],loss,sa,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
+            params_ul = train_fcnn(w_max,w_y,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
             ul = forward_inner(w_max,params_ul).reshape((max_size,max_size))
 
         #Assign trained parameters
@@ -315,7 +313,7 @@ def cmnn_iter(type,width,width_str,size,shape_x,h = 1/100,x = None,activation = 
             else:
                 #Apply other layer
                 x = apply_morph_layer_iter(x[0,:,:,:],type[i],params[i],index_x,w[str(size[i])],forward_inner,size[i],h)
-        return x[0,:,:,:] #mp.minimum_array_number(mp.maximum_array_number(x[0,:,:,:],0.0,h),1.0,h)
+        return x[0,:,:,:]
 
     #Compute structuring elements
     @jax.jit
@@ -340,7 +338,7 @@ def cmnn_iter(type,width,width_str,size,shape_x,h = 1/100,x = None,activation = 
     return {'params': params,'forward': forward,'ll': ll,'ul': ul,'compute_struct': compute_struct}
 
 #Training function MNN
-def train_morph(x,y,forward,params,loss,mask = None,sa = False,epochs = 1,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 100):
+def train_morph(x,y,forward,params,loss,mask = None,sa = False,c = 100,q = 2,epochs = 1,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 100):
     #Key
     key = jax.random.split(jax.random.PRNGKey(key),epochs)
 
@@ -349,10 +347,10 @@ def train_morph(x,y,forward,params,loss,mask = None,sa = False,epochs = 1,batche
 
     #Self-adaptative
     if sa:
-        params.append({'w': jnp.zeros((y.shape)) + 1.0})
+        params.append({'w': jnp.zeros((y.shape))})
         @jax.jit
         def lf(params,x,y):
-            return jnp.mean(jax.vmap(loss,in_axes = (0,0,0))(forward(x,params[:-1]),y,params[-1]['w']))
+            return jnp.mean(jax.vmap(lambda true,pred,weight: loss(true,pred,weight,c,q),in_axes = (0,0,0))(forward(x,params[:-1]),y,params[-1]['w']))
     else:
         #Loss function
         @jax.jit
@@ -409,7 +407,7 @@ def train_morph(x,y,forward,params,loss,mask = None,sa = False,epochs = 1,batche
 
 
 #Training function FCNN
-def train_fcnn(x,y,forward,params,loss,sa = False,epochs = 1,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 1000):
+def train_fcnn(x,y,forward,params,loss,sa = False,c = 100,q = 2,epochs = 1,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 1000):
     #Key
     key = jax.random.split(jax.random.PRNGKey(key),epochs)
 
@@ -418,10 +416,10 @@ def train_fcnn(x,y,forward,params,loss,sa = False,epochs = 1,batches = 1,lr = 0.
 
     #Self-adaptative
     if sa:
-        params.append({'w': jnp.zeros((y.shape)) + 1.0})
+        params.append({'w': jnp.zeros((y.shape))})
         @jax.jit
         def lf(params,x,y):
-            return jnp.mean(jax.vmap(loss,in_axes = (0,0,0))(forward(x,params[:-1]),y,params[-1]['w']))
+            return jnp.mean(jax.vmap(lambda true,pred,weight: loss(true,pred,weight,c,q),in_axes = (0,0,0))(forward(x,params[:-1]),y,params[-1]['w']))
     else:
         #Loss function
         @jax.jit
@@ -471,7 +469,7 @@ def train_fcnn(x,y,forward,params,loss,sa = False,epochs = 1,batches = 1,lr = 0.
     return params
 
 #SLDA for training DMNN
-def slda(x,y,x_val,y_val,forward,params,loss,epochs_nn,epochs_slda,sample_neigh,mask = None,sa = False,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 100):
+def slda(x,y,x_val,y_val,forward,params,loss,epochs_nn,epochs_slda,sample_neigh,mask = None,sa = False,c = 100,q = 2,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 100):
     #Find out width,size, type and calculate probabilities
     width = []
     size = []
@@ -519,7 +517,7 @@ def slda(x,y,x_val,y_val,forward,params,loss,epochs_nn,epochs_slda,sample_neigh,
             new_mask[layer] = new_mask[layer].at[node,limit,pos[0],pos[1]].set(jnp.abs(1 - new_mask[layer][node,limit,pos[0],pos[1]]))
 
             #Train
-            res_neigh = train_morph(x,y,forward,params,loss,new_mask,sa,epochs_nn,batches,lr,b1,b2,eps,eps_root,key,notebook,epoch_print)
+            res_neigh = train_morph(x,y,forward,params,loss,new_mask,sa,c,q,epochs_nn,batches,lr,b1,b2,eps,eps_root,key,notebook,epoch_print)
 
             #Val error
             error_neigh = loss(forward(x_val,res_neigh),y_val).tolist()
