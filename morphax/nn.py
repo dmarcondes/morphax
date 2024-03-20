@@ -347,7 +347,7 @@ def train_morph(x,y,forward,params,loss,mask = None,sa = False,c = 100,q = 2,epo
 
     #Self-adaptative
     if sa:
-        params.append({'w': jnp.zeros((y.shape))})
+        params.append({'w': jnp.zeros((y.shape)) + (1/c) ** (1/q)})
         @jax.jit
         def lf(params,x,y):
             return jnp.mean(jax.vmap(lambda true,pred,weight: loss(true,pred,weight,c,q),in_axes = (0,0,0))(forward(x,params[:-1]),y,params[-1]['w']))
@@ -416,7 +416,7 @@ def train_fcnn(x,y,forward,params,loss,sa = False,c = 100,q = 2,epochs = 1,batch
 
     #Self-adaptative
     if sa:
-        params.append({'w': jnp.zeros((y.shape))})
+        params.append({'w': jnp.zeros((y.shape)) + (1/c) ** (1/q)})
         @jax.jit
         def lf(params,x,y):
             return jnp.mean(jax.vmap(lambda true,pred,weight: loss(true,pred,weight,c,q),in_axes = (0,0,0))(forward(x,params[:-1]),y,params[-1]['w']))
