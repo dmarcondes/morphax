@@ -52,7 +52,7 @@ def index_array(shape):
 
 #Apply W-operator with characteristic function f at pixel (i,j)
 def local_w_operator(x,f,l):
-    def jit_local_erosion(index):
+    def jit_w_operator(index):
         x = jax.lax.dynamic_slice(x, (index[0], index[1]), (2*l + 1, 2*l + 1))
         return f(x)
     return jit_w_operator
@@ -74,7 +74,7 @@ def w_operator(x,index_x,f,d):
 
 #Apply W-operator with characteristic function f given by nn at pixel (i,j)
 def local_w_operator_nn(x,forward,params,l):
-    def jit_local_erosion(index):
+    def jit_w_operator(index):
         x = jax.lax.dynamic_slice(x, (index[0], index[1]), (2*l + 1, 2*l + 1))
         return forward(x,params)
     return jit_w_operator
