@@ -129,8 +129,8 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0):
 #Apply a morphological layer
 def apply_morph_layer(x,type,params,index_x,h,forward_wop = None,d = None):
     #Apply each operator
-    oper = mp.operator(type,h)
     if type != "wop":
+        oper = mp.operator(type,h)
         fx = None
         for i in range(params.shape[0]):
             if fx is None:
@@ -138,7 +138,7 @@ def apply_morph_layer(x,type,params,index_x,h,forward_wop = None,d = None):
             else:
                 fx = jnp.append(fx,oper(x,index_x,cut2(params[i,:,:,:])).reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
     else:
-        fx = oper(x,index_x,forward_wop,params,d)
+        fx = mp.w_operator_nn(x,index_x,forward,params,d)
     return fx
 
 #Apply a morphological layer in iterated NN
@@ -163,8 +163,8 @@ def apply_morph_layer_iter(x,type,params,index_x,w,forward_inner,d,h,forward_wop
     params = k
 
     #Apply each operator
-    oper = mp.operator(type,h)
     if type != "wop":
+        oper = mp.operator(type,h)
         fx = None
         for i in range(params.shape[0]):
             if fx is None:
@@ -172,7 +172,7 @@ def apply_morph_layer_iter(x,type,params,index_x,w,forward_inner,d,h,forward_wop
             else:
                 fx = jnp.append(fx,oper(x,index_x,cut2(params[i,:,:,:])).reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
     else:
-        fx = oper(x,index_x,forward_wop,params,d)
+        fx = mp.w_operator_nn(x,index_x,forward,params,d)
     return fx
 
 #Canonical Morphological NN

@@ -220,8 +220,6 @@ def operator(type,h):
         oper = lambda x,index_x,k: supgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])),h)
     elif type == 'infgen':
         oper = lambda x,index_x,k: infgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])),h)
-    elif type == 'wop':
-        oper = lambda x,index_x,forward,params,d: w_operator_nn(x,index_x,forward,params,d)
     else:
         print('Type of layer ' + type + 'is wrong!')
         return 1
