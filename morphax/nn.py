@@ -138,18 +138,7 @@ def apply_morph_layer(x,type,params,index_x,h,forward_wop = None,d = None):
             else:
                 fx = jnp.append(fx,oper(x,index_x,cut2(params[i,:,:,:])).reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
     else:
-        l = math.floor(d/2)
-        def local_w_operator_nn(xx):
-            def jit_w_operator(index):
-                return forward_wop(jax.lax.dynamic_slice(xx, (index[0], index[1]), (2*l + 1, 2*l + 1)),params)
-            return jit_w_operator
-
-        def w_operator_2D_nn(xx):
-            jit_w_operator = local_w_operator_nn(xx)
-            return jnp.apply_along_axis(jit_w_operator,1,index_x).reshape((xx.shape[0] - 2*l,xx.shape[1] - 2*l))
-
-        x = jax.lax.pad(x,0.0,((0,0,0),(l,l,0),(l,l,0)))
-        fx = jax.vmap(w_operator_2D_nn,in_axes = (0),out_axes = 0)(x)
+        fx = mp.w_operator_nn(x,index_x,forward_wop,params,d)
     return fx
 
 #Apply a morphological layer in iterated NN
@@ -183,18 +172,7 @@ def apply_morph_layer_iter(x,type,params,index_x,w,forward_inner,d,h,forward_wop
             else:
                 fx = jnp.append(fx,oper(x,index_x,cut2(params[i,:,:,:])).reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
     else:
-        l = math.floor(d/2)
-        def local_w_operator_nn(xx):
-            def jit_w_operator(index):
-                return forward_wop(jax.lax.dynamic_slice(xx, (index[0], index[1]), (2*l + 1, 2*l + 1)),params)
-            return jit_w_operator
-
-        def w_operator_2D_nn(xx):
-            jit_w_operator = local_w_operator_nn(xx)
-            return jnp.apply_along_axis(jit_w_operator,1,index_x).reshape((xx.shape[0] - 2*l,xx.shape[1] - 2*l))
-
-        x = jax.lax.pad(x,0.0,((0,0,0),(l,l,0),(l,l,0)))
-        fx = jax.vmap(w_operator_2D_nn,in_axes = (0),out_axes = 0)(x)
+        fx = mp.w_operator_nn(x,index_x,forward_wop,params,d)
     return fx
 
 #Canonical Morphological NN

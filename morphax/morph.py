@@ -58,14 +58,12 @@ def local_w_operator(x,f,l):
     return jit_w_operator
 
 #Apply W-operator with characteristic function f
-@jax.jit
 def w_operator_2D(x,index_x,f,d):
     l = math.floor(d/2)
     jit_w_operator = local_w_operator(x,f,l)
     return jnp.apply_along_axis(jit_w_operator,1,index_x).reshape((x.shape[0] - 2*l,x.shape[1] - 2*l))
 
 #Apply W-operator in batches
-@jax.jit
 def w_operator(x,index_x,f,d):
     l = math.floor(d/2)
     x = jax.lax.pad(x,0.0,((0,0,0),(l,l,0),(l,l,0)))
@@ -80,14 +78,12 @@ def local_w_operator_nn(x,forward,params,l):
     return jit_w_operator
 
 #Apply W-operator with characteristic function f given by nn
-@jax.jit
 def w_operator_2D_nn(x,index_x,forward,params,d):
     l = math.floor(d/2)
     jit_w_operator = local_w_operator_nn(x,forward,params,l)
     return jnp.apply_along_axis(jit_w_operator,1,index_x).reshape((x.shape[0] - 2*l,x.shape[1] - 2*l))
 
 #Apply W-operator in batches (nn)
-@jax.jit
 def w_operator_nn(x,index_x,forward,params,d):
     l = math.floor(d/2)
     x = jax.lax.pad(x,0.0,((0,0,0),(l,l,0),(l,l,0)))
