@@ -146,7 +146,7 @@ def apply_morph_layer(x,type,params,index_x,h,forward_wop = None,d = None):
 
         def w_operator_2D_nn(xx):
             jit_w_operator = local_w_operator_nn(xx)
-            return jnp.apply_along_axis(jit_w_operator,1,index_x).reshape((x.shape[0] - 2*l,x.shape[1] - 2*l))
+            return jnp.apply_along_axis(jit_w_operator,1,index_x).reshape((xx.shape[0] - 2*l,xx.shape[1] - 2*l))
 
         x = jax.lax.pad(x,0.0,((0,0,0),(l,l,0),(l,l,0)))
         fx = jax.vmap(w_operator_2D_nn,in_axes = (0),out_axes = 0)(x)
@@ -191,7 +191,7 @@ def apply_morph_layer_iter(x,type,params,index_x,w,forward_inner,d,h,forward_wop
 
         def w_operator_2D_nn(xx):
             jit_w_operator = local_w_operator_nn(xx)
-            return jnp.apply_along_axis(jit_w_operator,1,index_x).reshape((x.shape[0] - 2*l,x.shape[1] - 2*l))
+            return jnp.apply_along_axis(jit_w_operator,1,index_x).reshape((xx.shape[0] - 2*l,xx.shape[1] - 2*l))
 
         x = jax.lax.pad(x,0.0,((0,0,0),(l,l,0),(l,l,0)))
         fx = jax.vmap(w_operator_2D_nn,in_axes = (0),out_axes = 0)(x)
