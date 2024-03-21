@@ -138,7 +138,7 @@ def apply_morph_layer(x,type,params,index_x,h,forward_wop = None,d = None):
             else:
                 fx = jnp.append(fx,oper(x,index_x,cut2(params[i,:,:,:])).reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
     else:
-        fx = mp.w_operator_nn(x,index_x,forward,params,d)
+        fx = mp.w_operator_nn(x,index_x,forward_wop,params,d)
     return fx
 
 #Apply a morphological layer in iterated NN
@@ -172,7 +172,7 @@ def apply_morph_layer_iter(x,type,params,index_x,w,forward_inner,d,h,forward_wop
             else:
                 fx = jnp.append(fx,oper(x,index_x,cut2(params[i,:,:,:])).reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
     else:
-        fx = mp.w_operator_nn(x,index_x,forward,params,d)
+        fx = mp.w_operator_nn(x,index_x,forward_wop,params,d)
     return fx
 
 #Canonical Morphological NN
