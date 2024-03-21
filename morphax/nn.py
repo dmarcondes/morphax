@@ -190,7 +190,7 @@ def cmnn(x,type,width,size,shape_x,h = 1/100,mask = 'inf',key = 0,init = 'random
         if type[i] in ['sup','inf','complement']:
             params.append(jnp.array(0.0).reshape((1,1,1)))
         elif type[i] == "wop":
-            net = fconNN_wop(width_wop,size[i],activation,key[i,0,:])
+            net = fconNN_wop(width_wop,size[i],activation,key[i,0,0])
             forward_wop = net['forward']
             params.append(net['params'])
         else:
