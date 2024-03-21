@@ -69,7 +69,7 @@ def w_operator_2D(x,index_x,f,d):
 def w_operator(x,index_x,f,d):
     l = math.floor(d/2)
     x = jax.lax.pad(x,0.0,((0,0,0),(l,l,0),(l,l,0)))
-    wop = jax.vmap(lambda f: w_operator_2D(x,index_x,f,d),in_axes = (0),out_axes = 0)(x)
+    wop = jax.vmap(lambda x: w_operator_2D(x,index_x,f,d),in_axes = (0),out_axes = 0)(x)
     return wop
 
 #Apply W-operator with characteristic function f given by nn at pixel (i,j)
@@ -91,7 +91,7 @@ def w_operator_2D_nn(x,index_x,forward,params,d):
 def w_operator_nn(x,index_x,forward,params,d):
     l = math.floor(d/2)
     x = jax.lax.pad(x,0.0,((0,0,0),(l,l,0),(l,l,0)))
-    wop = jax.vmap(lambda f: w_operator_2D_nn(x,index_x,forward,params,d),in_axes = (0),out_axes = 0)(x)
+    wop = jax.vmap(lambda x: w_operator_2D_nn(x,index_x,forward,params,d),in_axes = (0),out_axes = 0)(x)
     return wop
 
 #Local erosion of f by k for pixel (i,j)
