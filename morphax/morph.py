@@ -54,7 +54,7 @@ def index_array(shape):
 def local_w_operator(x,f,l):
     def jit_local_erosion(index):
         x = jax.lax.dynamic_slice(x, (index[0], index[1]), (2*l + 1, 2*l + 1))
-        return f(x).reshape((2*l + 1,2*l + 1))
+        return f(x)
     return jit_w_operator
 
 #Apply W-operator with characteristic function f
@@ -199,7 +199,7 @@ def operator(type,h):
     elif type == 'infgen':
         oper = lambda x,index_x,k: infgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])),h)
     elif type == 'wop':
-        oper = lambda x,index_x,f,d: w_operator(x,index_x,f,d)
+        oper = lambda x,index_x,f,d: w_operator(x,index_x,f,d).reshape(x.shape)
     else:
         print('Type of layer ' + type + 'is wrong!')
         return 1
