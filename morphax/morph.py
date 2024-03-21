@@ -72,6 +72,28 @@ def w_operator(x,index_x,f,d):
     wop = jax.vmap(lambda f: w_operator_2D(x,index_x,f,d),in_axes = (0),out_axes = 0)(x)
     return wop
 
+#Apply W-operator with characteristic function f given by nn at pixel (i,j)
+def local_w_operator_nn(x,forward,params,l):
+    def jit_local_erosion(index):
+        x = jax.lax.dynamic_slice(x, (index[0], index[1]), (2*l + 1, 2*l + 1))
+        return forward(x,params)
+    return jit_w_operator
+
+#Apply W-operator with characteristic function f given by nn
+@jax.jit
+def w_operator_2D_nn(x,index_x,forward,params,d):
+    l = math.floor(d/2)
+    jit_w_operator = local_w_operator_nn(x,forward,params,l)
+    return jnp.apply_along_axis(jit_w_operator,1,index_x).reshape((x.shape[0] - 2*l,x.shape[1] - 2*l))
+
+#Apply W-operator in batches (nn)
+@jax.jit
+def w_operator_nn(x,index_x,forward,params,d):
+    l = math.floor(d/2)
+    x = jax.lax.pad(x,0.0,((0,0,0),(l,l,0),(l,l,0)))
+    wop = jax.vmap(lambda f: w_operator_2D_nn(x,index_x,forward,params,d),in_axes = (0),out_axes = 0)(x)
+    return wop
+
 #Local erosion of f by k for pixel (i,j)
 def local_erosion(f,k,l,h = 1/5):
     def jit_local_erosion(index):
@@ -199,7 +221,7 @@ def operator(type,h):
     elif type == 'infgen':
         oper = lambda x,index_x,k: infgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])),h)
     elif type == 'wop':
-        oper = lambda x,index_x,f,d: w_operator(x,index_x,f,d).reshape(x.shape)
+        oper = lambda x,index_x,forward,params,d: w_operator_nn(x,index_x,forward,params,d)
     else:
         print('Type of layer ' + type + 'is wrong!')
         return 1
