@@ -54,7 +54,7 @@ def index_array(shape):
 def local_w_operator(x,f,l):
     def jit_local_erosion(index):
         x = jax.lax.dynamic_slice(x, (index[0], index[1]), (2*l + 1, 2*l + 1))
-        return f(x)
+        return f(x).reshape((2*l + 1,2*l + 1))
     return jit_w_operator
 
 #Apply W-operator with characteristic function f
