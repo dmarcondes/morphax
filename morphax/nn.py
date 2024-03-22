@@ -583,8 +583,20 @@ def slda(x,y,x_val,y_val,forward,params,loss,epochs_nn,epochs_slda,sample_neigh,
 
     return {'params': params,'mask': mask}
 
+#Name mask
+def name_mask(mask):
+    n = []
+    for i in range(len(mask)):
+        n = n + mask[i].astype(jnp.int32).reshape((1,mask[i].shape[0] * mask[i].shape[1])).tolist()[0]
+
+    return "".join(str(element) for element in n)
+
 #SLDA for window lwarning
-def slda_window(x,y,type,width,size,shape_x,loss,iter = False,width_str = None,epochs = 100,h = 1/100,mask = None,key = 0,init = 'random',width_wop = None,activation = jax.nn.tanh,sa = False,c = 100,q = 2,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False,epoch_print = 100):
+def slda_window(x,y,x_val,y_val,type,width,size,shape_x,loss,iter = False,loss_val = None,width_str = None,epochs = 100,h = 1/100,mask = None,key = 0,init = 'random',width_wop = None,activation = jax.nn.tanh,sa = False,c = 100,q = 2,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False,epoch_print = 100):
+    #Loss validation
+    if loss_val is None:
+        loss_val = loss
+
     #Initialize mask
     if mask is None:
         mask = list()
@@ -600,6 +612,7 @@ def slda_window(x,y,type,width,size,shape_x,loss,iter = False,width_str = None,e
     #Train initial model
     print('\n--------------------------\n Initial model \n--------------------------\n')
     if iter:
+        #Broken
         initial_net = cmnn_iter(type,width,width_str,size,shape_x,h,x,mask,width_wop,activation,key,init,loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 20000,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False)
     else:
         initial_net = cmnn(x,type,width,size,shape_x,h,mask,key,init,width_wop,activation)
@@ -608,4 +621,11 @@ def slda_window(x,y,type,width,size,shape_x,loss,iter = False,width_str = None,e
     for rate in lr:
         params = train_morph(x,y,forward,params,loss,sa,c,q,epochs,batches,rate,b1,b2,eps,eps_root,key,notebook,epoch_print)
 
-    return {"params": params,"forward": forward,'mask': mask,'forward_wop': initial_net['forward_wop']}
+    #Current point
+    current_error = loss_val(y_val,forward(x_val,params))
+    current_params = params
+    current_mask = mask
+    masks_visited = [name_mask(mask)]
+    loss_masks_visited = [current_error]
+
+    return {"params": current_params,"forward": current_forward,'mask': current_mask,'forward_wop': initial_net['forward_wop'],'val_loss': current_error,'masks_visisted': masks_visisted,'loss_masks_visited': loss_masks_visited}
