@@ -101,9 +101,11 @@ def fconNN_str(width,activation = jax.nn.tanh,key = 0):
     return {'params': params,'forward': forward}
 
 #Fully connected architecture for w-operator characteristic function
-def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0):
+def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0,mask = None):
     #Add first and last layer
     width = [d ** 2] + width + [1]
+    if mask is None:
+        mask = 1.0 + jnp.zeros((d,d))
 
     #Initialize parameters with Glorot initialization
     initializer = jax.nn.initializers.glorot_normal()
@@ -117,7 +119,7 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0):
     #Define function for forward pass
     @jax.jit
     def forward(x,params):
-        x = x.reshape((1,d ** 2))
+        x = (mask * x).reshape((1,d ** 2))
         *hidden,output = params
         for layer in hidden:
             x = activation(x @ layer['W'] + layer['B'])
@@ -127,22 +129,30 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0):
     return {'params': params,'forward': forward}
 
 #Apply a morphological layer
-def apply_morph_layer(x,type,params,index_x,h,forward_wop = None,d = None):
+def apply_morph_layer(x,type,params,index_x,h,forward_wop = None,d = None,mask = None):
+    #Create mask
+    if mask is None:
+        mask = 1.0 + jnp.zeros((d,d))
+
     #Apply each operator
     if type != "wop":
         oper = mp.operator(type,h)
         fx = None
         for i in range(params.shape[0]):
             if fx is None:
-                fx = oper(x,index_x,cut2(params[i,:,:,:])).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+                fx = oper(x,index_x,cut2(params[i,:,:,:]),mask).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
             else:
-                fx = jnp.append(fx,oper(x,index_x,cut2(params[i,:,:,:])).reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
+                fx = jnp.append(fx,oper(x,index_x,cut2(params[i,:,:,:]),mask).reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
     else:
         fx = mp.w_operator_nn(x,index_x,forward_wop,params,d).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
     return fx
 
 #Apply a morphological layer in iterated NN
-def apply_morph_layer_iter(x,type,params,index_x,w,forward_inner,d,h,forward_wop = None):
+def apply_morph_layer_iter(x,type,params,index_x,w,forward_inner,d,h,forward_wop = None,mask = None):
+    #Create mask
+    if mask is None:
+        mask = 1.0 + jnp.zeros((d,d))
+
     #Compute structural elements
     k = None
     if type == 'supgen' or type == 'infgen':
@@ -168,15 +178,15 @@ def apply_morph_layer_iter(x,type,params,index_x,w,forward_inner,d,h,forward_wop
         fx = None
         for i in range(params.shape[0]):
             if fx is None:
-                fx = oper(x,index_x,cut2(params[i,:,:,:])).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+                fx = oper(x,index_x,cut2(params[i,:,:,:]),mask).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
             else:
-                fx = jnp.append(fx,oper(x,index_x,cut2(params[i,:,:,:])).reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
+                fx = jnp.append(fx,oper(x,index_x,cut2(params[i,:,:,:]),mask).reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
     else:
         fx = mp.w_operator_nn(x,index_x,forward_wop,params,d).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
     return fx
 
 #Canonical Morphological NN
-def cmnn(x,type,width,size,shape_x,h = 1/100,mask = 'inf',key = 0,init = 'random',width_wop = None,activation = jax.nn.tanh):
+def cmnn(x,type,width,size,shape_x,h = 1/100,mask = None,key = 0,init = 'random',width_wop = None,activation = jax.nn.tanh):
     key = jax.random.split(jax.random.PRNGKey(key),(len(width),max(width)))
     sd = 1/255
     forward_wop = None
@@ -184,13 +194,22 @@ def cmnn(x,type,width,size,shape_x,h = 1/100,mask = 'inf',key = 0,init = 'random
     #Index window
     index_x = mp.index_array(shape_x)
 
+    #Initialize mask
+    if mask is None:
+        mask = list()
+        for i in range(len(width)):
+            if type[i] in ['sup','inf','complement']:
+                mask.append(jnp.array(0.0))
+            else:
+                mask.append(1.0 + jnp.zeros((size[i],size[i])))
+
     #Initialize parameters
     params = list()
     for i in range(len(width)):
         if type[i] in ['sup','inf','complement']:
             params.append(jnp.array(0.0).reshape((1,1,1)))
         elif type[i] == "wop":
-            net = fconNN_wop(width_wop,size[i],activation,key[i,0,0])
+            net = fconNN_wop(width_wop,size[i],activation,key[i,0,0],mask[i])
             forward_wop = net['forward']
             params.append(net['params'])
         else:
@@ -227,33 +246,6 @@ def cmnn(x,type,width,size,shape_x,h = 1/100,mask = 'inf',key = 0,init = 'random
                         p = jnp.append(p,interval,0)
                 params.append(p)
 
-    #Initialize mask
-    mask_list = list()
-    for i in range(len(width)):
-        if type[i] in ['sup','inf','complement']:
-            mask_list.append(jnp.array(0.0))
-        else:
-            if type[i] == 'supgen' or type[i] == 'infgen':
-                if mask == 'inf':
-                    ll = jnp.array(math.floor((size[i] ** 2)/2) * [0] + [0] + math.floor((size[i] ** 2)/2) * [0]).reshape((1,1,size[i],size[i]))
-                    ul = jnp.array(math.floor((size[i] ** 2)/2) * [0] + [0] + math.floor((size[i] ** 2)/2) * [0]).reshape((1,1,size[i],size[i]))
-                else:
-                    ll = jnp.array((size[i] ** 2) * [1]).reshape((1,1,size[i],size[i]))
-                    ul = jnp.array((size[i] ** 2) * [1]).reshape((1,1,size[i],size[i]))
-                m = jnp.append(ll,ul,1)
-                for j in range(width[i] - 1):
-                    interval = jnp.append(ll,ul,1)
-                    m = jnp.append(m,interval,0)
-            else:
-                if mask == 'inf':
-                    ll = jnp.array(math.floor((size[i] ** 2)/2) * [0] + [0] + math.floor((size[i] ** 2)/2) * [0]).reshape((1,1,size[i],size[i]))
-                else:
-                    ll = jnp.array((size[i] ** 2) * [1]).reshape((1,1,size[i],size[i]))
-                m = ll
-                for j in range(width[i] - 1):
-                    m = jnp.append(m,interval,0)
-            mask_list.append(m)
-
     #Forward pass
     @jax.jit
     def forward(x,params):
@@ -268,17 +260,26 @@ def cmnn(x,type,width,size,shape_x,h = 1/100,mask = 'inf',key = 0,init = 'random
                 x = 1 - x
             else:
                 #Apply other layer
-                x = apply_morph_layer(x[0,:,:,:],type[i],params[i],index_x,h,forward_wop,size[i])
+                x = apply_morph_layer(x[0,:,:,:],type[i],params[i],index_x,h,forward_wop,size[i],mask[i])
         return x[0,:,:,:] #mp.minimum_array_number(mp.maximum_array_number(x[0,:,:,:],0.0,h),1.0,h)
 
     #Return initial parameters and forward function
-    return {'params': params,'forward': forward,'mask': mask_list,'forward_wop': forward_wop}
+    return {'params': params,'forward': forward,'mask': mask,'forward_wop': forward_wop}
 
 #Canonical Morphological NN with iterated NN
-def cmnn_iter(type,width,width_str,size,shape_x,h = 1/100,x = None,width_wop = None,activation = jax.nn.tanh,key = 0,init = 'identity',loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 1000,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False):
+def cmnn_iter(type,width,width_str,size,shape_x,h = 1/100,x = None,mask = None,width_wop = None,activation = jax.nn.tanh,key = 0,init = 'identity',loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 1000,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False):
     #Index window
     index_x = mp.index_array(shape_x)
     forward_wop = None
+
+    #Initialize mask
+    if mask is None:
+        mask = list()
+        for i in range(len(width)):
+            if type[i] in ['sup','inf','complement']:
+                mask.append(jnp.array(0.0))
+            else:
+                mask.append(1.0 + jnp.zeros((size[i],size[i])))
 
     #Create w to apply str NN
     unique_size = set(size)
@@ -318,7 +319,7 @@ def cmnn_iter(type,width,width_str,size,shape_x,h = 1/100,x = None,width_wop = N
                 if type[i] ==  'sup' or type[i] ==  'inf' or type[i] ==  'complement':
                     params[i].append(jnp.array(0.0,dtype = jnp.float32))
                 elif type[i] == "wop":
-                    net = fconNN_wop(width_wop,size[i],activation,key)
+                    net = fconNN_wop(width_wop,size[i],activation,key,mask[i])
                     forward_wop = net['forward']
                     params.append(net['params'])
                 else:
@@ -337,7 +338,7 @@ def cmnn_iter(type,width,width_str,size,shape_x,h = 1/100,x = None,width_wop = N
                 if type[i] ==  'sup' or type[i] ==  'inf' or type[i] ==  'complement':
                     params[i].append(jnp.array(0.0,dtype = jnp.float32))
                 elif type[i] == "wop":
-                    net = fconNN_wop(width_wop,size[i],activation,key[i,0,:])
+                    net = fconNN_wop(width_wop,size[i],activation,key[i,0,:],mask[i])
                     forward_wop = net['forward']
                     params.append(net['params'])
                 else:
@@ -362,7 +363,7 @@ def cmnn_iter(type,width,width_str,size,shape_x,h = 1/100,x = None,width_wop = N
                 x = 1 - x
             else:
                 #Apply other layer
-                x = apply_morph_layer_iter(x[0,:,:,:],type[i],params[i],index_x,w[str(size[i])],forward_inner,size[i],h,forward_wop)
+                x = apply_morph_layer_iter(x[0,:,:,:],type[i],params[i],index_x,w[str(size[i])],forward_inner,size[i],h,forward_wop,mask[i])
         return x[0,:,:,:]
 
     #Compute structuring elements
@@ -385,10 +386,10 @@ def cmnn_iter(type,width,width_str,size,shape_x,h = 1/100,x = None,width_wop = N
         return struct
 
     #Return initial parameters and forward function
-    return {'params': params,'forward': forward,'ll': ll,'ul': ul,'compute_struct': compute_struct,'forward_wop': forward_wop}
+    return {'params': params,'forward': forward,'ll': ll,'ul': ul,'compute_struct': compute_struct,'forward_wop': forward_wop,'mask': mask}
 
 #Training function MNN
-def train_morph(x,y,forward,params,loss,mask = None,sa = False,c = 100,q = 2,epochs = 1,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 100):
+def train_morph(x,y,forward,params,loss,sa = False,c = 100,q = 2,epochs = 1,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 100):
     #Key
     key = jax.random.split(jax.random.PRNGKey(key),epochs)
 
@@ -418,12 +419,6 @@ def train_morph(x,y,forward,params,loss,mask = None,sa = False,c = 100,q = 2,epo
       grads = grad_loss(params,x,y)
       if sa:
           grads[-1]['w'] = - grads[-1]['w']
-          if mask is not None:
-              for i in range(len(grads) - 1):
-                  grads[i] = grads[i] * mask[i]
-      if mask is not None:
-          for i in range(len(grads)):
-              grads[i] = grads[i] * mask[i]
       updates, opt_state = optimizer.update(grads, opt_state)
       params = optax.apply_updates(params, updates)
       return opt_state,params
