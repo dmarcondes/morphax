@@ -587,7 +587,7 @@ def slda(x,y,x_val,y_val,forward,params,loss,epochs_nn,epochs_slda,sample_neigh,
 def name_mask(mask):
     n = []
     for i in range(len(mask)):
-        n = n + mask[i].astype(jnp.int32).reshape((1,mask[i].shape[0] * mask[i].shape[1])).tolist()[0]
+        n = n + [' - '] + mask[i].astype(jnp.int32).reshape((1,mask[i].shape[0] * mask[i].shape[1])).tolist()[0]
 
     return "".join(str(element) for element in n)
 
@@ -629,4 +629,4 @@ def slda_window(x,y,x_val,y_val,type,width,size,shape_x,loss,iter = False,loss_v
     masks_visited = [name_mask(mask)]
     loss_masks_visited = [current_error]
 
-    return {"params": current_params,"forward": current_forward,'mask': current_mask,'forward_wop': initial_net['forward_wop'],'val_loss': current_error,'masks_visisted': masks_visisted,'loss_masks_visited': loss_masks_visited}
+    return {"params": current_params,"forward": current_forward,'mask': current_mask,'forward_wop': initial_net['forward_wop'],'val_loss': current_error,'masks_visisted': masks_visited,'loss_masks_visited': loss_masks_visited}
