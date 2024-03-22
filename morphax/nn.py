@@ -291,25 +291,26 @@ def cmnn_iter(type,width,width_str,size,shape_x,h = 1/100,x = None,mask = None,w
     ll = None
     ul = None
     if init == 'identity':
-        #Train inner NN to generate zero and one kernel
-        max_size = max(size)
-        w_max = w[str(max_size)]
-        l = math.floor(max_size/2)
+        if 'erosion' in type or 'dilation' in type or 'opening' in type or 'closing' in type or 'asf' in type or 'supgen' in type or 'infgen' in type
+            #Train inner NN to generate zero and one kernel
+            max_size = max(size)
+            w_max = w[str(max_size)]
+            l = math.floor(max_size/2)
 
-        #Lower limit
-        nn = fconNN_str(width_str,activation,key)
-        forward_inner = nn['forward']
-        w_y = mp.struct_lower(x,max_size).reshape((w_max.shape[0],1))
-        params_ll = train_fcnn(w_max,w_y,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
-        ll = forward_inner(w_max,params_ll).reshape((max_size,max_size))
-
-        if 'supgen' in type or 'infgen' in type:
-            #Upper limit
+            #Lower limit
             nn = fconNN_str(width_str,activation,key)
             forward_inner = nn['forward']
-            w_y = mp.struct_upper(x,max_size).reshape((w_max.shape[0],1))
-            params_ul = train_fcnn(w_max,w_y,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
-            ul = forward_inner(w_max,params_ul).reshape((max_size,max_size))
+            w_y = mp.struct_lower(x,max_size).reshape((w_max.shape[0],1))
+            params_ll = train_fcnn(w_max,w_y,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
+            ll = forward_inner(w_max,params_ll).reshape((max_size,max_size))
+
+            if 'supgen' in type or 'infgen' in type:
+                #Upper limit
+                nn = fconNN_str(width_str,activation,key)
+                forward_inner = nn['forward']
+                w_y = mp.struct_upper(x,max_size).reshape((w_max.shape[0],1))
+                params_ul = train_fcnn(w_max,w_y,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
+                ul = forward_inner(w_max,params_ul).reshape((max_size,max_size))
 
         #Assign trained parameters
         params = list()
@@ -581,7 +582,7 @@ def slda(x,y,x_val,y_val,forward,params,loss,epochs_nn,epochs_slda,sample_neigh,
     return {'params': params,'mask': mask}
 
 #SLDA for window lwarning
-def slda_window(x,type,width,size,shape_x,epochs = 100,h = 1/100,mask = None,key = 0,init = 'random',width_wop = None,activation = jax.nn.tanh,sa = False,c = 100,q = 2,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False,epoch_print = 100):
+def slda_window(x,type,width,size,shape_x,width_str = None,epochs = 100,h = 1/100,mask = None,key = 0,init = 'random',width_wop = None,activation = jax.nn.tanh,sa = False,c = 100,q = 2,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False,epoch_print = 100):
     #Initialize mask
     if mask is None:
         mask = list()
