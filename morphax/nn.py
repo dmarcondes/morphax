@@ -123,7 +123,7 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0,mask = None):
         *hidden,output = params
         for layer in hidden:
             x = activation(x @ layer['W'] + layer['B'])
-        return jax.nn.sigmoid(x @ output['W'] + output['B'])
+        return x @ output['W'] + output['B']
 
     #Return initial parameters and forward function
     return {'params': params,'forward': forward}
