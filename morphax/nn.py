@@ -704,7 +704,7 @@ def slda_window(x,y,x_val,y_val,type,width,size,shape_x,loss,epochs_slda = 1,sam
                 #Save
                 error_mask = loss_val(y_val,forward(x_val,params))
                 masks_visited = masks_visited + [name_mask(mask)]
-                loss_masks_visited = loss_masks_visited + [error_mask]
+                loss_masks_visited = loss_masks_visited + [error_mask.tolist()]
             else:
                 error_mask = loss_masks_visited[name_mask(mask) == masks_visited]
 
