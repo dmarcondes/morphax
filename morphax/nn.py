@@ -591,8 +591,41 @@ def name_mask(mask):
 
     return "".join(str(element) for element in n)
 
+#Lista valid neighbors of a window
+def list_neighbors(mask):
+    #Store valids
+    order = []
+    row = []
+    col = []
+
+    #Test each change
+    for m in range(len(mask)):
+        for i in range(mask[m].shape[0]):
+            for j in range(mask[m].shape[1]):
+                if mask[m][i,j] == 1:
+                    add = True
+                    tot = 0
+                    for ip in [i - 1,i,i + 1]:
+                        for jp in [j - 1,j,j + 1]:
+                            if ip >= 0 and ip < mask[m].shape[0] and jp >= 0 and jp < mask[m].shape[1] and (ip == i or jp == j) and not (jp == j and ip == i):
+                                if mask[m][ip,jp] == 1:
+                                    tot = tot + 1
+                                    if not ((mask[m][ip - 1,jp] == 1 and ip-1 >= 0 and ip - 1 != i) or (mask[m][ip+1,jp] == 1 and ip+1 < mask[m].shape[0] and ip + 1 != i) or (mask[m][ip,jp-1] == 1 and jp-1 >= 0 and jp - 1 != j) or (mask[m][ip,jp+1] == 1 and jp+1 < mask[m].shape[1] and jp + 1 != j)):
+                                        add = False
+                    if add and tot > 0:
+                        order = order + [m]
+                        row = row + [i]
+                        col = col + [j]
+                else:
+                    if (mask[m][i-1,j] == 1 and i-1 >= 0) or (mask[m][i+1,j] == 1 and i+1 < mask[m].shape[0]) or (mask[m][i,j-1] == 1 and j-1 >= 0) or (mask[m][i,j+1] == 1 and j+1 < mask[m].shape[1]):
+                        order = order + [m]
+                        row = row + [i]
+                        col = col + [j]
+
+    return np.array([order,row,col]).transpose()
+
 #SLDA for window lwarning
-def slda_window(x,y,x_val,y_val,type,width,size,shape_x,loss,iter = False,loss_val = None,width_str = None,epochs = 100,h = 1/100,mask = None,key = 0,init = 'random',width_wop = None,activation = jax.nn.tanh,sa = False,c = 100,q = 2,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False,epoch_print = 100):
+def slda_window(x,y,x_val,y_val,type,width,size,shape_x,loss,epochs_slda = 1,sample = -1,iter = False,loss_val = None,width_str = None,epochs = 100,h = 1/100,mask = None,key = 0,init = 'random',width_wop = None,activation = jax.nn.tanh,sa = False,c = 100,q = 2,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False,epoch_print = 100):
     #Loss validation
     if loss_val is None:
         loss_val = loss
@@ -602,11 +635,11 @@ def slda_window(x,y,x_val,y_val,type,width,size,shape_x,loss,iter = False,loss_v
         mask = list()
         for i in range(len(width)):
             if type[i] in ['sup','inf','complement']:
-                mask.append(jnp.array(0.0))
+                mask.append(np.array(0.0))
             else:
-                m = jnp.zeros((size[i],size[i]))
+                m = np.zeros((size[i],size[i]))
                 l = math.floor(size[i]/2)
-                m = m.at[l,l].set(1.0)
+                m[l,l] = (1.0)
                 mask.append(m)
 
     #Train initial model
@@ -628,5 +661,64 @@ def slda_window(x,y,x_val,y_val,type,width,size,shape_x,loss,iter = False,loss_v
     current_mask = mask
     masks_visited = [name_mask(mask)]
     loss_masks_visited = [current_error]
+
+    #Current epoch
+    current_error_epoch = current_error
+    current_params_epoch = params
+    current_forward_epoch = forward
+    current_mask_epoch = mask
+
+    #Start SLDA
+    for e in range(epochs_slda):
+        print('\n--------------------------\n Epoch ' + str(e) + 'Current validation error ' + str(round(current_error_epoch,6))' \n--------------------------\n')
+        #List neighbors
+        lneigh = list_neighbors(current_mask)
+
+        #Sample neighbors
+        if sample > 0 and sample < lneigh.shape[0]:
+            lneigh = lneigh[np.random.choice(lneigh.shape[0],sample,replace=False),:]
+        else:
+            lneigh = lneigh[np.random.choice(lneigh.shape[0],lneigh.shape[0],replace=False),:]
+
+        #Train each neighbor
+        for n in range(lneigh.shape[0]):
+            #Update mask
+            mask = current_mask
+            mask[lneigh[n,0]][lneigh[n,1],lneigh[n,2]] = np.abs(1 - mask[lneigh[n,0]][lneigh[n,1],lneigh[n,2]])
+
+            if not name_mask(mask) in masks_visited:
+                #Initialize cmnn
+                if iter:
+                    #Broken
+                    net = cmnn_iter(type,width,width_str,size,shape_x,h,x,mask,width_wop,activation,key,init,loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 20000,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False)
+                else:
+                    net = cmnn(x,type,width,size,shape_x,h,mask,key,init,width_wop,activation)
+
+                #Inititalize params
+                params = current_params
+                forward = initial_net['forward']
+                for rate in lr:
+                    params = train_morph(x,y,forward,params,loss,sa,c,q,epochs,batches,rate,b1,b2,eps,eps_root,key,notebook,epoch_print)
+
+                #Save
+                error_mask = loss_val(y_val,forward(x_val,params))
+                masks_visited = masks_visited + [name_mask(mask)]
+                loss_masks_visited = loss_masks_visited + [error_mask]
+            else:
+                error_mask = loss_masks_visited[name_mask(mask) == masks_visited]
+
+            print('Neighbor '+ n + ' Validation error ' + str(round(error_mask,6)))
+
+
+            if error_mask < current_error_epoch:
+                current_error_epoch = error_mask
+                current_params_epoch = params
+                current_forward_epoch = forward
+                current_mask_epoch = mask
+
+        current_error = current_error_epoch
+        current_params = current_params_epoch
+        current_forward = current_forward_epoch
+        current_mask = current_mask_epoch
 
     return {"params": current_params,"forward": current_forward,'mask': current_mask,'forward_wop': initial_net['forward_wop'],'val_loss': current_error,'masks_visisted': masks_visited,'loss_masks_visited': loss_masks_visited}
