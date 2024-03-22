@@ -660,7 +660,7 @@ def slda_window(x,y,x_val,y_val,type,width,size,shape_x,loss,epochs_slda = 1,sam
     current_forward = forward
     current_mask = mask
     masks_visited = [name_mask(mask)]
-    loss_masks_visited = [current_error]
+    loss_masks_visited = [current_error.tolist()]
 
     #Current epoch
     current_error_epoch = current_error
@@ -683,7 +683,8 @@ def slda_window(x,y,x_val,y_val,type,width,size,shape_x,loss,epochs_slda = 1,sam
         #Train each neighbor
         for n in range(lneigh.shape[0]):
             #Update mask
-            mask = current_mask
+            del mask
+            mask = jnp.copy(current_mask)
             mask[lneigh[n,0]] = mask[lneigh[n,0]].at[lneigh[n,1],lneigh[n,2]].set(np.abs(1 - mask[lneigh[n,0]][lneigh[n,1],lneigh[n,2]]))
 
             if not name_mask(mask) in masks_visited:
