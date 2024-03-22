@@ -604,6 +604,6 @@ def slda_window(x,y,type,width,size,shape_x,loss,iter = False,width_str = None,e
     params = initial_net['params']
     forward = initial_net['forward']
     for rate in lr:
-        params = train_morph(x,y,forward,params,loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook,epoch_print)
+        params = train_morph(x,y,forward,params,loss,sa,c,q,epochs,batches,rate,b1,b2,eps,eps_root,key,notebook,epoch_print)
 
     return {"params": params,"forward": forward,'mask': mask,'forward_wop': initial_net['forward_wop']}
