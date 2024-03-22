@@ -581,7 +581,7 @@ def slda(x,y,x_val,y_val,forward,params,loss,epochs_nn,epochs_slda,sample_neigh,
     return {'params': params,'mask': mask}
 
 #SLDA for window lwarning
-def slda_window(x,type,width,size,shape_x,h = 1/100,mask = None,key = 0,init = 'random',width_wop = None,activation = jax.nn.tanh,sa = False,c = 100,q = 2,epochs = 1,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 100):
+def slda_window(x,type,width,size,shape_x,epochs = 100,h = 1/100,mask = None,key = 0,init = 'random',width_wop = None,activation = jax.nn.tanh,sa = False,c = 100,q = 2,epochs = 1,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False,epoch_print = 100):
     #Initialize mask
     if mask is None:
         mask = list()
