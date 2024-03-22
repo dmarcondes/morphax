@@ -415,7 +415,7 @@ def train_morph(x,y,forward,params,loss,sa = False,c = 100,q = 2,epochs = 1,batc
     #Training function
     grad_loss = jax.jit(jax.grad(lf,0))
     @jax.jit
-    def update(opt_state,params,x,y,mask):
+    def update(opt_state,params,x,y):
       grads = grad_loss(params,x,y)
       if sa:
           grads[-1]['w'] = - grads[-1]['w']
@@ -437,9 +437,9 @@ def train_morph(x,y,forward,params,loss,sa = False,c = 100,q = 2,epochs = 1,batc
                     else:
                         xb = x[b*bsize:x.shape[0],:,:]
                         yb = y[b*bsize:y.shape[0],:,:]
-                    opt_state,params = update(opt_state,params,xb,yb,mask)
+                    opt_state,params = update(opt_state,params,xb,yb)
             else:
-                opt_state,params = update(opt_state,params,x,y,mask)
+                opt_state,params = update(opt_state,params,x,y)
             if e % epoch_print == 0:
                 l = str(jnp.round(lf(params,x,y),10))
                 if notebook:
