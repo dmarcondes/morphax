@@ -670,7 +670,7 @@ def slda_window(x,y,x_val,y_val,type,width,size,shape_x,loss,epochs_slda = 1,sam
 
     #Start SLDA
     for e in range(epochs_slda):
-        print('\n--------------------------\n Epoch ' + str(e) + 'Current validation error ' + str(round(current_error_epoch,6))' \n--------------------------\n')
+        print('\n--------------------------\n Epoch ' + str(e) + 'Current validation error ' + str(round(current_error_epoch,6)) + ' \n--------------------------\n')
         #List neighbors
         lneigh = list_neighbors(current_mask)
 
