@@ -412,7 +412,7 @@ def train_morph(x,y,forward,params,loss,sa = False,c = 100,q = 2,epochs = 1,batc
             return jnp.mean(jax.vmap(loss,in_axes = (0,0))(forward(x,params),y))
 
     #Optmizer NN
-    optimizer = optax.chain(optax.clip_by_global_norm(1.0),optax.adam(lr,b1,b2,eps,eps_root))
+    optimizer = optax.chain(optax.clip_by_global_norm(0.1),optax.adam(lr,b1,b2,eps,eps_root))
     opt_state = optimizer.init(params)
 
     #Training function
