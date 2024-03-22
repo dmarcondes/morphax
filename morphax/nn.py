@@ -338,7 +338,7 @@ def cmnn_iter(type,width,width_str,size,shape_x,h = 1/100,x = None,mask = None,w
                 if type[i] ==  'sup' or type[i] ==  'inf' or type[i] ==  'complement':
                     params[i].append(jnp.array(0.0,dtype = jnp.float32))
                 elif type[i] == "wop":
-                    net = fconNN_wop(width_wop,size[i],activation,key[i,0,:],mask[i])
+                    net = fconNN_wop(width_wop,size[i],activation,k[i,0,:],mask[i])
                     forward_wop = net['forward']
                     params.append(net['params'])
                 else:
