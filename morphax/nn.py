@@ -637,9 +637,9 @@ def slda_window(x,y,x_val,y_val,type,width,size,shape_x,loss,epochs_slda = 1,sam
             if type[i] in ['sup','inf','complement']:
                 mask.append(np.array(0.0))
             else:
-                m = np.zeros((size[i],size[i]))
+                m = jnp.zeros((size[i],size[i]))
                 l = math.floor(size[i]/2)
-                m[l,l] = (1.0)
+                m = m.at[l,l].set(1.0)
                 mask.append(m)
 
     #Train initial model
