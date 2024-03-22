@@ -95,7 +95,7 @@ def local_erosion(f,k,l,h = 1/5,mask = None):
         mask = 1.0 + jnp.zeros((2*l + 1,2*l + 1))
     def jit_local_erosion(index):
         fw = jax.lax.dynamic_slice(f, (index[0], index[1]), (2*l + 1, 2*l + 1))
-        return minimum_array_number(maximum_array_number(min(fw - k + (1 - mask) * sys.float_info.max,h),0.0,h),1.0,h)
+        return minimum_array_number(maximum_array_number(min(fw - k + (1 - mask) * 100,h),0.0,h),1.0,h)
     return jit_local_erosion
 
 #Erosion of f by k
@@ -119,7 +119,7 @@ def local_dilation(f,k,l,h = 1/5,mask = None):
         mask = 1.0 + jnp.zeros((2*l + 1,2*l + 1))
     def jit_local_dilation(index):
         fw = jax.lax.dynamic_slice(f, (index[0], index[1]), (2*l + 1, 2*l + 1))
-        return minimum_array_number(maximum_array_number(max(fw + k - (1 - mask) * sys.float_info.max,h),0.0,h),1.0,h)
+        return minimum_array_number(maximum_array_number(max(fw + k - (1 - mask) * 100,h),0.0,h),1.0,h)
     return jit_local_dilation
 
 #Dilation of f by k assuming k already transposed
