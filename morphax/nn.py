@@ -291,7 +291,7 @@ def cmnn_iter(type,width,width_str,size,shape_x,h = 1/100,x = None,mask = None,w
     ll = None
     ul = None
     if init == 'identity':
-        if 'erosion' in type or 'dilation' in type or 'opening' in type or 'closing' in type or 'asf' in type or 'supgen' in type or 'infgen' in type
+        if 'erosion' in type or 'dilation' in type or 'opening' in type or 'closing' in type or 'asf' in type or 'supgen' in type or 'infgen' in type:
             #Train inner NN to generate zero and one kernel
             max_size = max(size)
             w_max = w[str(max_size)]
