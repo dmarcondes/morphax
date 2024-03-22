@@ -659,6 +659,7 @@ def slda_window(x,y,x_val,y_val,type,width,size,shape_x,loss,epochs_slda = 1,sam
     current_params = params
     current_forward = forward
     current_mask = mask
+    current_forward_wop = initial_net['forward_wop']
     masks_visited = [name_mask(mask)]
     loss_masks_visited = [current_error.tolist()]
 
@@ -667,6 +668,14 @@ def slda_window(x,y,x_val,y_val,type,width,size,shape_x,loss,epochs_slda = 1,sam
     current_params_epoch = params
     current_forward_epoch = forward
     current_mask_epoch = mask
+    current_forward_wop_epoch = initial_net['forward_wop']
+
+    #Best
+    best_error = current_error
+    best_params = params
+    best_forward = forward
+    best_mask = mask
+    best_forward_wop = initial_net['forward_wop']
 
     #Start SLDA
     for e in range(epochs_slda):
@@ -716,10 +725,19 @@ def slda_window(x,y,x_val,y_val,type,width,size,shape_x,loss,epochs_slda = 1,sam
                 current_params_epoch = params
                 current_forward_epoch = forward
                 current_mask_epoch = mask
+                current_forward_wop_epoch = net['forward_wop']
 
         current_error = current_error_epoch
         current_params = current_params_epoch
         current_forward = current_forward_epoch
         current_mask = current_mask_epoch
+        current_forward_wop = current_forward_wop_epoch
 
-    return {"params": current_params,"forward": current_forward,'mask': current_mask,'forward_wop': initial_net['forward_wop'],'val_loss': current_error,'masks_visisted': masks_visited,'loss_masks_visited': loss_masks_visited}
+        if current_error < best_error:
+            best_error = current_error
+            best_params = current_params
+            best_forward = current_forward
+            best_mask = current_mask
+            best_forward_wop = current_forward_wop
+
+    return {"params": best_params,"forward": best_forward,'mask': best_mask,'forward_wop': best_forward_wop,'val_loss': best_error,'masks_visisted': masks_visited,'loss_masks_visited': loss_masks_visited}
