@@ -624,6 +624,7 @@ def slda_window(x,y,x_val,y_val,type,width,size,shape_x,loss,iter = False,loss_v
     #Current point
     current_error = loss_val(y_val,forward(x_val,params))
     current_params = params
+    current_forward = forward
     current_mask = mask
     masks_visited = [name_mask(mask)]
     loss_masks_visited = [current_error]
