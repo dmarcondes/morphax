@@ -331,7 +331,6 @@ def cmnn_iter(type,width,width_str,size,shape_x,h = 1/100,x = None,mask = None,w
         initializer = jax.nn.initializers.normal()
         k = jax.random.split(jax.random.PRNGKey(key),(len(width)*max(width))) #Seed for initialization
         c = 0
-        forward_inner = fconNN_str(width_str,activation = jax.nn.tanh,key = 0)['forward']
         params = list()
         for i in range(len(width)):
             params.append(list())
@@ -343,6 +342,7 @@ def cmnn_iter(type,width,width_str,size,shape_x,h = 1/100,x = None,mask = None,w
                     forward_wop = net['forward']
                     params.append(net['params'])
                 else:
+                    forward_inner = fconNN_str(width_str,activation = jax.nn.tanh,key = 0)['forward']
                     tmp = fconNN_str(width_str,activation = jax.nn.tanh,key = k[c,0])
                     params[i].append(tmp['params'])
                     if type[i] == 'supgen' or type[i] == 'infgen':
