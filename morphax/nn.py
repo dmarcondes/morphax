@@ -598,7 +598,7 @@ def slda_window(x,type,width,size,shape_x,width_str = None,epochs = 100,h = 1/10
     #Train initial model
     print('\n--------------------------\n Initial model \n--------------------------\n')
     if iter:
-        initial_net = cmnn_iter(type,width,width_str,size,shape_x,h,x,mask,width_wop,activation,key,init,loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 20000,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = True,epoch_print = 10000)
+        initial_net = cmnn_iter(type,width,width_str,size,shape_x,h,x,mask,width_wop,activation,key,init,loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 20000,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False)
     else:
         initial_net = cmnn(x,type,width,size,shape_x,h,mask,key,init,width_wop,activation)
     params = initial_net['params']
