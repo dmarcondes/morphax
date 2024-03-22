@@ -579,3 +579,30 @@ def slda(x,y,x_val,y_val,forward,params,loss,epochs_nn,epochs_slda,sample_neigh,
         current_error = min_error
 
     return {'params': params,'mask': mask}
+
+#SLDA for window lwarning
+def slda_window(x,type,width,size,shape_x,h = 1/100,mask = None,key = 0,init = 'random',width_wop = None,activation = jax.nn.tanh,sa = False,c = 100,q = 2,epochs = 1,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 100):
+    #Initialize mask
+    if mask is None:
+        mask = list()
+        for i in range(len(width)):
+            if type[i] in ['sup','inf','complement']:
+                mask.append(jnp.array(0.0))
+            else:
+                m = jnp.zeros((size[i],size[i]))
+                l = math.floor(size[i]/2)
+                m = m.at[l,l].set(1.0)
+                mask.append(m)
+
+    #Train initial model
+    print('\n--------------------------\n Initial model \n--------------------------\n')
+    if iter:
+        initial_net = cmnn_iter(type,width,width_str,size,shape_x,h,x,mask,width_wop,activation,key,init,loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 20000,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = True,epoch_print = 10000)
+    else:
+        initial_net = cmnn(x,type,width,size,shape_x,h,mask,key,init,width_wop,activation)
+    params = initial_net['params']
+    forward = initial_net['forward']
+    for rate in lr:
+        params = train_morph(x,y,forward,params,loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook,epoch_print)
+
+    return {"params": params,"forward": forward,'mask': mask,'forward_wop': initial_net['forward_wop']}
