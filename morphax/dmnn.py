@@ -675,8 +675,8 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5):
             if sample:
                 if type[i] == 'supgen' or type[i] == 'infgen':
                     for j in range(width[i]):
-                        s1 = np.random.choice([0,1],p = [1 - p1,p1],size = (size[i],size[i]))
-                        s2 = np.random.choice([0,1],p = [1 - p1,p1],size = (size[i],size[i]))
+                        s1 = np.random.choice([0,1],p = [1 - p1,p1],size = (1,1,size[i],size[i]))
+                        s2 = np.random.choice([0,1],p = [1 - p1,p1],size = (1,1,size[i],size[i]))
                         ll = jnp.minimum(s1,s2)
                         ul = jnp.maximum(s1,s2)
                         if j == 0:
@@ -686,7 +686,7 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5):
                             p = jnp.append(p,interval,0)
                 else:
                     for j in range(width[i]):
-                        ll = np.random.choice([0,1],p = [1 - p1,p1],size = (size[i],size[i]))
+                        ll = np.random.choice([0,1],p = [1 - p1,p1],size = (1,1,size[i],size[i]))
                         if j == 0:
                             p = ll
                         else:
