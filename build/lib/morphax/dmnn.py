@@ -118,6 +118,30 @@ def erosion_2D(f,index_f,k):
 #Erosion in batches
 @jax.jit
 def erosion(f,index_f,k):
+    """
+    Erosion of batches of images.
+    -------
+
+    Parameters
+    ----------
+    f : JAX array
+
+        A 3D array with the binary images
+
+    index_f : JAX array
+
+        Array with the indexes of f
+
+    k : JAX array
+
+        Structuring element
+
+    Returns
+    -------
+
+    a JAX numpy array
+
+    """
     l = math.floor(k.shape[0]/2)
     f = jax.lax.pad(f,0,((0,0,0),(l,l,0),(l,l,0)))
     eb = jax.vmap(lambda f: erosion_2D(f,index_f,k),in_axes = (0),out_axes = 0)(f)
@@ -125,21 +149,93 @@ def erosion(f,index_f,k):
 
 #Local dilation of f by k for pixel (i,j)
 def local_dilation(f,k,l):
+    """
+    Define function for local dilation.
+    -------
+
+    Parameters
+    ----------
+    f : JAX array
+
+        A binary image
+
+    k : JAX array
+
+        A structuring element
+
+    l : int
+
+        Length of structruring element. If k has shape d x d, then l is the greatest integer such that l <= d/2
+
+    Returns
+    -------
+
+    a function that receives an index and returns the local dilation of f by k at this index
+
+    """
     def jit_local_dilation(index):
-        fw = jax.lax.dynamic_slice(f, (index[0], index[1]), (2*l + 1, 2*l + 1))
+        fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
         return jnp.max(jnp.where(k == 1, fw, 0))
     return jit_local_dilation
 
 #Dilation of f by k
 @jax.jit
 def dilation_2D(f,index_f,k):
+    """
+    Dilation of 2D image.
+    -------
+
+    Parameters
+    ----------
+    f : JAX array
+
+        A padded binary image
+
+    index_f : JAX array
+
+        Array with the indexes of f
+
+    k : JAX array
+
+        Structuring element
+
+    Returns
+    -------
+
+    a JAX numpy array
+
+    """
     l = math.floor(k.shape[0]/2)
     jit_local_dilation = local_dilation(f,k,l)
-    return jnp.apply_along_axis(jit_local_dilation,1,index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
+    return jnp.apply_along_axis(jit_local_dilation,1,l + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
 
 #Dilation in batches
 @jax.jit
 def dilation(f,index_f,k,h = 1/5):
+    """
+    Dilation of batches of images.
+    -------
+
+    Parameters
+    ----------
+    f : JAX array
+
+        A 3D array with the binary images
+
+    index_f : JAX array
+
+        Array with the indexes of f
+
+    k : JAX array
+
+        Structuring element
+
+    Returns
+    -------
+
+    a JAX numpy array
+
+    """
     l = math.floor(k.shape[0]/2)
     f = jax.lax.pad(f,0,((0,0,0),(l,l,0),(l,l,0)))
     k = transpose_se(k)
