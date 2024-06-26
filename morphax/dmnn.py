@@ -704,24 +704,97 @@ def cdmnn(type,width,size,shape_x):
     return {'params': params,'forward': forward,'width': width,'size': size,'type': type}
 
 #Step SLDA
-def step_slda(params,x,y,forward,lf,type,sample = False,neighbors = None):
+def step_slda(params,x,y,forward,lf,type,sample = False,neighbors = 8):
+    """
+    Step of Stochastic Lattice Descent Algorithm updating the parameters.
+    ----------
+
+    Parameters
+    ----------
+    params : list of jax.numpy.array
+
+        Current parameters
+
+    x,y : jax.numpy.array
+
+        Input and output images
+
+    forward : function
+
+        Forward function
+
+    lf : function
+
+        Loss function
+
+    type : list of str
+
+        Type of operator applied in each layer
+
+    sample : logical
+
+        Whether to sample neighbors
+
+    neighbors : int
+
+        Number of neighbors to sample
+
+    Returns
+    -------
+    list of jax.numpy.array
+    """
     #Current error
     error = lf(params,x,y)
-
+    min_loss = jnp.inf
+    
     #Sample
     if sample:
         #Calculate probabilities
         prob = []
         for i in range(len(params)):
-            if params[i].shape[2] > 1:
-                prob  = prob + [params[i].shape[0] * (params[i].shape[2] ** 2)]
-            else:
+            #If is sup/inf/complement, prob is zero
+            if params[i].shape[2] == 1:
                 prob  = prob + [0]
-            if params[i].shape[1] == 2:
-                prob[-1] = 2*prob[-1]
-
+            #If is not supgen/infgen
+            elif params[i].shape[1] == 1:
+                prob  = prob + [params[i].shape[0] * (params[i].shape[2] ** 2)]
+            #If supgen/infgen
+            else:
+                count = jnp.apply_along_axis(jnp.sum,1,params[i])
+                prob = prob + [jnp.sum(jnp.where((count == 0) | (count == 2),1,2)).tolist()]
+        #Sample layers
         prob = [x/sum(prob) for x in prob]
-        # TBD
+        layers = np.random.choice(len(prob),size = neighbors,p = prob)
+        #For each layer sample a change and test it
+        for l in layers:
+            #If is not supgen/infgen
+            if params[l].shape[1] == 1:
+                #Sample a node
+                node = np.random.choice(params[l].shape[0])
+                #Sample row and collumn
+                row_col = np.random.choice(params[l].shape[2],size = 2)
+            else:
+                #Sample a node
+                count = jnp.apply_along_axis(jnp.sum,1,params[l])
+                count = jnp.where((count == 0) | (count == 2),1,2)
+                tmp_prob = jax.vmap(jnp.sum)(count).tolist()
+                tmp_prob = [x/sum(tmp_prob) for x in tmp_prob]
+                node = np.random.choice(params[l].shape[0],p = tmp_prob)
+                #Sample row and collumn
+                tmp_prob = count[node,:,:].reshape((params[l].shape[2] ** 2)).tolist()
+                tmp_prob = [x/sum(tmp_prob) for x in tmp_prob]
+                tmp_random = np.random.choice(params[l].shape[2] ** 2,p = tmp_prob)
+                row_col = [int(np.floor(tmp_random/params[l].shape[2])),tmp_random % params[l].shape[2]]
+                del tmp_prob, count, tmp_random
+            #Change parameters
+            tmp_params = params.copy()
+            tmp_params[l] = tmp_params[l].at[node,0,row_col[0],row_col[1]].set(1 - tmp_params[l][node,0,row_col[0],row_col[1]])
+            #Compute error
+            tmp_error = lf(tmp_params,x,y)
+            if tmp_error <= min_loss:
+                new_par = tmp_params.copy()
+                min_loss = tmp_error
+            del tmp_params, tmp_error, node, row_col
     else:
         new_par = params.copy()
         range_layers = list(range(len(params)))
@@ -740,11 +813,14 @@ def step_slda(params,x,y,forward,lf,type,sample = False,neighbors = None):
                         random.shuffle(range_col)
                         for i in range_row:
                             for j in range_col:
-                                if (lm == 0 and params[l][n,l,i,j] == 1) or (lm == 0 and params[l][n,1,i,j] == 1) or (lm == 1 and params[l][n,l,i,j] == 0) or (lm == 1 and params[l][n,1,i,j] == 0):
+                                if params[0].shape[1] == 1 or (lm == 0 and params[l][n,1,i,j] == 1) or (lm == 1 and params[l][n,0,i,j] == 0):
                                     test_par = params.copy()
                                     test_par[l] = params[l].at[n,lm,i,j].set(1 - params[l][n,lm,i,j])
                                     test_error = lf(test_par,x,y)
-                                    new_par,error = jax.lax.cond(test_error <= error, lambda x = 0: (test_par.copy(),test_error), lambda x = 0: (new_par,error))
+                                    #new_par,error = jax.lax.cond(test_error <= error, lambda x = 0: (test_par.copy(),test_error), lambda x = 0: (new_par,error))
+                                    if test_error <= min_loss:
+                                        new_par = test_par.copy()
+                                        min_loss = test_error
                                     del test_par, test_error
     return new_par
 
