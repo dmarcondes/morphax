@@ -115,13 +115,13 @@ def save_images(images,files_path):
             if len(images.shape) == 4:
                 tmp = Image.fromarray(np.uint8(jnp.round(255*images[i,:,:,:]))).convert('RGB')
             else:
-                tmp = Image.fromarray(np.uint8(jnp.round(255*images[i,:,:]))).convert('RGB')
+                tmp = Image.fromarray(np.uint8(jnp.round(255*images[i,:,:])))#.convert('RGB')
             tmp.save(files_path[i])
     else:
         if len(images.shape) == 4:
             tmp = Image.fromarray(np.uint8(jnp.round(255*images[0,:,:,:]))).convert('RGB')
         else:
-            tmp = Image.fromarray(np.uint8(jnp.round(255*images[0,:,:]))).convert('RGB')
+            tmp = Image.fromarray(np.uint8(jnp.round(255*images[0,:,:])))#.convert('RGB')
         tmp.save(files_path[0])
 
 #Print images
