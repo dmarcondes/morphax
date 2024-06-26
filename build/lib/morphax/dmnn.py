@@ -80,7 +80,7 @@ def local_erosion(f,k,l):
 
     """
     def jit_local_erosion(index):
-        fw = jax.lax.dynamic_slice(f, (index[0], index[1]), (2*l + 1, 2*l + 1))
+        fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
         return jnp.min(jnp.where(k == 1,fw,1))
     return jit_local_erosion
 
@@ -95,7 +95,7 @@ def erosion_2D(f,index_f,k):
     ----------
     f : JAX array
 
-        A binary image
+        A padded binary image
 
     index_f : JAX array
 
@@ -113,7 +113,7 @@ def erosion_2D(f,index_f,k):
     """
     l = math.floor(k.shape[0]/2)
     jit_local_erosion = local_erosion(f,k,l)
-    return jnp.apply_along_axis(jit_local_erosion,1,index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
+    return jnp.apply_along_axis(jit_local_erosion,1,l + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
 
 #Erosion in batches
 @jax.jit
