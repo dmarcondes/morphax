@@ -36,7 +36,7 @@ def transpose_se(k):
 
     Parameters
     ----------
-    k : JAX array
+    k : jax.numpy.array
 
         A 2D structuring element
 
@@ -61,11 +61,11 @@ def local_erosion(f,k,l):
 
     Parameters
     ----------
-    f : JAX array
+    f : jax.numpy.array
 
         A binary image
 
-    k : JAX array
+    k : jax.numpy.array
 
         A structuring element
 
@@ -93,15 +93,15 @@ def erosion_2D(f,index_f,k):
 
     Parameters
     ----------
-    f : JAX array
+    f : jax.numpy.array
 
         A padded binary image
 
-    index_f : JAX array
+    index_f : jax.numpy.array
 
         Array with the indexes of f
 
-    k : JAX array
+    k : jax.numpy.array
 
         Structuring element
 
@@ -124,15 +124,15 @@ def erosion(f,index_f,k):
 
     Parameters
     ----------
-    f : JAX array
+    f : jax.numpy.array
 
         A 3D array with the binary images
 
-    index_f : JAX array
+    index_f : jax.numpy.array
 
         Array with the indexes of f
 
-    k : JAX array
+    k : jax.numpy.array
 
         Structuring element
 
@@ -155,11 +155,11 @@ def local_dilation(f,kt,l):
 
     Parameters
     ----------
-    f : JAX array
+    f : jax.numpy.array
 
         A binary image
 
-    k : JAX array
+    k : jax.numpy.array
 
         The transpose of the structuring element
 
@@ -187,15 +187,15 @@ def dilation_2D(f,index_f,kt):
 
     Parameters
     ----------
-    f : JAX array
+    f : jax.numpy.array
 
         A padded binary image
 
-    index_f : JAX array
+    index_f : jax.numpy.array
 
         Array with the indexes of f
 
-    kt : JAX array
+    kt : jax.numpy.array
 
         The transpose of the structuring element
 
@@ -218,15 +218,15 @@ def dilation(f,index_f,k):
 
     Parameters
     ----------
-    f : JAX array
+    f : jax.numpy.array
 
         A 3D array with the binary images
 
-    index_f : JAX array
+    index_f : jax.numpy.array
 
         Array with the indexes of f
 
-    k : JAX array
+    k : jax.numpy.array
 
         Structuring element
 
@@ -251,15 +251,15 @@ def opening(f,index_f,k):
 
     Parameters
     ----------
-    f : JAX array
+    f : jax.numpy.array
 
         A 3D array with the binary images
 
-    index_f : JAX array
+    index_f : jax.numpy.array
 
         Array with the indexes of f
 
-    k : JAX array
+    k : jax.numpy.array
 
         Structuring element
 
@@ -280,15 +280,15 @@ def closing(f,index_f,k):
 
     Parameters
     ----------
-    f : JAX array
+    f : jax.numpy.array
 
         A 3D array with the binary images
 
-    index_f : JAX array
+    index_f : jax.numpy.array
 
         Array with the indexes of f
 
-    k : JAX array
+    k : jax.numpy.array
 
         Structuring element
 
@@ -309,15 +309,15 @@ def asf(f,index_f,k):
 
     Parameters
     ----------
-    f : JAX array
+    f : jax.numpy.array
 
         A 3D array with the binary images
 
-    index_f : JAX array
+    index_f : jax.numpy.array
 
         Array with the indexes of f
 
-    k : JAX array
+    k : jax.numpy.array
 
         Structuring element
 
@@ -338,7 +338,7 @@ def complement(f):
 
     Parameters
     ----------
-    f : JAX array
+    f : jax.numpy.array
 
         A 3D array with the binary images
 
@@ -359,15 +359,15 @@ def supgen(f,index_f,k1,k2):
 
     Parameters
     ----------
-    f : JAX array
+    f : jax.numpy.array
 
         A 3D array with the binary images
 
-    index_f : JAX array
+    index_f : jax.numpy.array
 
         Array with the indexes of f
 
-    k1,k2 : JAX array
+    k1,k2 : jax.numpy.array
 
         Limits of interval [k1,k2]
 
@@ -387,15 +387,15 @@ def infgen(f,index_f,k1,k2):
 
     Parameters
     ----------
-    f : JAX array
+    f : jax.numpy.array
 
         A 3D array with the binary images
 
-    index_f : JAX array
+    index_f : jax.numpy.array
 
         Array with the indexes of f
 
-    k1,k2 : JAX array
+    k1,k2 : jax.numpy.array
 
         Limits of interval [k1,k2]
 
@@ -416,7 +416,7 @@ def sup(f):
 
     Parameters
     ----------
-    f : JAX array
+    f : jax.numpy.array
 
         A 3D array with the binary images
 
@@ -441,7 +441,7 @@ def inf(f):
 
     Parameters
     ----------
-    f : JAX array
+    f : jax.numpy.array
 
         A 3D array with the binary images
 
@@ -498,29 +498,128 @@ def operator(type):
 
 #MSE
 @jax.jit
-def MSE(true,pred):
-  return jnp.mean((true - pred)**2)
+def MSE(pred,true):
+    """
+    Mean square error
+    ----------
+
+    Parameters
+    ----------
+    pred : jax.numpy.array
+
+        A JAX numpy array with the predicted values
+
+    true : jax.numpy.array
+
+        A JAX numpy array with the true values
+
+    Returns
+    -------
+    mean square error
+    """
+    return jnp.mean((true - pred) ** 2)
 
 #L2 error
 @jax.jit
 def L2error(pred,true):
-  return jnp.sqrt(jnp.sum((true - pred)**2))/jnp.sqrt(jnp.sum(true ** 2))
+    """
+    L2 error
+    ----------
+
+    Parameters
+    ----------
+    pred : jax.numpy.array
+
+        A JAX numpy array with the predicted values
+
+    true : jax.numpy.array
+
+        A JAX numpy array with the true values
+
+    Returns
+    -------
+    L2 error
+    """
+    return jnp.sqrt(jnp.sum((true - pred)**2))/jnp.sqrt(jnp.sum(true ** 2))
 
 #Croos entropy
 @jax.jit
-def CE(true,pred):
-  return jnp.mean((- true * jnp.log(pred + 1e-5) - (1 - true) * jnp.log(1 - pred + 1e-5)))
+def CE(pred,true):
+    """
+    Cross entropy error
+    ----------
+
+    Parameters
+    ----------
+    pred : jax.numpy.array
+
+        A JAX numpy array with the predicted values
+
+    true : jax.numpy.array
+
+        A JAX numpy array with the true values
+
+    Returns
+    -------
+    cross-entropy error
+    """
+    return jnp.mean((- true * jnp.log(pred + 1e-6) - (1 - true) * jnp.log(1 - pred + 1e-6)))
 
 #IoU
 @jax.jit
-def IoU(true,pred):
-  return 1 - (jnp.sum(2 * true * pred) + 1)/(jnp.sum(true + pred) + 1)
+def IoU(pred,true):
+    """
+    Intersection over union error
+    ----------
+
+    Parameters
+    ----------
+    pred : jax.numpy.array
+
+        A JAX numpy array with the predicted values
+
+    true : jax.numpy.array
+
+        A JAX numpy array with the true values
+
+    Returns
+    -------
+    mean square error
+    """
+    return 1 - (jnp.sum(2 * true * pred) + 1)/(jnp.sum(jnp.max(true,pred)) + 1)
 
 #Apply a morphological layer
 def apply_morph_layer(x,type,params,index_x):
-    #Apply each operator
+    """
+    Apply a morphological layer.
+    ----------
+
+    Parameters
+    ----------
+    x : jax.numpy.array
+
+        A JAX array with binary images
+
+    type : str
+
+        Names of the operator to apply
+
+    params : jax.numpy.array
+
+        Parameters of the operator
+
+    index_x : jax.numpy.array
+
+        Array with the indexes of f
+
+    Returns
+    -------
+    mean square error
+    """
+    #Which operator
     oper = operator(type)
     fx = None
+    #For each node
     for i in range(params.shape[0]):
         if fx is None:
             fx = oper(x,index_x,params[i,:,:,:]).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
@@ -528,11 +627,35 @@ def apply_morph_layer(x,type,params,index_x):
             fx = jnp.append(fx,oper(x,index_x,params[i,:,:,:]).reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
     return fx
 
-#Canonical Discrete Morphological NN
-def cdmnn(type,width,size,shape_x,key = 0):
-    key = jax.random.split(jax.random.PRNGKey(key),(len(width),max(width)))
+#Initiliaze Canonical DMNN
+def cdmnn(type,width,size,shape_x):
+    """
+    Initialize a Discrete Morphological Neural Network as the identity operator.
+    ----------
 
-    #Index window
+    Parameters
+    ----------
+    types : list of str
+
+        List with the names of the operators to be applied by each layer
+
+    width : list of int
+
+        List with the width of each layer
+
+    size : list of int
+
+        List with the size of the structuring element of each layer
+
+    shape_x : list
+
+        Shape of the input images
+
+    Returns
+    -------
+    dictionary with the initial parameters, forward function, width, size and type
+    """
+    #Indexes of input images
     index_x = index_array(shape_x)
 
     #Initialize parameters
