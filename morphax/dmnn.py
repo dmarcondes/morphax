@@ -628,7 +628,7 @@ def apply_morph_layer(x,type,params,index_x):
     return fx
 
 #Initiliaze Canonical DMNN
-def cdmnn(type,width,size,shape_x):
+def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5):
     """
     Initialize a Discrete Morphological Neural Network as the identity operator.
     ----------
@@ -651,6 +651,14 @@ def cdmnn(type,width,size,shape_x):
 
         Shape of the input images
 
+    sample : logical
+
+        Whether to sample initial parameters
+
+    p1 : float
+
+        Expected proportion of ones in sampled parameters
+
     Returns
     -------
     dictionary with the initial parameters, forward function, width, size and type
@@ -664,23 +672,43 @@ def cdmnn(type,width,size,shape_x):
         if type[i] in ['sup','inf','complement']:
             params.append(jnp.array(0.0).reshape((1,1,1)))
         else:
-            if type[i] == 'supgen' or type[i] == 'infgen':
-                ll = np.zeros((1,1,size[i],size[i]),dtype = int)
-                ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 1
-                ll = jnp.array(ll)
-                ul = 1 + jnp.zeros((1,1,size[i],size[i]),dtype = int)
-                p = jnp.append(ll,ul,1)
-                for j in range(width[i] - 1):
-                    interval = jnp.append(ll,ul,1)
-                    p = jnp.append(p,interval,0)
+            if sample:
+                if type[i] == 'supgen' or type[i] == 'infgen':
+                    for j in range(width[i] - 1):
+                        s1 = np.random.choice([0,1],p = [1 - p1,p1],size = (size[i],size[i]))
+                        s2 = np.random.choice([0,1],p = [1 - p1,p1],size = (size[i],size[i]))
+                        ll = jnp.minimum(s1,s2)
+                        ul = jnp.maximum(s1,s2)
+                        if j == 0:
+                            p = jnp.append(ll,ul,1)
+                        else:
+                            interval = jnp.append(ll,ul,1)
+                            p = jnp.append(p,interval,0)
+                else:
+                    for j in range(width[i] - 1):
+                        ll = np.random.choice([0,1],p = [1 - p1,p1],size = (size[i],size[i]))
+                        if j == 0:
+                            p = ll
+                        else:
+                            p = jnp.append(p,ll,0)
             else:
-                ll = np.zeros((1,1,size[i],size[i]),dtype = int)
-                ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 1
-                ll = jnp.array(ll)
-                p = ll
-                for j in range(width[i] - 1):
-                    interval = ll
-                    p = jnp.append(p,interval,0)
+                if type[i] == 'supgen' or type[i] == 'infgen':
+                    ll = np.zeros((1,1,size[i],size[i]),dtype = int)
+                    ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 1
+                    ll = jnp.array(ll)
+                    ul = 1 + jnp.zeros((1,1,size[i],size[i]),dtype = int)
+                    p = jnp.append(ll,ul,1)
+                    for j in range(width[i] - 1):
+                        interval = jnp.append(ll,ul,1)
+                        p = jnp.append(p,interval,0)
+                else:
+                    ll = np.zeros((1,1,size[i],size[i]),dtype = int)
+                    ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 1
+                    ll = jnp.array(ll)
+                    p = ll
+                    for j in range(width[i] - 1):
+                        interval = ll
+                        p = jnp.append(p,interval,0)
             params.append(p)
 
     #Forward pass
@@ -746,7 +774,7 @@ def step_slda(params,x,y,forward,lf,type,sample = False,neighbors = 8):
     #Current error
     error = lf(params,x,y)
     min_loss = jnp.inf
-    
+
     #Sample
     if sample:
         #Calculate probabilities
