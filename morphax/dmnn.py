@@ -789,7 +789,7 @@ def step_slda(params,x,y,forward,lf,type,sample = False,neighbors = 8):
             #If supgen/infgen
             else:
                 count = jnp.apply_along_axis(jnp.sum,1,params[i])
-                prob = prob + [jnp.sum(jnp.where((count == 0) | (count == 2),1,2))]
+                prob = prob + [jnp.sum(jnp.where((count == 0) | (count == 2),1,2)).tolist()]
         #Sample layers
         prob = [x/sum(prob) for x in prob]
         layers = np.random.choice(len(prob),size = neighbors,p = prob)
@@ -805,11 +805,11 @@ def step_slda(params,x,y,forward,lf,type,sample = False,neighbors = 8):
                 #Sample a node
                 count = jnp.apply_along_axis(jnp.sum,1,params[l])
                 count = jnp.where((count == 0) | (count == 2),1,2)
-                tmp_prob = jax.vmap(jnp.sum)(count)
+                tmp_prob = jax.vmap(jnp.sum)(count).tolist()
                 tmp_prob = [x/sum(tmp_prob) for x in tmp_prob]
                 node = np.random.choice(params[l].shape[0],p = tmp_prob)
                 #Sample row and collumn
-                tmp_prob = count[node,:,:].reshape((params[l].shape[2] ** 2))
+                tmp_prob = count[node,:,:].reshape((params[l].shape[2] ** 2)).tolist()
                 tmp_prob = [x/sum(tmp_prob) for x in tmp_prob]
                 tmp_random = np.random.choice(params[l].shape[2] ** 2,p = tmp_prob)
                 row_col = [int(np.floor(tmp_random/params[l].shape[2])),tmp_random % params[l].shape[2]]
@@ -819,7 +819,9 @@ def step_slda(params,x,y,forward,lf,type,sample = False,neighbors = 8):
             tmp_params[l] = tmp_params[l].at[node,0,row_col[0],row_col[1]].set(1 - tmp_params[l][node,0,row_col[0],row_col[1]])
             #Compute error
             tmp_error = lf(tmp_params,x,y)
-            new_par,min_loss = jax.lax.cond(tmp_error <= min_loss, lambda x = 0: (tmp_params.copy(),tmp_error), lambda x = 0: (new_par,min_loss))
+            if tmp_error <= min_loss:
+                new_par = tmp_params.copy()
+                min_loss = tmp_error
             del tmp_params, tmp_error, node, row_col
     else:
         new_par = params.copy()
@@ -843,7 +845,10 @@ def step_slda(params,x,y,forward,lf,type,sample = False,neighbors = 8):
                                     test_par = params.copy()
                                     test_par[l] = params[l].at[n,lm,i,j].set(1 - params[l][n,lm,i,j])
                                     test_error = lf(test_par,x,y)
-                                    new_par,min_loss = jax.lax.cond(test_error <= min_loss, lambda x = 0: (test_par.copy(),test_error), lambda x = 0: (new_par,min_loss))
+                                    #new_par,error = jax.lax.cond(test_error <= error, lambda x = 0: (test_par.copy(),test_error), lambda x = 0: (new_par,error))
+                                    if test_error <= min_loss:
+                                        new_par = test_par.copy()
+                                        min_loss = test_error
                                     del test_par, test_error
     return new_par
 
@@ -911,7 +916,7 @@ def train_dmnn(x,y,forward,params,loss,type,sample = False,neighbors = 8,epochs 
         return jnp.mean(jax.vmap(loss,in_axes = (0,0))(forward(x,params),y))
 
     #Training function
-    @jax.jit
+    #@jax.jit
     def update(params,x,y):
       params = step_slda(params,x,y,forward,lf,type,sample,neighbors)
       return params
