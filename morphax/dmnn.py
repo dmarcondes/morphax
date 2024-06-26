@@ -9,11 +9,43 @@ from alive_progress import alive_bar
 
 #Create an index array for an array
 def index_array(shape):
+    """
+    Create a 2D JAX array with the indexes of an array with given 2D shape.
+    -------
+
+    Parameters
+    ----------
+    shape : list
+
+        List with shape of 2D array
+
+    Returns
+    -------
+
+    a JAX numpy array
+
+    """
     return jnp.array([[x,y] for x in range(shape[0]) for y in range(shape[1])])
 
 #Transpose a structuring element
 @jax.jit
 def transpose_se(k):
+    """
+    Transpose a structuring element.
+    -------
+
+    Parameters
+    ----------
+    k : JAX array
+
+        A 2D structuring element
+
+    Returns
+    -------
+
+    a JAX numpy array
+
+    """
     d = k.shape[0]
     kt = k
     for i in range(d):
@@ -23,14 +55,62 @@ def transpose_se(k):
 
 #Local erosion of f by k for pixel (i,j)
 def local_erosion(f,k,l):
+    """
+    Define function for local erosion.
+    -------
+
+    Parameters
+    ----------
+    f : JAX array
+
+        A binary image
+
+    k : JAX array
+
+        A structuring element
+
+    l : int
+
+        Length of structruring element. If k has shape d x d, then l is the greatest integer such that l <= d/2
+
+    Returns
+    -------
+
+    a function that receives an index and returns the local erosion of f by k at this index
+
+    """
     def jit_local_erosion(index):
         fw = jax.lax.dynamic_slice(f, (index[0], index[1]), (2*l + 1, 2*l + 1))
-        return jnp.min(jnp.where(k == 1, fw, 1))
+        return jnp.min(fw[k == 1])
     return jit_local_erosion
 
 #Erosion of f by k
 @jax.jit
 def erosion_2D(f,index_f,k):
+    """
+    Erosion of 2D image.
+    -------
+
+    Parameters
+    ----------
+    f : JAX array
+
+        A binary image
+
+    index_f : JAX array
+
+        Array with the indexes of f
+
+    k : JAX array
+
+        Structuring element
+
+    Returns
+    -------
+
+    a JAX numpy array
+
+    """
     l = math.floor(k.shape[0]/2)
     jit_local_erosion = local_erosion(f,k,l)
     return jnp.apply_along_axis(jit_local_erosion,1,index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
