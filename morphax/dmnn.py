@@ -923,9 +923,9 @@ def train_dmnn(x,y,forward,params,loss,type,sample = False,neighbors = 8,epochs 
 
     #Train
     min_error = jnp.inf
-    bar.title("Loss: 1.00000 Best: 1.00000")
     t0 = time.time()
     with alive_bar(epochs) as bar:
+        bar.title("Loss: 1.00000 Best: 1.00000")
         for e in range(epochs):
             #Permutate x
             x = jax.random.permutation(jax.random.PRNGKey(key[e,0]),x,0)
