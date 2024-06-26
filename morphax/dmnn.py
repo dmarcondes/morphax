@@ -492,7 +492,7 @@ def operator(type):
     else:
         print('Type of layer ' + type + 'is wrong!')
         return 1
-    return oper
+    return jax.jit(oper)
 
 ####Discrete Morphological Neural Networks####
 
@@ -586,7 +586,7 @@ def IoU(pred,true):
     -------
     mean square error
     """
-    return 1 - (jnp.sum(2 * true * pred) + 1)/(jnp.sum(jnp.max(true,pred)) + 1)
+    return 1 - (jnp.sum(jnp.minimum(pred,true))/jnp.sum(jnp.maximum(pred,true)))
 
 #Apply a morphological layer
 def apply_morph_layer(x,type,params,index_x):
@@ -938,7 +938,7 @@ def train_dmnn(x,y,forward,params,loss,type,sample = False,neighbors = 8,epochs 
                     yb = y[b*bsize:y.shape[0],:,:]
                 params = update(params,xb,yb)
             l = lf(params,x,y)
-            bar.title("Loss: " + str(jnp.round(l,5)) + 'Best: ' + str(jnp.round(min_error,5)))
+            bar.title("Loss: " + str(jnp.round(l,5)) + ' Best: ' + str(jnp.round(min_error,5)))
             if l < min_error:
                 min_error = l
                 best_par = params.copy()
