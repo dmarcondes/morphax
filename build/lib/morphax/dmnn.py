@@ -148,7 +148,7 @@ def erosion(f,index_f,k):
     return eb
 
 #Local dilation of f by k for pixel (i,j)
-def local_dilation(f,k,l):
+def local_dilation(f,kt,l):
     """
     Define function for local dilation.
     -------
@@ -161,7 +161,7 @@ def local_dilation(f,k,l):
 
     k : JAX array
 
-        A structuring element
+        The transpose of the structuring element
 
     l : int
 
@@ -175,12 +175,12 @@ def local_dilation(f,k,l):
     """
     def jit_local_dilation(index):
         fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
-        return jnp.max(jnp.where(k == 1, fw, 0))
+        return jnp.max(jnp.where(kt == 1, fw, 0))
     return jit_local_dilation
 
 #Dilation of f by k
 @jax.jit
-def dilation_2D(f,index_f,k):
+def dilation_2D(f,index_f,kt):
     """
     Dilation of 2D image.
     -------
@@ -195,9 +195,9 @@ def dilation_2D(f,index_f,k):
 
         Array with the indexes of f
 
-    k : JAX array
+    kt : JAX array
 
-        Structuring element
+        The transpose of the structuring element
 
     Returns
     -------
@@ -206,12 +206,12 @@ def dilation_2D(f,index_f,k):
 
     """
     l = math.floor(k.shape[0]/2)
-    jit_local_dilation = local_dilation(f,k,l)
+    jit_local_dilation = local_dilation(f,kt,l)
     return jnp.apply_along_axis(jit_local_dilation,1,l + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
 
 #Dilation in batches
 @jax.jit
-def dilation(f,index_f,k,h = 1/5):
+def dilation(f,index_f,k):
     """
     Dilation of batches of images.
     -------
@@ -245,24 +245,60 @@ def dilation(f,index_f,k,h = 1/5):
 #Opening of f by k
 @jax.jit
 def opening(f,index_f,k):
-    l = math.floor(k.shape[0]/2)
-    f = jax.lax.pad(f,0,((0,0,0),(l,l,0),(l,l,0)))
-    eb = jax.vmap(lambda f: erosion_2D(f,index_f,k),in_axes = (0),out_axes = 0)
-    db = jax.vmap(lambda f: dilation_2D(f,index_f,transpose_se(k)),in_axes = (0),out_axes = 0)
-    f = eb(f)
-    f = jax.lax.pad(f,0,((0,0,0),(l,l,0),(l,l,0)))
-    return db(f)
+    """
+    Opening of batches of images.
+    -------
+
+    Parameters
+    ----------
+    f : JAX array
+
+        A 3D array with the binary images
+
+    index_f : JAX array
+
+        Array with the indexes of f
+
+    k : JAX array
+
+        Structuring element
+
+    Returns
+    -------
+
+    a JAX numpy array
+
+    """
+    return dilation(erosion(f,index_f,k),index_f,k)
 
 #Colosing of f by k
 @jax.jit
 def closing(f,index_f,k):
-    l = math.floor(k.shape[0]/2)
-    f = jax.lax.pad(f,0,((0,0,0),(l,l,0),(l,l,0)))
-    eb = jax.vmap(lambda f: erosion_2D(f,index_f,k),in_axes = (0),out_axes = 0)
-    db = jax.vmap(lambda f: dilation_2D(f,index_f,transpose_se(k)),in_axes = (0),out_axes = 0)
-    f = db(f)
-    f = jax.lax.pad(f,0,((0,0,0),(l,l,0),(l,l,0)))
-    return eb(f)
+    """
+    Closing of batches of images.
+    -------
+
+    Parameters
+    ----------
+    f : JAX array
+
+        A 3D array with the binary images
+
+    index_f : JAX array
+
+        Array with the indexes of f
+
+    k : JAX array
+
+        Structuring element
+
+    Returns
+    -------
+
+    a JAX numpy array
+
+    """
+    return erosion(dilation(f,index_f,k),index_f,k)
 
 #Alternate-sequential filter of f by k
 @jax.jit
