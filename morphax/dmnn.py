@@ -939,7 +939,7 @@ def train_dmnn(x,y,forward,params,loss,type,sample = False,neighbors = 8,epochs 
                 params = update(params,xb,yb)
             l = lf(params,x,y)
             bar.title("Loss: " + str(jnp.round(l,5)) + 'Best: ' + str(jnp.round(min_error,5)))
-            if l < min_erorr:
+            if l < min_error:
                 min_error = l
                 best_par = params.copy()
             if e % epoch_print == 0:
