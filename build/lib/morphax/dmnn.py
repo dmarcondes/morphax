@@ -81,7 +81,7 @@ def local_erosion(f,k,l):
     """
     def jit_local_erosion(index):
         fw = jax.lax.dynamic_slice(f, (index[0], index[1]), (2*l + 1, 2*l + 1))
-        return jnp.min(fw[k == 1])
+        return jnp.min(jnp.where(k == 1,fw,1))
     return jit_local_erosion
 
 #Erosion of f by k
