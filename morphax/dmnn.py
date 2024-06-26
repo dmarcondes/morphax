@@ -819,9 +819,7 @@ def step_slda(params,x,y,forward,lf,type,sample = False,neighbors = 8):
             tmp_params[l] = tmp_params[l].at[node,0,row_col[0],row_col[1]].set(1 - tmp_params[l][node,0,row_col[0],row_col[1]])
             #Compute error
             tmp_error = lf(tmp_params,x,y)
-            if tmp_error <= min_loss:
-                new_par = tmp_params.copy()
-                min_loss = tmp_error
+            new_par,min_loss = jax.lax.cond(tmp_error <= min_loss, lambda x = 0: (tmp_params.copy(),tmp_error), lambda x = 0: (new_par,min_loss))
             del tmp_params, tmp_error, node, row_col
     else:
         new_par = params.copy()
@@ -845,15 +843,12 @@ def step_slda(params,x,y,forward,lf,type,sample = False,neighbors = 8):
                                     test_par = params.copy()
                                     test_par[l] = params[l].at[n,lm,i,j].set(1 - params[l][n,lm,i,j])
                                     test_error = lf(test_par,x,y)
-                                    #new_par,error = jax.lax.cond(test_error <= error, lambda x = 0: (test_par.copy(),test_error), lambda x = 0: (new_par,error))
-                                    if test_error <= min_loss:
-                                        new_par = test_par.copy()
-                                        min_loss = test_error
+                                    new_par,min_loss = jax.lax.cond(test_error <= min_loss, lambda x = 0: (test_par.copy(),test_error), lambda x = 0: (new_par,min_loss))
                                     del test_par, test_error
     return new_par
 
 #Training function MNN
-def train_dmnn(x,y,forward,params,loss,type,sample = False,neighbors = None,epochs = 1,batches = 1,key = 0,notebook = False,epoch_print = 100):
+def train_dmnn(x,y,forward,params,loss,type,sample = False,neighbors = 8,epochs = 1,batches = 1,notebook = False,epoch_print = 100):
     """
     Stochastic Lattice Descent Algorithm to train Discrete Morphological Neural Networks.
     ----------
@@ -916,7 +911,7 @@ def train_dmnn(x,y,forward,params,loss,type,sample = False,neighbors = None,epoc
         return jnp.mean(jax.vmap(loss,in_axes = (0,0))(forward(x,params),y))
 
     #Training function
-    #@jax.jit
+    @jax.jit
     def update(params,x,y):
       params = step_slda(params,x,y,forward,lf,type,sample,neighbors)
       return params
