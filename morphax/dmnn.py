@@ -922,6 +922,8 @@ def train_dmnn(x,y,forward,params,loss,type,sample = False,neighbors = 8,epochs 
       return params
 
     #Train
+    min_error = jnp.inf
+    bar.title("Loss: 1.00000 Best: 1.00000")
     t0 = time.time()
     with alive_bar(epochs) as bar:
         for e in range(epochs):
@@ -935,16 +937,18 @@ def train_dmnn(x,y,forward,params,loss,type,sample = False,neighbors = 8,epochs 
                     xb = x[b*bsize:x.shape[0],:,:]
                     yb = y[b*bsize:y.shape[0],:,:]
                 params = update(params,xb,yb)
+            l = lf(params,x,y)
+            bar.title("Loss: " + str(jnp.round(l,5)) + 'Best: ' + str(jnp.round(min_error,5)))
+            if l < min_erorr:
+                min_error = l
+                best_par = params.copy()
             if e % epoch_print == 0:
-                l = str(jnp.round(lf(params,x,y),10))
                 if notebook:
                     print('Epoch: ' + str(e) + ' Time: ' + str(jnp.round(time.time() - t0,2)) + ' s Loss: ' + l)
-                if not notebook:
-                    bar.title("Loss: " + l)
             if not notebook:
                 bar()
 
-    return params
+    return best_par
 
 
 #SLDA for training DMNN
