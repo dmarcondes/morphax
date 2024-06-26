@@ -688,7 +688,7 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5):
                     for j in range(width[i]):
                         ll = np.random.choice([0,1],p = [1 - p1,p1],size = (1,1,size[i],size[i]))
                         if j == 0:
-                            p = jnp.Array(ll)
+                            p = jnp.array(ll)
                         else:
                             p = jnp.append(p,ll,0)
             else:
