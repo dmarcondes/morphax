@@ -789,7 +789,7 @@ def step_slda(params,x,y,forward,lf,type,sample = False,neighbors = 8):
             #If supgen/infgen
             else:
                 count = jnp.apply_along_axis(jnp.sum,1,params[i])
-                prob = prob + [jnp.sum(jnp.where((count == 0) | (count == 2),1,2)).tolist()]
+                prob = prob + [jnp.sum(jnp.where((count == 0) | (count == 2),1,2))]
         #Sample layers
         prob = [x/sum(prob) for x in prob]
         layers = np.random.choice(len(prob),size = neighbors,p = prob)
@@ -805,11 +805,11 @@ def step_slda(params,x,y,forward,lf,type,sample = False,neighbors = 8):
                 #Sample a node
                 count = jnp.apply_along_axis(jnp.sum,1,params[l])
                 count = jnp.where((count == 0) | (count == 2),1,2)
-                tmp_prob = jax.vmap(jnp.sum)(count).tolist()
+                tmp_prob = jax.vmap(jnp.sum)(count)
                 tmp_prob = [x/sum(tmp_prob) for x in tmp_prob]
                 node = np.random.choice(params[l].shape[0],p = tmp_prob)
                 #Sample row and collumn
-                tmp_prob = count[node,:,:].reshape((params[l].shape[2] ** 2)).tolist()
+                tmp_prob = count[node,:,:].reshape((params[l].shape[2] ** 2))
                 tmp_prob = [x/sum(tmp_prob) for x in tmp_prob]
                 tmp_random = np.random.choice(params[l].shape[2] ** 2,p = tmp_prob)
                 row_col = [int(np.floor(tmp_random/params[l].shape[2])),tmp_random % params[l].shape[2]]
