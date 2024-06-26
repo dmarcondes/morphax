@@ -854,8 +854,58 @@ def step_slda(params,x,y,forward,lf,type,sample = False,neighbors = 8):
 
 #Training function MNN
 def train_dmnn(x,y,forward,params,loss,type,sample = False,neighbors = None,epochs = 1,batches = 1,key = 0,notebook = False,epoch_print = 100):
+    """
+    Stochastic Lattice Descent Algorithm to train Discrete Morphological Neural Networks.
+    ----------
+
+    Parameters
+    ----------
+    x,y : jax.numpy.array
+
+        Input and output images
+
+    forward : function
+
+        Forward function of the DMNN
+
+    params : list of jax.numpy.array
+
+        Initial parameters
+
+    loss : function
+
+        Loss function
+
+    type : list of str
+
+        Type of operator applied in each layer
+
+    sample : logical
+
+        Whether to sample neighbors
+
+    neighbors : int
+
+        Number of neighbors to sample
+
+    epochs : int
+
+        Number of bacthes
+
+    notebook : logical
+
+        Wheter the code is being run in a notebook. Has an effect on tracing the Algorithm
+
+    epoch_print : int
+
+        Number of epochs to print the partial result
+
+    Returns
+    -------
+    list of jax.numpy.array
+    """
     #Key
-    key = jax.random.split(jax.random.PRNGKey(key),epochs)
+    key = jax.random.split(jax.random.PRNGKey(0),epochs)
 
     #Batch size
     bsize = int(math.floor(x.shape[0]/batches))
@@ -891,7 +941,8 @@ def train_dmnn(x,y,forward,params,loss,type,sample = False,neighbors = None,epoc
                     print('Epoch: ' + str(e) + ' Time: ' + str(jnp.round(time.time() - t0,2)) + ' s Loss: ' + l)
                 if not notebook:
                     bar.title("Loss: " + l)
-            bar()
+            if not notebook:
+                bar()
 
     return params
 
