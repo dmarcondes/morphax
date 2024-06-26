@@ -205,7 +205,7 @@ def dilation_2D(f,index_f,kt):
     a JAX numpy array
 
     """
-    l = math.floor(k.shape[0]/2)
+    l = math.floor(kt.shape[0]/2)
     jit_local_dilation = local_dilation(f,kt,l)
     return jnp.apply_along_axis(jit_local_dilation,1,l + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
 
@@ -303,25 +303,129 @@ def closing(f,index_f,k):
 #Alternate-sequential filter of f by k
 @jax.jit
 def asf(f,index_f,k):
-    fo = opening(f,index_f,k)
-    return closing(fo,index_f,k)
+    """
+    Alternate-sequential filter applied to batches of images.
+    -------
+
+    Parameters
+    ----------
+    f : JAX array
+
+        A 3D array with the binary images
+
+    index_f : JAX array
+
+        Array with the indexes of f
+
+    k : JAX array
+
+        Structuring element
+
+    Returns
+    -------
+
+    a JAX numpy array
+
+    """
+    return closing(opening(f,index_f,k),index_f,k)
 
 #Complement
 @jax.jit
 def complement(f):
+    """
+    Complement batches of images.
+    -------
+
+    Parameters
+    ----------
+    f : JAX array
+
+        A 3D array with the binary images
+
+    Returns
+    -------
+
+    a JAX numpy array
+
+    """
     return 1 - f
 
 #Sup-generating with interval [k1,k2]
+@jax.jit
 def supgen(f,index_f,k1,k2):
+    """
+    Sup-generating operator applied to batches of images.
+    -------
+
+    Parameters
+    ----------
+    f : JAX array
+
+        A 3D array with the binary images
+
+    index_f : JAX array
+
+        Array with the indexes of f
+
+    k1,k2 : JAX array
+
+        Limits of interval [k1,k2]
+
+    Returns
+    -------
+
+    a JAX numpy array
+
+    """
     return jnp.minimum(erosion(f,index_f,k1),complement(dilation(f,index_f,complement(transpose_se(k2)))))
 
 #Inf-generating with interval [k1,k2]
 def infgen(f,index_f,k1,k2):
+    """
+    Inf-generating operator applied to batches of images.
+    -------
+
+    Parameters
+    ----------
+    f : JAX array
+
+        A 3D array with the binary images
+
+    index_f : JAX array
+
+        Array with the indexes of f
+
+    k1,k2 : JAX array
+
+        Limits of interval [k1,k2]
+
+    Returns
+    -------
+
+    a JAX numpy array
+
+    """
     return jnp.maximum(dilation(f,index_f,k1),complement(erosion(f,index_f,complement(transpose_se(k2)))))
 
 #Sup of array of images
 @jax.jit
 def sup(f):
+    """
+    Supremum of batches of images.
+    -------
+
+    Parameters
+    ----------
+    f : JAX array
+
+        A 3D array with the binary images
+
+    Returns
+    -------
+
+    a JAX numpy array
+
+    """
     fs = jnp.apply_along_axis(jnp.max,0,f)
     return fs.reshape((1,f.shape[1],f.shape[2]))
 
@@ -331,6 +435,22 @@ vmap_sup = lambda f: jax.jit(jax.vmap(lambda f: sup(f),in_axes = (1),out_axes = 
 #Inf of array of images
 @jax.jit
 def inf(f):
+    """
+    Infimum of batches of images.
+    -------
+
+    Parameters
+    ----------
+    f : JAX array
+
+        A 3D array with the binary images
+
+    Returns
+    -------
+
+    a JAX numpy array
+
+    """
     fi = jnp.apply_along_axis(jnp.min,0,f)
     return fi.reshape((1,f.shape[1],f.shape[2]))
 
@@ -339,6 +459,22 @@ vmap_inf = lambda f: jax.jit(jax.vmap(lambda f: inf(f),in_axes = (1),out_axes = 
 
 #Return operator by name
 def operator(type):
+    """
+    Get a morphological operator by name.
+    -------
+
+    Parameters
+    ----------
+    type : str
+
+        Name of operator
+
+    Returns
+    -------
+
+    a function that applies a morphological operator
+
+    """
     if type == 'erosion':
         oper = lambda x,index_x,k: erosion(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
     elif type == 'dilation':
