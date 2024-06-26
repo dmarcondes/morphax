@@ -1,7 +1,7 @@
-IPython
-alive_progress
-jax
-openpyxl
-optax
 pandas
+openpyxl
+jax
 pillow
+optax
+alive_progress
+IPython

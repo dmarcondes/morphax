@@ -1,6 +1,7 @@
 setup.py
 morphax/__init__.py
 morphax/data.py
+morphax/dmnn.py
 morphax/morph.py
 morphax/nn.py
 morphax.egg-info/PKG-INFO
