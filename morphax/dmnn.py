@@ -841,17 +841,17 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
     #Store neighbors to consider: layer + node + lim + row + col
     if sample:
         #Calculate probabilities
-        prob = []
+        prob = jnp.array([])
         j = 0
         for i in range(len(type)):
             if type[i] != 0:
                 #If is not supgen/infgen
                 if type[i] == 1:
-                    prob  = prob + [jnp.array(width[i] * (size[i] ** 2))]
+                    prob  = jnp.append(prob,jnp.array(width[i] * (size[i] ** 2)))
                 #If supgen/infgen
                 else:
                     count = jnp.apply_along_axis(jnp.sum,1,params[j,0:width[i],:,0:size[i],0:size[i]])
-                    prob = prob + [jnp.sum(jnp.where((count == 0) | (count == 2),1,2))]
+                    prob = jnp.append(prob,jnp.sum(jnp.where((count == 0) | (count == 2),1,2)))
                     del count
                 j = j + 1
             #Arrays
