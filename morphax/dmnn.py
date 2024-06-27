@@ -875,7 +875,7 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
                 tmp_prob = count[hood[i,1],:,:].reshape((size_j[l] ** 2))
                 tmp_prob = tmp_prob/jnp.sum(tmp_prob)
                 tmp_random = jax.random.choice(jax.random.PRNGKey(np.random.choice(range(1000000))),len(tmp_prob),shape = (1,),p = tmp_prob)
-                hood = hood.at[i,3:5].set([jnp.floor(tmp_random/size_j[l])),tmp_random % size_j[l]])
+                hood = hood.at[i,3:5].set([jnp.floor(tmp_random/size_j[l]),tmp_random % size_j[l]])
                 #Sample limit
                 obs = par_l[hood[i,1],:,hood[i,3],hood[i,4]]
                 if jnp.sum(obs) == 0:
