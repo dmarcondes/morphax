@@ -685,7 +685,7 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5,key = 0):
                     ll = jnp.array(ll)
                     ul = 1 + jnp.zeros((1,1,size[i],size[i]),dtype = int)
                     for j in range(width[i]):
-                        s = jax.random.choice(jax.random.PRNGKey(key[k,0]),2,p = [1 - p1,p1],shape = (1,1,size[i],size[i]))
+                        s = jax.random.choice(jax.random.PRNGKey(key[k,0]),2,p = jnp.array([1 - p1,p1]),shape = (1,1,size[i],size[i]))
                         k = k + 1
                         s = jnp.maximum(ll,s)
                         if j == 0:
@@ -698,7 +698,7 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5,key = 0):
                     ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 1
                     ll = jnp.array(ll)
                     for j in range(width[i]):
-                        s = jax.random.choice(jax.random.PRNGKey(key[k,0]),2,p = [1 - p1,p1],shape = (1,1,size[i],size[i]))
+                        s = jax.random.choice(jax.random.PRNGKey(key[k,0]),2,p = jnp.array([1 - p1,p1]),shape = (1,1,size[i],size[i]))
                         k = k + 1
                         s = jnp.maximum(ll,s)
                         if j == 0:
