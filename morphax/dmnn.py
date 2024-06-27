@@ -888,7 +888,6 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
                 else:
                     hood = jnp.append(hood,nei,0)
                 del count, tmp_prob, tmp_random, par_l, node, rc, lim
-        print(hood)
     else:
         hood = None
         j = 0
@@ -921,7 +920,10 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
     hood = jax.random.permutation(jax.random.PRNGKey(np.random.choice(range(1000000))),hood,0)
 
     #Compute error for each point in the hood
-    res = jax.vmap(lambda h: visit_neighbor(h,params,x,y,lf))(hood)
+    print(hood)
+    print("1")
+    vis = jax.jit(lambda h: visit_neighbor(h,params,x,y,lf))
+    res = jax.vmap(vis)(hood)
 
     #Minimum
     hood = hood[res == jnp.min(res),:][0,:]
