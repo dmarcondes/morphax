@@ -1036,7 +1036,7 @@ def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8
         min_val_loss = lf(params,xval,yval)
         trace_val_loss = [val_loss]
     else:
-        val_loss = jnp.inf
+        min_val_loss = jnp.inf
         trace_val_loss = []
     params_init = params.copy()
     jumps = jnp.array([])
