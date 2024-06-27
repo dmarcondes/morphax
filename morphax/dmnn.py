@@ -759,7 +759,6 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5):
     return {'params': params,'forward': forward,'width': width,'size': size,'type': type_num}
 
 #Visit a nighboor
-@jax.jit
 def visit_neighbor(h,params,x,y,lf):
     """
     Compute the loss at a nighbor.
@@ -920,10 +919,7 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
     hood = jax.random.permutation(jax.random.PRNGKey(np.random.choice(range(1000000))),hood,0)
 
     #Compute error for each point in the hood
-    print(hood)
-    print("1")
-    vis = jax.jit(lambda h: visit_neighbor(h,params,x,y,lf))
-    res = jax.vmap(vis)(hood)
+    res = jax.vmap(lambda h: visit_neighbor(h,params,x,y,lf))(hood)
 
     #Minimum
     hood = hood[res == jnp.min(res),:][0,:]
