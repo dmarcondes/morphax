@@ -722,6 +722,16 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5):
         params[i] = jnp.pad(params[i],((0,max_width - params[i].shape[0]),(0,2 - params[i].shape[1]),(0,max_size - params[i].shape[2]),(0,max_size - params[i].shape[3])))
     params = jnp.array(params)
 
+    #Numeric type
+    type_num = []
+    for i in range(len(type)):
+        if type[i] in ['sup','inf','complement']:
+            type_num = type_num + [0]
+        elif type[i] == 'supgen' or type[i] == 'infgen':
+            type_num = type_num + [2]
+        else:
+            type_num = type_num + [1]
+
     #Forward pass
     @jax.jit
     def forward(x,params):
@@ -746,7 +756,7 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5):
         return x[0,:,:,:]
 
     #Return initial parameters and forward function
-    return {'params': params,'forward': forward,'width': width,'size': size,'type': type}
+    return {'params': params,'forward': forward,'width': jax.array(width),'size': jax.array(size),'type': jax.array(type_num)}
 
 #Visit a nighboor
 @jax.jit
@@ -849,6 +859,11 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
                     count = jnp.apply_along_axis(jnp.sum,1,params[j,0:width[i],:,0:size[i],0:size[i]])
                     prob = prob + [jnp.sum(jnp.where((count == 0) | (count == 2),1,2))]
                 j = j + 1
+        #Arrays
+        type_j = jax.array(type_j)
+        width_j = jax.array(width_j)
+        size_j = jax.array(size_j)
+
         #Sample layers
         prob = jnp.array(prob).reshape((len(prob),))
         prob = prob/jnp.sum(prob)
