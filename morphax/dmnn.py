@@ -1082,7 +1082,7 @@ def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8
                     print('Epoch: ' + str(e) + " Time: " + str(jnp.round(time.time() - t0,2)) + "s Loss: " + str(jnp.round(train_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
             bar()
 
-    return {'best_par': best_par,'jumps': jumps,'trace_time': trace_time,'trace_loss': trace_loss,'trace_val_loss': trace_val_loss}
+    return {'best_par': best_par,'jumps': jumps,'trace_time': trace_time,'trace_loss': trace_loss,'trace_val_loss': trace_val_loss,'epochs': epochs}
 
 
 #SLDA for training DMNN
