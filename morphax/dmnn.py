@@ -1065,8 +1065,11 @@ def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8
                 #Update
                 hood = hood[hood[:,-1] == jnp.min(hood[:,-1]),0:-1][0,:].astype(jnp.int32)
                 jumps = jnp.append(jumps,hood,0)
-                params = params.at[hood[0],hood[1],hood[2],hood[3],hood[4]].set(1 - params[hood[0],hood[1],hood[2],hood[3],hood[4]])
+                new_params = params.at[hood[0],hood[1],hood[2],hood[3],hood[4]].set(1 - params[hood[0],hood[1],hood[2],hood[3],hood[4]])
+                del params
+                params = new_params.copy()
                 trace_time = trace_time + [time.time() - t0]
+                del hood, xb, yb, new_params
 
             #Compute loss and store at the end of epoch
             train_loss = lf(params,x,y)
@@ -1075,6 +1078,7 @@ def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8
                 val_loss = lf(params,xval,yval)
                 trace_val_loss = trace_val_loss + [val_loss]
             if train_loss < min_loss:
+                del best_par
                 min_loss = train_loss
                 best_par = params.copy()
                 if xval is not None:

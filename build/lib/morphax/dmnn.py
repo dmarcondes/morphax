@@ -956,7 +956,7 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8,
     return jnp.append(hood,res,1)
 
 #Training function MNN
-def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8,epochs = 1,batches = 1,notebook = False,epoch_print = 100):
+def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8,epochs = 1,batches = 1,notebook = False,epoch_print = 100,key = 0):
     """
     Stochastic Lattice Descent Algorithm to train Discrete Morphological Neural Networks.
     ----------
@@ -999,6 +999,10 @@ def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8
 
         Number of epochs to print the partial result
 
+    key : int
+
+        Key for sampling
+
     Returns
     -------
     list of jax.numpy.array
@@ -1012,7 +1016,7 @@ def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8
     xy = jnp.append(x.reshape((1,x.shape[0],x.shape[1],x.shape[2])),y.reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
 
     #Key
-    key = jax.random.split(jax.random.PRNGKey(0),epochs)
+    key = jax.random.split(jax.random.PRNGKey(key),epochs)
 
     #Batch size
     bsize = int(math.floor(x.shape[0]/batches))
@@ -1061,8 +1065,11 @@ def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8
                 #Update
                 hood = hood[hood[:,-1] == jnp.min(hood[:,-1]),0:-1][0,:].astype(jnp.int32)
                 jumps = jnp.append(jumps,hood,0)
-                params = params.at[hood[0],hood[1],hood[2],hood[3],hood[4]].set(1 - params[hood[0],hood[1],hood[2],hood[3],hood[4]])
+                new_params = params.at[hood[0],hood[1],hood[2],hood[3],hood[4]].set(1 - params[hood[0],hood[1],hood[2],hood[3],hood[4]])
+                del params
+                params = new_params.copy()
                 trace_time = trace_time + [time.time() - t0]
+                del hood, xb, yb, new_params
 
             #Compute loss and store at the end of epoch
             train_loss = lf(params,x,y)
@@ -1071,6 +1078,7 @@ def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8
                 val_loss = lf(params,xval,yval)
                 trace_val_loss = trace_val_loss + [val_loss]
             if train_loss < min_loss:
+                del best_par
                 min_loss = train_loss
                 best_par = params.copy()
                 if xval is not None:
