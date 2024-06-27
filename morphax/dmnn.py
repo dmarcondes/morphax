@@ -986,59 +986,59 @@ def train_dmnn(x,y,net,loss,sample = False,neighbors = 8,epochs = 1,batches = 1,
     -------
     list of jax.numpy.array
     """
-#Parameters
-params = net['params']
-forward = net['forward']
-type = net['type']
-width = net['width']
-size = net['size']
+    #Parameters
+    params = net['params']
+    forward = net['forward']
+    type = net['type']
+    width = net['width']
+    size = net['size']
 
-#Key
-key = jax.random.split(jax.random.PRNGKey(0),epochs)
+    #Key
+    key = jax.random.split(jax.random.PRNGKey(0),epochs)
 
-#Batch size
-bsize = int(math.floor(x.shape[0]/batches))
+    #Batch size
+    bsize = int(math.floor(x.shape[0]/batches))
 
-#Loss function
-@jax.jit
-def lf(params,x,y):
-    return jnp.mean(jax.vmap(loss)(forward(x,params),y))
+    #Loss function
+    @jax.jit
+    def lf(params,x,y):
+        return jnp.mean(jax.vmap(loss)(forward(x,params),y))
 
-#Training function
-@jax.jit
-def update(params,x,y):
-  params = step_slda(params,x,y,forward,lf,type,width,size,sample,neighbors)
-  return params
+    #Training function
+    @jax.jit
+    def update(params,x,y):
+      params = step_slda(params,x,y,forward,lf,type,width,size,sample,neighbors)
+      return params
 
-#Train
-min_error = jnp.inf
-xy = jnp.append(x.reshape((1,x.shape[0],x.shape[1],x.shape[2])),y.reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
-t0 = time.time()
-with alive_bar(epochs) as bar:
-    bar.title("Loss: 1.00000 Best: 1.00000")
-    for e in range(epochs):
-        #Permutate xy
-        xy = jax.random.permutation(jax.random.PRNGKey(key[e,0]),xy,1)
-        for b in range(batches):
-            if b < batches - 1:
-                xb = jax.lax.dynamic_slice(xy[0,:,:,:],(b*bsize,0,0),(bsize,x.shape[1],x.shape[2]))
-                yb = jax.lax.dynamic_slice(xy[1,:,:,:],(b*bsize,0,0),(bsize,x.shape[1],x.shape[2]))
-            else:
-                xb = xy[0,b*bsize:x.shape[0],:,:]
-                yb = xy[1,b*bsize:y.shape[0],:,:]
-            params = update(params,xb,yb)
-        l = lf(params,x,y)
-        bar.title("Loss: " + str(jnp.round(l,5)) + ' Best: ' + str(jnp.round(min_error,5)))
-        if l < min_error:
-            min_error = l
-            best_par = params.copy()
-        if e % epoch_print == 0:
-            if notebook:
-                print('Epoch: ' + str(e) + ' Time: ' + str(jnp.round(time.time() - t0,2)) + ' s Loss: ' + l)
-        if not notebook:
-            bar()
+    #Train
+    min_error = jnp.inf
+    xy = jnp.append(x.reshape((1,x.shape[0],x.shape[1],x.shape[2])),y.reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
+    t0 = time.time()
+    with alive_bar(epochs) as bar:
+        bar.title("Loss: 1.00000 Best: 1.00000")
+        for e in range(epochs):
+            #Permutate xy
+            xy = jax.random.permutation(jax.random.PRNGKey(key[e,0]),xy,1)
+            for b in range(batches):
+                if b < batches - 1:
+                    xb = jax.lax.dynamic_slice(xy[0,:,:,:],(b*bsize,0,0),(bsize,x.shape[1],x.shape[2]))
+                    yb = jax.lax.dynamic_slice(xy[1,:,:,:],(b*bsize,0,0),(bsize,x.shape[1],x.shape[2]))
+                else:
+                    xb = xy[0,b*bsize:x.shape[0],:,:]
+                    yb = xy[1,b*bsize:y.shape[0],:,:]
+                params = update(params,xb,yb)
+            l = lf(params,x,y)
+            bar.title("Loss: " + str(jnp.round(l,5)) + ' Best: ' + str(jnp.round(min_error,5)))
+            if l < min_error:
+                min_error = l
+                best_par = params.copy()
+            if e % epoch_print == 0:
+                if notebook:
+                    print('Epoch: ' + str(e) + ' Time: ' + str(jnp.round(time.time() - t0,2)) + ' s Loss: ' + l)
+            if not notebook:
+                bar()
 
-return best_par
+    return best_par
 
 
 #SLDA for training DMNN
