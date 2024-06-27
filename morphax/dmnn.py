@@ -852,17 +852,24 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
         #Sample layers
         prob = jnp.array(prob).reshape((len(prob),))
         prob = prob/jnp.sum(prob)
-        r = jax.random.choice(jax.random.PRNGKey(np.random.choice(range(1000000))),len(prob),shape = (neighbors,),p = prob)
-        hood = jnp.array([[l,0,0,0,0] for l in r]).reshape((neighbors,5))
+        layers = jax.random.choice(jax.random.PRNGKey(np.random.choice(range(1000000))),len(prob),shape = (neighbors,),p = prob)
+        hood = None
         #For each layer sample a change
-        for i in range(hood.shape[0]):
+        for i in range(j):
             l = 0#hood[i,0]
             #If is not supgen/infgen
             if type_j[l] not in ['supgen','infgen']:
                 #Sample a node
-                hood = hood.at[i,1].set(np.random.choice(width_j[l]))
+                node = np.random.choice(width_j[l])
                 #Sample row and collumn
-                hood = hood.at[i,3:5].set(np.random.choice(size_j[l],size = 2))
+                rc = np.random.choice(size_j[l],size = 2)
+                #Neighbor
+                nei = jax.array([l,node,0] + rc)
+                if hood is None:
+                    hood = nei
+                else:
+                    hood = jnp.arrange(hood,nei)
+                del node, rc, nei
             else:
                 #Sample a node
                 par_l = params[l,0:width_j[l],:,0:size_j[l],0:size_j[l]]
