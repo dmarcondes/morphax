@@ -847,11 +847,11 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
                 #If supgen/infgen
                 else:
                     count = jnp.apply_along_axis(jnp.sum,1,params[j,0:width[i],:,0:size[i],0:size[i]])
-                    prob = prob + [jnp.sum(jnp.where((count == 0) | (count == 2),1,2)).tolist()]
+                    prob = prob + [jnp.sum(jnp.where((count == 0) | (count == 2),1,2))]
                 j = j + 1
         #Sample layers
         prob = [x/sum(prob) for x in prob]
-        hood = np.array([[l,0,0,0,0] for l in np.random.choice(len(prob),size = neighbors,p = prob).tolist()]).reshape((neighbors,5))
+        hood = np.array([[l,0,0,0,0] for l in np.random.choice(len(prob),size = neighbors,p = prob)]).reshape((neighbors,5))
         #For each layer sample a change
         for i in range(hood.shape[0]):
             l = hood[i,0]
@@ -866,11 +866,11 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
                 par_l = params[l,0:width_j[l],:,0:size_j[l],0:size_j[l]]
                 count = jnp.apply_along_axis(jnp.sum,1,par_l)
                 count = jnp.where((count == 0) | (count == 2),1,2)
-                tmp_prob = jax.vmap(jnp.sum)(count).tolist()
+                tmp_prob = jax.vmap(jnp.sum)(count)
                 tmp_prob = [x/sum(tmp_prob) for x in tmp_prob]
                 hood[i,1] = np.random.choice(width_j[l],p = tmp_prob)
                 #Sample row and collumn
-                tmp_prob = count[hood[i,1],:,:].reshape((size_j[l] ** 2)).tolist()
+                tmp_prob = count[hood[i,1],:,:].reshape((size_j[l] ** 2))
                 tmp_prob = [x/sum(tmp_prob) for x in tmp_prob]
                 tmp_random = np.random.choice(size_j[l] ** 2,p = tmp_prob)
                 hood[i,3:5] = [int(np.floor(tmp_random/size_j[l])),tmp_random % size_j[l]]
