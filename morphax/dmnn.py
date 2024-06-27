@@ -916,7 +916,6 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
                         v = jnp.where(obs == 0,1,v)
                         v = jnp.where(obs == 2,0,v)
                         tmp = tmp.at[i,2].set(v)
-                    tmp = jnp.unique(tmp,axis = 0)
                     del v
                 if hood is None:
                     hood = tmp
