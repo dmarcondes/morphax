@@ -956,7 +956,7 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8,
     return jnp.append(hood,res,1)
 
 #Training function MNN
-def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8,epochs = 1,batches = 1,notebook = False,epoch_print = 100):
+def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8,epochs = 1,batches = 1,notebook = False,epoch_print = 100,key = 0):
     """
     Stochastic Lattice Descent Algorithm to train Discrete Morphological Neural Networks.
     ----------
@@ -999,6 +999,10 @@ def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8
 
         Number of epochs to print the partial result
 
+    key : int
+
+        Key for sampling
+
     Returns
     -------
     list of jax.numpy.array
@@ -1012,7 +1016,7 @@ def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8
     xy = jnp.append(x.reshape((1,x.shape[0],x.shape[1],x.shape[2])),y.reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
 
     #Key
-    key = jax.random.split(jax.random.PRNGKey(0),epochs)
+    key = jax.random.split(jax.random.PRNGKey(key),epochs)
 
     #Batch size
     bsize = int(math.floor(x.shape[0]/batches))
