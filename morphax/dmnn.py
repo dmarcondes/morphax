@@ -933,7 +933,7 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8,
                 del tmp
 
     #Shuffle hood
-    hood = jax.random.permutation(jax.random.PRNGKey(key[k]),hood,0)
+    hood = jax.random.permutation(jax.random.PRNGKey(key[k,0]),hood,0)
     k = k + 1
 
     #Compute error for each point in the hood
