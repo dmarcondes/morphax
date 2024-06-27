@@ -1061,7 +1061,6 @@ def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8
                 #Update
                 hood = hood[hood[:,-1] == jnp.min(hood[:,-1]),0:-1][0,:].astype(jnp.int32)
                 jumps = jnp.append(jumps,hood,0)
-                print(hood)
                 params = params.at[hood[0],hood[1],hood[2],hood[3],hood[4]].set(1 - params[hood[0],hood[1],hood[2],hood[3],hood[4]])
                 trace_time = trace_time + [time.time() - t0]
 
