@@ -852,7 +852,8 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
         #Sample layers
         prob = jnp.array(prob).reshape((len(prob),))
         prob = prob/jnp.sum(prob)
-        hood = np.array([[l,0,0,0,0] for l in jax.random.choice(jax.random.PRNGKey(np.random.choice(range(1000000))),len(prob),shape = (neighbors,),p = prob)]).reshape((neighbors,5))
+        r = jax.random.choice(jax.random.PRNGKey(np.random.choice(range(1000000))),len(prob),shape = (neighbors,),p = prob)
+        hood = np.array([[l,0,0,0,0] for l in r]).reshape((neighbors,5))
         #For each layer sample a change
         for i in range(hood.shape[0]):
             l = hood[i,0]
