@@ -1044,7 +1044,7 @@ def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8
     #Train
     t0 = time.time()
     with alive_bar(epochs) as bar:
-        bar.title("Loss: " + str(jnp.round(train_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
+        bar.title("Loss: " + str(jnp.round(min_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
         for e in range(epochs):
             #Permutate xy
             xy = jax.random.permutation(jax.random.PRNGKey(key[e,0]),xy,1)
