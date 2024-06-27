@@ -1033,6 +1033,7 @@ def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8
       return params
 
     #Trace
+    best_par = params.copy()
     min_loss = lf(params,x,y)
     trace_time = [0]
     trace_loss = [min_loss]
