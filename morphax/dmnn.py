@@ -1068,13 +1068,13 @@ def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8
             #Compute loss and store at the end of epoch
             train_loss = lf(params,x,y)
             trace_loss = trace_loss + [train_loss]
-            if xval is not none:
+            if xval is not None:
                 val_loss = lf(params,xval,yval)
                 trace_val_loss = trace_loss_val + [lval]
             if l < min_loss:
                 min_loss = train_loss
                 best_par = params.copy()
-                if xval is not none:
+                if xval is not None:
                     min_val_loss = val_loss
             bar.title("Time: " + str(jnp.round(time.time() - t0,2)) + "s Loss: " + str(jnp.round(train_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
             if e % epoch_print == 0:
