@@ -942,7 +942,7 @@ def train_dmnn(x,y,forward,params,loss,type,sample = False,neighbors = 8,epochs 
                     yb = jax.lax.dynamic_slice(xy[1,:,:,:],(b*bsize,0,0),(bsize,x.shape[1],x.shape[2]))
                 else:
                     xb = xy[0,b*bsize:x.shape[0],:,:]
-                    yb = yy[1,b*bsize:y.shape[0],:,:]
+                    yb = xy[1,b*bsize:y.shape[0],:,:]
                 params = update(params,xb,yb)
             l = lf(params,x,y)
             bar.title("Loss: " + str(jnp.round(l,5)) + ' Best: ' + str(jnp.round(min_error,5)))
