@@ -842,15 +842,9 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
     if sample:
         #Calculate probabilities
         prob = []
-        type_j = []
-        width_j = []
-        size_j = []
         j = 0
         for i in range(len(type)):
             if type[i] != 0:
-                type_j = type_j + [type[i]]
-                width_j = width_j + [width[i]]
-                size_j = size_j + [size[i]]
                 #If is not supgen/infgen
                 if type[i] == 1:
                     prob  = prob + [jnp.array(width[i] * (size[i] ** 2))]
@@ -861,9 +855,8 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
                     del count
                 j = j + 1
             #Arrays
-            type_j = jnp.array(type_j)
-            width_j = jnp.array(width_j)
-            size_j = jnp.array(size_j)
+            max_width = max(width)
+            max_size = max(size)
 
             #Sample layers
             prob = jnp.array(prob).reshape((len(prob),))
@@ -874,17 +867,18 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
             for i in range(neighbors):
                 l = layers[i]
                 #Sample a node
-                par_l = params[l,0:width_j[l],:,0:size_j[l],0:size_j[l]]
-                count = jnp.apply_along_axis(jnp.sum,1,par_l)
-                count = jnp.where(count == 1,2,1)
+                par_l = params[l,:,:,:,:]
+                count_sum = jnp.apply_along_axis(jnp.sum,1,par_l)
+                count = jnp.where(count_sum == 1,2,1)
+                count = jnp.where(count_sum == -4,0,count)
                 tmp_prob = jax.vmap(jnp.sum)(count)
                 tmp_prob = tmp_prob/jnp.sum(tmp_prob)
-                node = jax.random.choice(jax.random.PRNGKey(np.random.choice(range(1000000))),width_j[l],shape = (1,1),p = tmp_prob)
+                node = jax.random.choice(jax.random.PRNGKey(np.random.choice(range(1000000))),max_width,shape = (1,1),p = tmp_prob)
                 #Sample row and collumn
-                tmp_prob = count[node[0,0],:,:].reshape((size_j[l] ** 2))
+                tmp_prob = count[node[0,0],:,:].reshape((max_size ** 2))
                 tmp_prob = tmp_prob/jnp.sum(tmp_prob)
-                tmp_random = jax.random.choice(jax.random.PRNGKey(np.random.choice(range(1000000))),size_j[l] ** 2,shape = (1,),p = tmp_prob)
-                rc = jnp.array([jnp.floor(tmp_random/size_j[l]),tmp_random % size_j[l]]).reshape((1,2)).astype(jnp.int32)
+                tmp_random = jax.random.choice(jax.random.PRNGKey(np.random.choice(range(1000000))),max_size ** 2,shape = (1,),p = tmp_prob)
+                rc = jnp.array([jnp.floor(tmp_random/max_size),tmp_random % max_size]).reshape((1,2)).astype(jnp.int32)
                 #Sample limit
                 obs = jnp.sum(par_l[node,:,rc[0,0],rc[0,1]])
                 if obs == 0:
