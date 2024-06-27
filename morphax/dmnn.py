@@ -919,13 +919,9 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
     hood = jax.random.permutation(jax.random.PRNGKey(np.random.choice(range(1000000))),hood,0)
 
     #Compute error for each point in the hood
-    res = jax.vmap(lambda h: visit_neighbor(h,params,x,y,lf))(hood)
+    res = jax.vmap(lambda h: visit_neighbor(h,params,x,y,lf))(hood).reshape((hood.shape[0],1))
 
-    #Minimum
-    hood = hood[res == jnp.min(res),:][0,:]
-
-    #Return
-    return params.at[hood[0],hood[1],hood[2],hood[3],hood[4]].set(1 - params[hood[0],hood[1],hood[2],hood[3],hood[4]])
+    return jnp.append(hood,res,1)
 
 #Training function MNN
 def train_dmnn(x,y,net,loss,sample = False,neighbors = 8,epochs = 1,batches = 1,notebook = False,epoch_print = 100):
@@ -1011,7 +1007,15 @@ def train_dmnn(x,y,net,loss,sample = False,neighbors = 8,epochs = 1,batches = 1,
                 else:
                     xb = xy[0,b*bsize:x.shape[0],:,:]
                     yb = xy[1,b*bsize:y.shape[0],:,:]
-                params = update(params,xb,yb)
+                #Search of neighbors
+                hood = update(params,xb,yb)
+                print(hood)
+
+                #Update
+                hood = hood[hood[:,-1] == jnp.min(hood[:,-1]),0:-1][0,:].astype(jnp.int32)
+                print(hood)
+                params = params.at[hood[0],hood[1],hood[2],hood[3],hood[4]].set(1 - params[hood[0],hood[1],hood[2],hood[3],hood[4]])
+
             l = lf(params,x,y)
             bar.title("Loss: " + str(jnp.round(l,5)) + ' Best: ' + str(jnp.round(min_error,5)))
             if l < min_error:
