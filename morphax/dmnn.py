@@ -1071,7 +1071,7 @@ def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8
             if xval is not None:
                 val_loss = lf(params,xval,yval)
                 trace_val_loss = trace_loss_val + [lval]
-            if l < min_loss:
+            if train_loss < min_loss:
                 min_loss = train_loss
                 best_par = params.copy()
                 if xval is not None:
