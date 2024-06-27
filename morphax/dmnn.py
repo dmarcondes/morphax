@@ -1018,8 +1018,7 @@ def train_dmnn(x,y,net,loss,sample = False,neighbors = 8,epochs = 1,batches = 1,
                     yb = xy[1,b*bsize:y.shape[0],:,:]
                 #Search of neighbors
                 hood = update(params,xb,yb)
-                print(hood)
-
+                
                 #Update
                 hood = hood[hood[:,-1] == jnp.min(hood[:,-1]),0:-1][0,:].astype(jnp.int32)
                 print(hood)
