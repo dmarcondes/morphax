@@ -868,7 +868,7 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
                 if hood is None:
                     hood = nei
                 else:
-                    hood = jnp.arrange(hood,nei)
+                    hood = jnp.append(hood,nei)
                 del node, rc, nei
             else:
                 #Sample a node
