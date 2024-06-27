@@ -760,11 +760,11 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5):
 
 #Sample limit
 @jax.jit
-def get_lim(h):
+def get_lim(h,key = 0):
     ch = jnp.zeros((1,))
     ch = jnp.where(h == 0,1,ch)
     ch = jnp.where((h == 2) | (h < 0),0,ch)
-    ch = jnp.where((h != 0) & (h != 2) & (h >= 0),jax.random.choice(jax.random.PRNGKey(np.random.choice(range(1000000))),2,shape = (1,)),ch)
+    ch = jnp.where((h != 0) & (h != 2) & (h >= 0),jax.random.choice(jax.random.PRNGKey(key),2,shape = (1,)),ch)
     return ch.astype(jnp.int32)
 
 #Visit a nighboor
@@ -799,7 +799,7 @@ def visit_neighbor(h,params,x,y,lf):
     return lf(params.at[h[0],h[1],h[2],h[3],h[4]].set(1 - params[h[0],h[1],h[2],h[3],h[4]]),x,y)
 
 #Step SLDA
-def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8):
+def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8,key = 0):
     """
     Step of Stochastic Lattice Descent Algorithm updating the parameters.
     ----------
@@ -846,7 +846,11 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
     -------
     list of jax.numpy.array
     """
+    #Key
+    key = jax.random.split(jax.random.PRNGKey(key),3*max(width)*max(size)*max(size))
+
     #Store neighbors to consider: layer + node + lim + row + col
+    k = 0
     if sample:
         #Calculate probabilities
         prob = jnp.array([])
@@ -869,7 +873,7 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
             #Sample layers
             prob = jnp.array(prob).reshape((len(prob),))
             prob = prob/jnp.sum(prob)
-            layers = jax.random.choice(jax.random.PRNGKey(np.random.choice(range(1000000))),len(prob),shape = (neighbors,),p = prob)
+            layers = jax.random.choice(,len(prob),shape = (neighbors,),p = prob)
             hood = None
             #For each layer sample a change
             for i in range(neighbors):
@@ -881,14 +885,17 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
                 count = jnp.where(count_sum == -4,0,count)
                 tmp_prob = jax.vmap(jnp.sum)(count)
                 tmp_prob = tmp_prob/jnp.sum(tmp_prob)
-                node = jax.random.choice(jax.random.PRNGKey(np.random.choice(range(1000000))),max_width,shape = (1,1),p = tmp_prob)
+                node = jax.random.choice(jax.random.PRNGKey(key[k,0]),max_width,shape = (1,1),p = tmp_prob)
+                k = k + 1
                 #Sample row and collumn
                 tmp_prob = count[node[0,0],:,:].reshape((max_size ** 2))
                 tmp_prob = tmp_prob/jnp.sum(tmp_prob)
-                tmp_random = jax.random.choice(jax.random.PRNGKey(np.random.choice(range(1000000))),max_size ** 2,shape = (1,),p = tmp_prob)
+                tmp_random = jax.random.choice(jax.random.PRNGKey(key[k,0]),max_size ** 2,shape = (1,),p = tmp_prob)
+                k = k + 1
                 rc = jnp.array([jnp.floor(tmp_random/max_size),tmp_random % max_size]).reshape((1,2)).astype(jnp.int32)
                 #Sample limit
-                lim = get_lim(jnp.sum(par_l[node,:,rc[0,0],rc[0,1]]).reshape((1,1)))
+                lim = get_lim(jnp.sum(par_l[node,:,rc[0,0],rc[0,1]]).reshape((1,1)),key[k,0])
+                k = k + 1
                 #Neighbor
                 nei = jnp.append(jnp.append(jnp.append(l.reshape((1,1)),node,1),lim,1),rc,1).astype(jnp.int32)
                 if hood is None:
@@ -925,7 +932,8 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
                 del tmp
 
     #Shuffle hood
-    hood = jax.random.permutation(jax.random.PRNGKey(np.random.choice(range(1000000))),hood,0)
+    hood = jax.random.permutation(jax.random.PRNGKey(key[k]),hood,0)
+    k = k + 1
 
     #Compute error for each point in the hood
     res = jax.vmap(lambda h: visit_neighbor(h,params,x,y,lf))(hood).reshape((hood.shape[0],1))
@@ -996,8 +1004,8 @@ def train_dmnn(x,y,net,loss,sample = False,neighbors = 8,epochs = 1,batches = 1,
 
     #Training function
     @jax.jit
-    def update(params,x,y):
-      params = step_slda(params,x,y,forward,lf,type,width,size,sample,neighbors)
+    def update(params,x,y,key):
+      params = step_slda(params,x,y,forward,lf,type,width,size,sample,neighbors,key)
       return params
 
     #Train
@@ -1017,7 +1025,7 @@ def train_dmnn(x,y,net,loss,sample = False,neighbors = 8,epochs = 1,batches = 1,
                     xb = xy[0,b*bsize:x.shape[0],:,:]
                     yb = xy[1,b*bsize:y.shape[0],:,:]
                 #Search of neighbors
-                hood = update(params,xb,yb)
+                hood = update(params,xb,yb,key[e,1])
 
                 #Update
                 hood = hood[hood[:,-1] == jnp.min(hood[:,-1]),0:-1][0,:].astype(jnp.int32)
@@ -1025,10 +1033,10 @@ def train_dmnn(x,y,net,loss,sample = False,neighbors = 8,epochs = 1,batches = 1,
                 params = params.at[hood[0],hood[1],hood[2],hood[3],hood[4]].set(1 - params[hood[0],hood[1],hood[2],hood[3],hood[4]])
 
             l = lf(params,x,y)
-            bar.title("Loss: " + str(jnp.round(l,5)) + ' Best: ' + str(jnp.round(min_error,5)))
             if l < min_error:
                 min_error = l
                 best_par = params.copy()
+            bar.title("Loss: " + str(jnp.round(l,5)) + ' Best: ' + str(jnp.round(min_error,5)))
             if e % epoch_print == 0:
                 if notebook:
                     print('Epoch: ' + str(e) + ' Time: ' + str(jnp.round(time.time() - t0,2)) + ' s Loss: ' + l)
