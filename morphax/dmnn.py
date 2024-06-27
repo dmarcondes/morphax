@@ -890,7 +890,7 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
                 #Sample limit
                 lim = get_lim(jnp.sum(par_l[node,:,rc[0,0],rc[0,1]]).reshape((1,1)))
                 #Neighbor
-                nei = jnp.append(jnp.append(jnp.append(l.reshape((1,1)),node,1),lim,1),rc,1)
+                nei = jnp.append(jnp.append(jnp.append(l.reshape((1,1)),node,1),lim,1),rc,1).astype(jnp.int32)
                 if hood is None:
                     hood = nei
                 else:
