@@ -1044,7 +1044,7 @@ def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8
     #Train
     t0 = time.time()
     with alive_bar(epochs) as bar:
-        bar.title("Loss: " + str(jnp.round(min_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
+        bar.title('Epoch: ' + str(0) + "Loss: " + str(jnp.round(min_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
         for e in range(epochs):
             #Permutate xy
             xy = jax.random.permutation(jax.random.PRNGKey(key[e,0]),xy,1)
@@ -1076,7 +1076,7 @@ def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8
                 best_par = params.copy()
                 if xval is not None:
                     min_val_loss = val_loss
-            bar.title("Time: " + str(jnp.round(time.time() - t0,2)) + "s Loss: " + str(jnp.round(train_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
+            bar.title('Epoch: ' + str(e) + "Time: " + str(jnp.round(time.time() - t0,2)) + "s Loss: " + str(jnp.round(train_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
             if e % epoch_print == 0:
                 if notebook:
                     print('Epoch: ' + str(e) + "Time: " + str(jnp.round(time.time() - t0,2)) + "s Loss: " + str(jnp.round(train_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
