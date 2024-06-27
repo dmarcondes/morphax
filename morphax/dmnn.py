@@ -1076,13 +1076,13 @@ def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8
                 best_par = params.copy()
                 if xval is not None:
                     min_val_loss = val_loss
-            bar.title('Epoch: ' + str(e) + " Time: " + str(jnp.round(time.time() - t0,2)) + "s Loss: " + str(jnp.round(train_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
+            bar.title('Epoch: ' + str(e) + " Time: " + str(jnp.round(time.time() - t0)) + " s Loss: " + str(jnp.round(train_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
             if e % epoch_print == 0:
                 if notebook:
-                    print('Epoch: ' + str(e) + " Time: " + str(jnp.round(time.time() - t0,2)) + "s Loss: " + str(jnp.round(train_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
+                    print('Epoch: ' + str(e) + " Time: " + str(jnp.round(time.time() - t0)) + " s Loss: " + str(jnp.round(train_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
             bar()
 
-    return {'best_par': best_par,'jumps': jumps,'trace_time': trace_time,'trace_loss': trace_loss,'trace_val_loss': trace_val_loss,'epochs': epochs}
+    return {'best_par': best_par,'jumps': jumps,'trace_time': trace_time,'trace_loss': trace_loss,'trace_val_loss': trace_val_loss,'epochs': epochs,'oper': lambda x: foward(x,best_par),'forward': forward}
 
 
 #SLDA for training DMNN
