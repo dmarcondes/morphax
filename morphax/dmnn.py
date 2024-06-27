@@ -674,23 +674,29 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5):
         else:
             if sample:
                 if type[i] == 'supgen' or type[i] == 'infgen':
+                    ll = np.zeros((1,1,size[i],size[i]),dtype = int)
+                    ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 1
+                    ll = jnp.array(ll)
+                    ul = 1 + jnp.zeros((1,1,size[i],size[i]),dtype = int)
                     for j in range(width[i]):
-                        s1 = np.random.choice([0,1],p = [1 - p1,p1],size = (1,1,size[i],size[i]))
-                        s2 = np.random.choice([0,1],p = [1 - p1,p1],size = (1,1,size[i],size[i]))
-                        ll = jnp.minimum(s1,s2)
-                        ul = jnp.maximum(s1,s2)
+                        s = np.random.choice([0,1],p = [1 - p1,p1],size = (1,1,size[i],size[i]))
+                        s = jnp.maximum(ll,s)
                         if j == 0:
-                            p = jnp.append(ll,ul,1)
+                            p = jnp.append(s,ul,1)
                         else:
-                            interval = jnp.append(ll,ul,1)
+                            interval = jnp.append(s,ul,1)
                             p = jnp.append(p,interval,0)
                 else:
+                    ll = np.zeros((1,1,size[i],size[i]),dtype = int)
+                    ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 1
+                    ll = jnp.array(ll)
                     for j in range(width[i]):
-                        ll = np.random.choice([0,1],p = [1 - p1,p1],size = (1,1,size[i],size[i]))
+                        s = np.random.choice([0,1],p = [1 - p1,p1],size = (1,1,size[i],size[i]))
+                        s = jnp.maximum(ll,s)
                         if j == 0:
-                            p = jnp.array(ll)
+                            p = jnp.array(s)
                         else:
-                            p = jnp.append(p,ll,0)
+                            p = jnp.append(p,s,0)
             else:
                 if type[i] == 'supgen' or type[i] == 'infgen':
                     ll = np.zeros((1,1,size[i],size[i]),dtype = int)
