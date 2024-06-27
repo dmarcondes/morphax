@@ -756,7 +756,7 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5):
         return x[0,:,:,:]
 
     #Return initial parameters and forward function
-    return {'params': params,'forward': forward,'width': jax.array(width),'size': jax.array(size),'type': jax.array(type_num)}
+    return {'params': params,'forward': forward,'width': jnp.array(width),'size': jnp.array(size),'type': jnp.array(type_num)}
 
 #Visit a nighboor
 @jax.jit
