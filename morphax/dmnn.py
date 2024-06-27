@@ -628,7 +628,7 @@ def apply_morph_layer(x,type,params,index_x):
     return fx
 
 #Initiliaze Canonical DMNN
-def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5):
+def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5,key = 0):
     """
     Initialize a Discrete Morphological Neural Network as the identity operator.
     ----------
@@ -659,12 +659,20 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5):
 
         Expected proportion of ones in sampled parameters
 
+    key : int
+
+        Key for sampling
+
     Returns
     -------
     dictionary with the initial parameters, forward function, width, size and type
     """
     #Indexes of input images
     index_x = index_array(shape_x)
+
+    #Key
+    key = jax.random.split(jax.random.PRNGKey(key),3*max(width)*max(size))
+    k = 0
 
     #Initialize parameters
     params = list()
@@ -677,7 +685,8 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5):
                     ll = jnp.array(ll)
                     ul = 1 + jnp.zeros((1,1,size[i],size[i]),dtype = int)
                     for j in range(width[i]):
-                        s = np.random.choice([0,1],p = [1 - p1,p1],size = (1,1,size[i],size[i]))
+                        s = jax.random.choice(jax.random.PRNGKey(key[k,0]),[0,1],p = [1 - p1,p1],size = (1,1,size[i],size[i]))
+                        k = k + 1
                         s = jnp.maximum(ll,s)
                         if j == 0:
                             p = jnp.append(s,ul,1)
@@ -689,7 +698,8 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5):
                     ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 1
                     ll = jnp.array(ll)
                     for j in range(width[i]):
-                        s = np.random.choice([0,1],p = [1 - p1,p1],size = (1,1,size[i],size[i]))
+                        s = jax.random.choice(jax.random.PRNGKey(key[k,0]),[0,1],p = [1 - p1,p1],size = (1,1,size[i],size[i]))
+                        k = k + 1
                         s = jnp.maximum(ll,s)
                         if j == 0:
                             p = jnp.array(s)
@@ -841,6 +851,10 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8,
     neighbors : int
 
         Number of neighbors to sample
+
+    key : int
+
+        Key for sampling
 
     Returns
     -------
