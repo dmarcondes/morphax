@@ -887,7 +887,7 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
                     hood = nei
                 else:
                     hood = jnp.append(hood,nei,0)
-                del count, tmp_prob, tmp_random, obs, par_l, node, rc, lim
+                del count, tmp_prob, tmp_random, par_l, node, rc, lim
         print(hood)
     else:
         hood = None
