@@ -377,7 +377,7 @@ def supgen(f,index_f,k1,k2):
     a JAX numpy array
 
     """
-    return jnp.minimum(erosion(f,index_f,k1),complement(dilation(f,index_f,complement(k2.transpose()))))
+    return jnp.minimum(erosion(f,index_f,k1),complement(dilation(f,index_f,complement(transpose_se(k2)))))
 
 #Inf-generating with interval [k1,k2]
 def infgen(f,index_f,k1,k2):
@@ -405,7 +405,7 @@ def infgen(f,index_f,k1,k2):
     a JAX numpy array
 
     """
-    return jnp.maximum(dilation(f,index_f,k1),complement(erosion(f,index_f,complement(k2.transpose()))))
+    return jnp.maximum(dilation(f,index_f,k1),complement(erosion(f,index_f,complement(transpose_se(k2)))))
 
 #Sup of array of images
 @jax.jit
@@ -919,7 +919,7 @@ def train_dmnn(x,y,forward,params,loss,type,sample = False,neighbors = 8,epochs 
     #Loss function
     @jax.jit
     def lf(params,x,y):
-        return jnp.mean(jax.vmap(loss,in_axes = (0,0))(forward(x,params),y))
+        return jnp.mean(jax.vmap(loss)(forward(x,params),y))
 
     #Training function
     #@jax.jit
@@ -929,19 +929,20 @@ def train_dmnn(x,y,forward,params,loss,type,sample = False,neighbors = 8,epochs 
 
     #Train
     min_error = jnp.inf
+    xy = jnp.append(x.reshape((1,x.shape[0],x.shape[1],x.shape[2])),y.reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
     t0 = time.time()
     with alive_bar(epochs) as bar:
         bar.title("Loss: 1.00000 Best: 1.00000")
         for e in range(epochs):
             #Permutate x
-            x = jax.random.permutation(jax.random.PRNGKey(key[e,0]),x,0)
+            xy = jax.random.permutation(jax.random.PRNGKey(key[e,0]),xy,1)
             for b in range(batches):
                 if b < batches - 1:
-                    xb = jax.lax.dynamic_slice(x,(b*bsize,0,0),(bsize,x.shape[1],x.shape[2]))
-                    yb = jax.lax.dynamic_slice(x,(b*bsize,0,0),(bsize,x.shape[1],x.shape[2]))
+                    xb = jax.lax.dynamic_slice(xy[0,:,:,:],(b*bsize,0,0),(bsize,x.shape[1],x.shape[2]))
+                    yb = jax.lax.dynamic_slice(xy[1,:,:,:],(b*bsize,0,0),(bsize,x.shape[1],x.shape[2]))
                 else:
-                    xb = x[b*bsize:x.shape[0],:,:]
-                    yb = y[b*bsize:y.shape[0],:,:]
+                    xb = xy[0,b*bsize:x.shape[0],:,:]
+                    yb = yy[1,b*bsize:y.shape[0],:,:]
                 params = update(params,xb,yb)
             l = lf(params,x,y)
             bar.title("Loss: " + str(jnp.round(l,5)) + ' Best: ' + str(jnp.round(min_error,5)))
