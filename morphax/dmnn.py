@@ -900,23 +900,24 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
         hood = None
         j = 0
         for i in range(len(type)):
-            if type[i] not in ['sup','inf','complement']:
-                if type[i] in ['infgen','supgen']:
+            if type[i] > 0:
+                if type[i] == 2:
                     par = params[j,0:width[i],:,0:size[i],0:size[i]].reshape((width[i],2,size[i],size[i]))
                 else:
                     par = params[j,0:width[i],0,0:size[i],0:size[i]].reshape((width[i],1,size[i],size[i]))
                 dim = par.shape
                 if dim[1] == 1:
-                    tmp = np.array([[j,node,0,row,col] for node in range(dim[0]) for row in range(dim[2]) for col in range(dim[3])])
+                    tmp = jnp.array([[j,node,0,row,col] for node in range(dim[0]) for row in range(dim[2]) for col in range(dim[3])])
                 else:
-                    tmp = np.array([[j,node,lim,row,col] for node in range(dim[0]) for lim in [0,1] for row in range(dim[2]) for col in range(dim[3])])
+                    tmp = jnp.array([[j,node,lim,row,col] for node in range(dim[0]) for lim in [0,1] for row in range(dim[2]) for col in range(dim[3])])
                     for i in range(tmp.shape[0]):
-                        obs = par[tmp[i,1],:,tmp[i,3],tmp[i,4]]
-                        if jnp.sum(obs) == 0:
-                            tmp[i,2] = 1
-                        elif jnp.sum(obs) == 2:
-                            tmp[i,2] = 0
+                        obs = jnp.sum(par[tmp[i,1],:,tmp[i,3],tmp[i,4]])
+                        v = tmp[i,2]
+                        v = jnp.where(obs == 0,1,v)
+                        v = jnp.where(obs == 2,0,v)
+                        tmp = tmp.at[i,2].set(v)
                     tmp = jnp.unique(tmp,axis = 0)
+                    del v
                 if hood is None:
                     hood = tmp
                 else:
@@ -1018,7 +1019,7 @@ def train_dmnn(x,y,net,loss,sample = False,neighbors = 8,epochs = 1,batches = 1,
                     yb = xy[1,b*bsize:y.shape[0],:,:]
                 #Search of neighbors
                 hood = update(params,xb,yb)
-                
+
                 #Update
                 hood = hood[hood[:,-1] == jnp.min(hood[:,-1]),0:-1][0,:].astype(jnp.int32)
                 print(hood)
