@@ -860,32 +860,32 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
             #If is not supgen/infgen
             if type_j[l] not in ['supgen','infgen']:
                 #Sample a node
-                hood[i,1] = np.random.choice(width_j[l])
+                hood = hood.at[i,1].set(np.random.choice(width_j[l]))
                 #Sample row and collumn
-                hood[i,3:5] = np.random.choice(size_j[l],size = 2)
+                hood = hood.at[i,3:5].set(np.random.choice(size_j[l],size = 2))
             else:
                 #Sample a node
                 par_l = params[l,0:width_j[l],:,0:size_j[l],0:size_j[l]]
                 count = jnp.apply_along_axis(jnp.sum,1,par_l)
                 count = jnp.where((count == 0) | (count == 2),1,2)
                 tmp_prob = jax.vmap(jnp.sum)(count)
-                tmp_prob = [x/sum(tmp_prob) for x in tmp_prob]
-                hood[i,1] = np.random.choice(width_j[l],p = tmp_prob)
+                tmp_prob = tmp_prob/jnp.sum(tmp_prob)
+                hood = hood.at[i,1].set(jax.random.choice(jax.random.PRNGKey(np.random.choice(range(1000000))),len(tmp_prob),shape = (1,),p = tmp_prob))
                 #Sample row and collumn
                 tmp_prob = count[hood[i,1],:,:].reshape((size_j[l] ** 2))
-                tmp_prob = [x/sum(tmp_prob) for x in tmp_prob]
-                tmp_random = np.random.choice(size_j[l] ** 2,p = tmp_prob)
-                hood[i,3:5] = [int(np.floor(tmp_random/size_j[l])),tmp_random % size_j[l]]
+                tmp_prob = tmp_prob/jnp.sum(tmp_prob)
+                tmp_random = jax.random.choice(jax.random.PRNGKey(np.random.choice(range(1000000))),len(tmp_prob),shape = (1,),p = tmp_prob)
+                hood = hood.at[i,3:5].set([jnp.floor(tmp_random/size_j[l])),tmp_random % size_j[l]])
                 #Sample limit
                 obs = par_l[hood[i,1],:,hood[i,3],hood[i,4]]
                 if jnp.sum(obs) == 0:
-                    hood[i,2] = 1
+                    hood = hood.at[i,2].set(1)
                 elif jnp.sum(obs) == 2:
-                    hood[i,2] = 0
+                    hood = hood.at[i,2].set(0)
                 else:
-                    hood[i,2] = np.random.choice(2,p = [0.5,0.5])
+                    hood = hood.at[i,2].set(np.random.choice(2,p = [0.5,0.5]))
                 del count, tmp_prob, tmp_random, obs, par_l
-        hood = jnp.array(hood)
+        #hood = jnp.array(hood)
     else:
         hood = None
         j = 0
