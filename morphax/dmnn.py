@@ -873,7 +873,8 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8,
             #Sample layers
             prob = jnp.array(prob).reshape((len(prob),))
             prob = prob/jnp.sum(prob)
-            layers = jax.random.choice(,len(prob),shape = (neighbors,),p = prob)
+            layers = jax.random.choice(jax.random.PRNGKey(key[k,0]),len(prob),shape = (neighbors,),p = prob)
+            k = k + 1
             hood = None
             #For each layer sample a change
             for i in range(neighbors):
