@@ -880,15 +880,7 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
                 tmp_random = jax.random.choice(jax.random.PRNGKey(np.random.choice(range(1000000))),max_size ** 2,shape = (1,),p = tmp_prob)
                 rc = jnp.array([jnp.floor(tmp_random/max_size),tmp_random % max_size]).reshape((1,2)).astype(jnp.int32)
                 #Sample limit
-                obs = jnp.sum(par_l[node,:,rc[0,0],rc[0,1]])
-                if obs == 0:
-                    lim = jnp.array([[1]])
-                elif obs == 2:
-                    lim = jnp.array([[0]])
-                elif obs < 0:
-                    lim = jnp.array([[0]])
-                else:
-                    lim = jax.random.choice(jax.random.PRNGKey(np.random.choice(range(1000000))),2,shape = (1,1))
+                lim = jnp.sum(par_l[node,:,rc[0,0],rc[0,1]])
                 #Neighbor
                 nei = jnp.append(jnp.append(jnp.append(l.reshape((1,1)),node,1),lim,1),rc,1)
                 if hood is None:
@@ -896,6 +888,7 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
                 else:
                     hood = jnp.append(hood,nei,0)
                 del count, tmp_prob, tmp_random, obs, par_l, node, rc, lim
+        print(hood)
     else:
         hood = None
         j = 0
