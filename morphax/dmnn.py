@@ -864,7 +864,7 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
                 #Sample row and collumn
                 rc = np.random.choice(size_j[l],size = 2)
                 #Neighbor
-                nei = jnp.array([l,node,0] + rc)
+                nei = jnp.array([l,node,0,rc[0],rc[1]])
                 if hood is None:
                     hood = nei
                 else:
