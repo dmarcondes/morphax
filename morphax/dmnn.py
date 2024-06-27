@@ -956,7 +956,7 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8,
     return jnp.append(hood,res,1)
 
 #Training function MNN
-def train_dmnn(x,y,net,loss,sample = False,neighbors = 8,epochs = 1,batches = 1,notebook = False,epoch_print = 100):
+def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8,epochs = 1,batches = 1,notebook = False,epoch_print = 100):
     """
     Stochastic Lattice Descent Algorithm to train Discrete Morphological Neural Networks.
     ----------
@@ -974,6 +974,10 @@ def train_dmnn(x,y,net,loss,sample = False,neighbors = 8,epochs = 1,batches = 1,
     loss : function
 
         Loss function
+
+    xval,yval : jax.numpy.array
+
+        Input and output validation images
 
     sample : logical
 
@@ -1005,6 +1009,7 @@ def train_dmnn(x,y,net,loss,sample = False,neighbors = 8,epochs = 1,batches = 1,
     type = net['type']
     width = net['width']
     size = net['size']
+    xy = jnp.append(x.reshape((1,x.shape[0],x.shape[1],x.shape[2])),y.reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
 
     #Key
     key = jax.random.split(jax.random.PRNGKey(0),epochs)
@@ -1023,12 +1028,23 @@ def train_dmnn(x,y,net,loss,sample = False,neighbors = 8,epochs = 1,batches = 1,
       params = step_slda(params,x,y,forward,lf,type,width,size,sample,neighbors,key)
       return params
 
+    #Trace
+    min_loss = lf(params,x,y)
+    trace_time = [0]
+    trace_loss = [min_loss]
+    if xval is not None:
+        min_val_loss = lf(params,xval,yval)
+        trace_val_loss = [val_loss]
+    else:
+        val_loss = jnp.inf
+        trace_val_loss = []
+    params_init = params.copy()
+    jumps = jnp.array()
+
     #Train
-    min_error = jnp.inf
-    xy = jnp.append(x.reshape((1,x.shape[0],x.shape[1],x.shape[2])),y.reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
     t0 = time.time()
     with alive_bar(epochs) as bar:
-        bar.title("Loss: 1.00000 Best: 1.00000")
+        bar.title("Loss: " + str(jnp.round(train_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
         for e in range(epochs):
             #Permutate xy
             xy = jax.random.permutation(jax.random.PRNGKey(key[e,0]),xy,1)
@@ -1039,26 +1055,34 @@ def train_dmnn(x,y,net,loss,sample = False,neighbors = 8,epochs = 1,batches = 1,
                 else:
                     xb = xy[0,b*bsize:x.shape[0],:,:]
                     yb = xy[1,b*bsize:y.shape[0],:,:]
-                #Search of neighbors
+                #Search neighbors
                 hood = update(params,xb,yb,key[e,1])
 
                 #Update
                 hood = hood[hood[:,-1] == jnp.min(hood[:,-1]),0:-1][0,:].astype(jnp.int32)
+                jumps = jnp.append(jumps,hood,0)
                 print(hood)
                 params = params.at[hood[0],hood[1],hood[2],hood[3],hood[4]].set(1 - params[hood[0],hood[1],hood[2],hood[3],hood[4]])
+                trace_time = trace_time + [time.time() - t0]
 
-            l = lf(params,x,y)
-            if l < min_error:
-                min_error = l
+            #Compute loss and store at the end of epoch
+            train_loss = lf(params,x,y)
+            trace_loss = trace_loss + [train_loss]
+            if xval is not none:
+                val_loss = lf(params,xval,yval)
+                trace_val_loss = trace_loss_val + [lval]
+            if l < min_loss:
+                min_loss = train_loss
                 best_par = params.copy()
-            bar.title("Loss: " + str(jnp.round(l,5)) + ' Best: ' + str(jnp.round(min_error,5)))
+                if xval is not none:
+                    min_val_loss = val_loss
+            bar.title("Time: " + str(jnp.round(time.time() - t0,2)) + "s Loss: " + str(jnp.round(train_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
             if e % epoch_print == 0:
                 if notebook:
-                    print('Epoch: ' + str(e) + ' Time: ' + str(jnp.round(time.time() - t0,2)) + ' s Loss: ' + l)
-            if not notebook:
-                bar()
+                    print('Epoch: ' + str(e) + "Time: " + str(jnp.round(time.time() - t0,2)) + "s Loss: " + str(jnp.round(train_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
+            bar()
 
-    return best_par
+    return {'best_par': best_par,'jumps': jumps,'trace_time': trace_time,'trace_loss': trace_loss,'trace_val_loss': trace_val_loss}
 
 
 #SLDA for training DMNN
