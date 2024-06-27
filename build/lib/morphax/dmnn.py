@@ -492,7 +492,7 @@ def operator(type):
     else:
         print('Type of layer ' + type + 'is wrong!')
         return 1
-    return oper
+    return jax.jit(oper)
 
 ####Discrete Morphological Neural Networks####
 
@@ -586,7 +586,7 @@ def IoU(pred,true):
     -------
     mean square error
     """
-    return 1 - (jnp.sum(2 * true * pred) + 1)/(jnp.sum(jnp.max(true,pred)) + 1)
+    return 1 - (jnp.sum(jnp.minimum(pred,true))/jnp.sum(jnp.maximum(pred,true)))
 
 #Apply a morphological layer
 def apply_morph_layer(x,type,params,index_x):
@@ -628,7 +628,7 @@ def apply_morph_layer(x,type,params,index_x):
     return fx
 
 #Initiliaze Canonical DMNN
-def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5):
+def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5,key = 0):
     """
     Initialize a Discrete Morphological Neural Network as the identity operator.
     ----------
@@ -659,6 +659,10 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5):
 
         Expected proportion of ones in sampled parameters
 
+    key : int
+
+        Key for sampling
+
     Returns
     -------
     dictionary with the initial parameters, forward function, width, size and type
@@ -666,31 +670,41 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5):
     #Indexes of input images
     index_x = index_array(shape_x)
 
+    #Key
+    key = jax.random.split(jax.random.PRNGKey(key),3*max(width)*max(size))
+    k = 0
+
     #Initialize parameters
     params = list()
     for i in range(len(width)):
-        if type[i] in ['sup','inf','complement']:
-            params.append(jnp.array(0.0).reshape((1,1,1)))
-        else:
+        if type[i] not in ['sup','inf','complement']:
             if sample:
                 if type[i] == 'supgen' or type[i] == 'infgen':
+                    ll = np.zeros((1,1,size[i],size[i]),dtype = int)
+                    ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 1
+                    ll = jnp.array(ll)
+                    ul = 1 + jnp.zeros((1,1,size[i],size[i]),dtype = int)
                     for j in range(width[i]):
-                        s1 = np.random.choice([0,1],p = [1 - p1,p1],size = (1,1,size[i],size[i]))
-                        s2 = np.random.choice([0,1],p = [1 - p1,p1],size = (1,1,size[i],size[i]))
-                        ll = jnp.minimum(s1,s2)
-                        ul = jnp.maximum(s1,s2)
+                        s = jax.random.choice(jax.random.PRNGKey(key[k,0]),2,p = jnp.array([1 - p1,p1]),shape = (1,1,size[i],size[i]))
+                        k = k + 1
+                        s = jnp.maximum(ll,s)
                         if j == 0:
-                            p = jnp.append(ll,ul,1)
+                            p = jnp.append(s,ul,1)
                         else:
-                            interval = jnp.append(ll,ul,1)
+                            interval = jnp.append(s,ul,1)
                             p = jnp.append(p,interval,0)
                 else:
+                    ll = np.zeros((1,1,size[i],size[i]),dtype = int)
+                    ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 1
+                    ll = jnp.array(ll)
                     for j in range(width[i]):
-                        ll = np.random.choice([0,1],p = [1 - p1,p1],size = (1,1,size[i],size[i]))
+                        s = jax.random.choice(jax.random.PRNGKey(key[k,0]),2,p = jnp.array([1 - p1,p1]),shape = (1,1,size[i],size[i]))
+                        k = k + 1
+                        s = jnp.maximum(ll,s)
                         if j == 0:
-                            p = jnp.array(ll)
+                            p = jnp.array(s)
                         else:
-                            p = jnp.append(p,ll,0)
+                            p = jnp.append(p,s,0)
             else:
                 if type[i] == 'supgen' or type[i] == 'infgen':
                     ll = np.zeros((1,1,size[i],size[i]),dtype = int)
@@ -711,10 +725,28 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5):
                         p = jnp.append(p,interval,0)
             params.append(p)
 
+    #Params as jax array
+    max_width = max(width)
+    max_size = max(size)
+    for i in range(len(params)):
+        params[i] = jnp.pad(params[i],((0,max_width - params[i].shape[0]),(0,2 - params[i].shape[1]),(0,max_size - params[i].shape[2]),(0,max_size - params[i].shape[3])),constant_values = -2)
+    params = jnp.array(params)
+
+    #Numeric type
+    type_num = []
+    for i in range(len(type)):
+        if type[i] in ['sup','inf','complement']:
+            type_num = type_num + [0]
+        elif type[i] == 'supgen' or type[i] == 'infgen':
+            type_num = type_num + [2]
+        else:
+            type_num = type_num + [1]
+
     #Forward pass
     @jax.jit
     def forward(x,params):
         x = x.reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+        j = 0
         for i in range(len(type)):
             #Apply sup and inf
             if type[i] == 'sup':
@@ -723,23 +755,68 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5):
                 x = vmap_inf(x)
             elif type[i] == 'complement':
                 x = 1 - x
+            elif type[i] == "supgen" or type[i] == "infgen":
+                #Apply other layer
+                x = apply_morph_layer(x[0,:,:,:],type[i],params[j,0:width[i],:,0:size[i],0:size[i]].reshape((width[i],2,size[i],size[i])),index_x)
+                j = j + 1
             else:
                 #Apply other layer
-                x = apply_morph_layer(x[0,:,:,:],type[i],params[i],index_x)
+                x = apply_morph_layer(x[0,:,:,:],type[i],params[j,0:width[i],0,0:size[i],0:size[i]].reshape((width[i],1,size[i],size[i])),index_x)
+                j = j + 1
         return x[0,:,:,:]
 
     #Return initial parameters and forward function
-    return {'params': params,'forward': forward,'width': width,'size': size,'type': type}
+    return {'params': params,'forward': forward,'width': width,'size': size,'type': type_num}
+
+#Sample limit
+@jax.jit
+def get_lim(h,key = 0):
+    ch = jnp.zeros((1,))
+    ch = jnp.where(h == 0,1,ch)
+    ch = jnp.where((h == 2) | (h < 0),0,ch)
+    ch = jnp.where((h != 0) & (h != 2) & (h >= 0),jax.random.choice(jax.random.PRNGKey(key),2,shape = (1,)),ch)
+    return ch.astype(jnp.int32)
+
+#Visit a nighboor
+def visit_neighbor(h,params,x,y,lf):
+    """
+    Compute the loss at a nighbor.
+    ----------
+
+    Parameters
+    ----------
+    h : jax.numpy.array
+
+        Index of the neighbor to visit
+
+    params : jax.numpy.array
+
+        Array of current parameters
+
+    x,y : jax.numpy.array
+
+        Input and output images
+
+    lf : function
+
+        Loss function
+
+    Returns
+    -------
+    float
+    """
+    #Compute error
+    return lf(params.at[h[0],h[1],h[2],h[3],h[4]].set(1 - params[h[0],h[1],h[2],h[3],h[4]]),x,y)
 
 #Step SLDA
-def step_slda(params,x,y,forward,lf,type,sample = False,neighbors = 8):
+def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8,key = 0):
     """
     Step of Stochastic Lattice Descent Algorithm updating the parameters.
     ----------
 
     Parameters
     ----------
-    params : list of jax.numpy.array
+    params : jax.numpy.array
 
         Current parameters
 
@@ -759,6 +836,14 @@ def step_slda(params,x,y,forward,lf,type,sample = False,neighbors = 8):
 
         Type of operator applied in each layer
 
+    width : list of int
+
+        List with the width of each layer
+
+    size : list of int
+
+        List with the size of the structuring element of each layer
+
     sample : logical
 
         Whether to sample neighbors
@@ -767,93 +852,111 @@ def step_slda(params,x,y,forward,lf,type,sample = False,neighbors = 8):
 
         Number of neighbors to sample
 
+    key : int
+
+        Key for sampling
+
     Returns
     -------
     list of jax.numpy.array
     """
-    #Current error
-    error = lf(params,x,y)
-    min_loss = jnp.inf
+    #Key
+    key = jax.random.split(jax.random.PRNGKey(key),3*max(width)*max(size)*max(size))
 
-    #Sample
+    #Store neighbors to consider: layer + node + lim + row + col
+    k = 0
     if sample:
         #Calculate probabilities
-        prob = []
-        for i in range(len(params)):
-            #If is sup/inf/complement, prob is zero
-            if params[i].shape[2] == 1:
-                prob  = prob + [0]
-            #If is not supgen/infgen
-            elif params[i].shape[1] == 1:
-                prob  = prob + [params[i].shape[0] * (params[i].shape[2] ** 2)]
-            #If supgen/infgen
-            else:
-                count = jnp.apply_along_axis(jnp.sum,1,params[i])
-                prob = prob + [jnp.sum(jnp.where((count == 0) | (count == 2),1,2)).tolist()]
-        #Sample layers
-        prob = [x/sum(prob) for x in prob]
-        layers = np.random.choice(len(prob),size = neighbors,p = prob)
-        #For each layer sample a change and test it
-        for l in layers:
-            #If is not supgen/infgen
-            if params[l].shape[1] == 1:
+        prob = jnp.array([])
+        j = 0
+        for i in range(len(type)):
+            if type[i] != 0:
+                #If is not supgen/infgen
+                if type[i] == 1:
+                    prob  = jnp.append(prob,jnp.array(width[i] * (size[i] ** 2)))
+                #If supgen/infgen
+                else:
+                    count = jnp.apply_along_axis(jnp.sum,1,params[j,0:width[i],:,0:size[i],0:size[i]])
+                    prob = jnp.append(prob,jnp.sum(jnp.where((count == 0) | (count == 2),1,2)))
+                    del count
+                j = j + 1
+            #Arrays
+            max_width = max(width)
+            max_size = max(size)
+
+            #Sample layers
+            prob = jnp.array(prob).reshape((len(prob),))
+            prob = prob/jnp.sum(prob)
+            layers = jax.random.choice(jax.random.PRNGKey(key[k,0]),len(prob),shape = (neighbors,),p = prob)
+            k = k + 1
+            hood = None
+            #For each layer sample a change
+            for i in range(neighbors):
+                l = layers[i]
                 #Sample a node
-                node = np.random.choice(params[l].shape[0])
+                par_l = params[l,:,:,:,:]
+                count_sum = jnp.apply_along_axis(jnp.sum,1,par_l)
+                count = jnp.where(count_sum == 1,2,1)
+                count = jnp.where(count_sum == -4,0,count)
+                tmp_prob = jax.vmap(jnp.sum)(count)
+                tmp_prob = tmp_prob/jnp.sum(tmp_prob)
+                node = jax.random.choice(jax.random.PRNGKey(key[k,0]),max_width,shape = (1,1),p = tmp_prob)
+                k = k + 1
                 #Sample row and collumn
-                row_col = np.random.choice(params[l].shape[2],size = 2)
-            else:
-                #Sample a node
-                count = jnp.apply_along_axis(jnp.sum,1,params[l])
-                count = jnp.where((count == 0) | (count == 2),1,2)
-                tmp_prob = jax.vmap(jnp.sum)(count).tolist()
-                tmp_prob = [x/sum(tmp_prob) for x in tmp_prob]
-                node = np.random.choice(params[l].shape[0],p = tmp_prob)
-                #Sample row and collumn
-                tmp_prob = count[node,:,:].reshape((params[l].shape[2] ** 2)).tolist()
-                tmp_prob = [x/sum(tmp_prob) for x in tmp_prob]
-                tmp_random = np.random.choice(params[l].shape[2] ** 2,p = tmp_prob)
-                row_col = [int(np.floor(tmp_random/params[l].shape[2])),tmp_random % params[l].shape[2]]
-                del tmp_prob, count, tmp_random
-            #Change parameters
-            tmp_params = params.copy()
-            tmp_params[l] = tmp_params[l].at[node,0,row_col[0],row_col[1]].set(1 - tmp_params[l][node,0,row_col[0],row_col[1]])
-            #Compute error
-            tmp_error = lf(tmp_params,x,y)
-            if tmp_error <= min_loss:
-                new_par = tmp_params.copy()
-                min_loss = tmp_error
-            del tmp_params, tmp_error, node, row_col
+                tmp_prob = count[node[0,0],:,:].reshape((max_size ** 2))
+                tmp_prob = tmp_prob/jnp.sum(tmp_prob)
+                tmp_random = jax.random.choice(jax.random.PRNGKey(key[k,0]),max_size ** 2,shape = (1,),p = tmp_prob)
+                k = k + 1
+                rc = jnp.array([jnp.floor(tmp_random/max_size),tmp_random % max_size]).reshape((1,2)).astype(jnp.int32)
+                #Sample limit
+                lim = get_lim(jnp.sum(par_l[node,:,rc[0,0],rc[0,1]]).reshape((1,1)),key[k,0])
+                k = k + 1
+                #Neighbor
+                nei = jnp.append(jnp.append(jnp.append(l.reshape((1,1)),node,1),lim,1),rc,1).astype(jnp.int32)
+                if hood is None:
+                    hood = nei
+                else:
+                    hood = jnp.append(hood,nei,0)
+                del count, tmp_prob, tmp_random, par_l, node, rc, lim
     else:
-        new_par = params.copy()
-        range_layers = list(range(len(params)))
-        random.shuffle(range_layers)
-        for l in range_layers:
-            if type[l] != 'inf' and type[l] != 'sup' and type[l] != 'complement':
-                range_nodes = list(range(params[l].shape[0]))
-                random.shuffle(range_nodes)
-                for n in range_nodes:
-                    range_lim = list(range(params[l].shape[1]))
-                    random.shuffle(range_lim)
-                    for lm in range_lim:
-                        range_row = list(range(params[l].shape[2]))
-                        random.shuffle(range_row)
-                        range_col = list(range(params[l].shape[3]))
-                        random.shuffle(range_col)
-                        for i in range_row:
-                            for j in range_col:
-                                if params[0].shape[1] == 1 or (lm == 0 and params[l][n,1,i,j] == 1) or (lm == 1 and params[l][n,0,i,j] == 0):
-                                    test_par = params.copy()
-                                    test_par[l] = params[l].at[n,lm,i,j].set(1 - params[l][n,lm,i,j])
-                                    test_error = lf(test_par,x,y)
-                                    #new_par,error = jax.lax.cond(test_error <= error, lambda x = 0: (test_par.copy(),test_error), lambda x = 0: (new_par,error))
-                                    if test_error <= min_loss:
-                                        new_par = test_par.copy()
-                                        min_loss = test_error
-                                    del test_par, test_error
-    return new_par
+        hood = None
+        j = 0
+        for i in range(len(type)):
+            if type[i] > 0:
+                if type[i] == 2:
+                    par = params[j,0:width[i],:,0:size[i],0:size[i]].reshape((width[i],2,size[i],size[i]))
+                else:
+                    par = params[j,0:width[i],0,0:size[i],0:size[i]].reshape((width[i],1,size[i],size[i]))
+                dim = par.shape
+                if dim[1] == 1:
+                    tmp = jnp.array([[j,node,0,row,col] for node in range(dim[0]) for row in range(dim[2]) for col in range(dim[3])])
+                else:
+                    tmp = jnp.array([[j,node,lim,row,col] for node in range(dim[0]) for lim in [0,1] for row in range(dim[2]) for col in range(dim[3])])
+                    for i in range(tmp.shape[0]):
+                        obs = jnp.sum(par[tmp[i,1],:,tmp[i,3],tmp[i,4]])
+                        v = tmp[i,2]
+                        v = jnp.where(obs == 0,1,v)
+                        v = jnp.where(obs == 2,0,v)
+                        tmp = tmp.at[i,2].set(v)
+                    del v
+                if hood is None:
+                    hood = tmp
+                else:
+                    hood = jnp.append(hood,tmp,0)
+                j = j + 1
+                del tmp
+
+    #Shuffle hood
+    hood = jax.random.permutation(jax.random.PRNGKey(key[k,0]),hood,0)
+    k = k + 1
+
+    #Compute error for each point in the hood
+    res = jax.vmap(lambda h: visit_neighbor(h,params,x,y,lf))(hood).reshape((hood.shape[0],1))
+
+    return jnp.append(hood,res,1)
 
 #Training function MNN
-def train_dmnn(x,y,forward,params,loss,type,sample = False,neighbors = None,epochs = 1,batches = 1,key = 0,notebook = False,epoch_print = 100):
+def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8,epochs = 1,batches = 1,notebook = False,epoch_print = 100):
     """
     Stochastic Lattice Descent Algorithm to train Discrete Morphological Neural Networks.
     ----------
@@ -864,21 +967,17 @@ def train_dmnn(x,y,forward,params,loss,type,sample = False,neighbors = None,epoc
 
         Input and output images
 
-    forward : function
+    net : dict
 
-        Forward function of the DMNN
-
-    params : list of jax.numpy.array
-
-        Initial parameters
+        Dictionary returned by the function cdmnn
 
     loss : function
 
         Loss function
 
-    type : list of str
+    xval,yval : jax.numpy.array
 
-        Type of operator applied in each layer
+        Input and output validation images
 
     sample : logical
 
@@ -904,6 +1003,14 @@ def train_dmnn(x,y,forward,params,loss,type,sample = False,neighbors = None,epoc
     -------
     list of jax.numpy.array
     """
+    #Parameters
+    params = net['params']
+    forward = net['forward']
+    type = net['type']
+    width = net['width']
+    size = net['size']
+    xy = jnp.append(x.reshape((1,x.shape[0],x.shape[1],x.shape[2])),y.reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
+
     #Key
     key = jax.random.split(jax.random.PRNGKey(0),epochs)
 
@@ -913,38 +1020,69 @@ def train_dmnn(x,y,forward,params,loss,type,sample = False,neighbors = None,epoc
     #Loss function
     @jax.jit
     def lf(params,x,y):
-        return jnp.mean(jax.vmap(loss,in_axes = (0,0))(forward(x,params),y))
+        return jnp.mean(jax.vmap(loss)(forward(x,params),y))
 
     #Training function
-    #@jax.jit
-    def update(params,x,y):
-      params = step_slda(params,x,y,forward,lf,type,sample,neighbors)
+    @jax.jit
+    def update(params,x,y,key):
+      params = step_slda(params,x,y,forward,lf,type,width,size,sample,neighbors,key)
       return params
+
+    #Trace
+    min_loss = lf(params,x,y)
+    trace_time = [0]
+    trace_loss = [min_loss]
+    if xval is not None:
+        min_val_loss = lf(params,xval,yval)
+        trace_val_loss = [min_val_loss]
+    else:
+        min_val_loss = jnp.inf
+        trace_val_loss = []
+    params_init = params.copy()
+    jumps = jnp.array([])
 
     #Train
     t0 = time.time()
     with alive_bar(epochs) as bar:
+        bar.title('Epoch: ' + str(0) + " Loss: " + str(jnp.round(min_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
         for e in range(epochs):
-            #Permutate x
-            x = jax.random.permutation(jax.random.PRNGKey(key[e,0]),x,0)
+            #Permutate xy
+            xy = jax.random.permutation(jax.random.PRNGKey(key[e,0]),xy,1)
             for b in range(batches):
                 if b < batches - 1:
-                    xb = jax.lax.dynamic_slice(x,(b*bsize,0,0),(bsize,x.shape[1],x.shape[2]))
-                    yb = jax.lax.dynamic_slice(x,(b*bsize,0,0),(bsize,x.shape[1],x.shape[2]))
+                    xb = jax.lax.dynamic_slice(xy[0,:,:,:],(b*bsize,0,0),(bsize,x.shape[1],x.shape[2]))
+                    yb = jax.lax.dynamic_slice(xy[1,:,:,:],(b*bsize,0,0),(bsize,x.shape[1],x.shape[2]))
                 else:
-                    xb = x[b*bsize:x.shape[0],:,:]
-                    yb = y[b*bsize:y.shape[0],:,:]
-                params = update(params,xb,yb)
-            if e % epoch_print == 0:
-                l = str(jnp.round(lf(params,x,y),10))
-                if notebook:
-                    print('Epoch: ' + str(e) + ' Time: ' + str(jnp.round(time.time() - t0,2)) + ' s Loss: ' + l)
-                if not notebook:
-                    bar.title("Loss: " + l)
-            if not notebook:
-                bar()
+                    xb = xy[0,b*bsize:x.shape[0],:,:]
+                    yb = xy[1,b*bsize:y.shape[0],:,:]
+                #Search neighbors
+                hood = update(params,xb,yb,key[e,1])
 
-    return params
+                #Update
+                hood = hood[hood[:,-1] == jnp.min(hood[:,-1]),0:-1][0,:].astype(jnp.int32)
+                jumps = jnp.append(jumps,hood,0)
+                print(hood)
+                params = params.at[hood[0],hood[1],hood[2],hood[3],hood[4]].set(1 - params[hood[0],hood[1],hood[2],hood[3],hood[4]])
+                trace_time = trace_time + [time.time() - t0]
+
+            #Compute loss and store at the end of epoch
+            train_loss = lf(params,x,y)
+            trace_loss = trace_loss + [train_loss]
+            if xval is not None:
+                val_loss = lf(params,xval,yval)
+                trace_val_loss = trace_val_loss + [val_loss]
+            if train_loss < min_loss:
+                min_loss = train_loss
+                best_par = params.copy()
+                if xval is not None:
+                    min_val_loss = val_loss
+            bar.title('Epoch: ' + str(e) + " Time: " + str(jnp.round(time.time() - t0)) + " s Loss: " + str(jnp.round(train_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
+            if e % epoch_print == 0:
+                if notebook:
+                    print('Epoch: ' + str(e) + " Time: " + str(jnp.round(time.time() - t0)) + " s Loss: " + str(jnp.round(train_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
+            bar()
+
+    return {'best_par': best_par,'jumps': jumps,'trace_time': trace_time,'trace_loss': trace_loss,'trace_val_loss': trace_val_loss,'epochs': epochs,'oper': lambda x: foward(x,best_par),'forward': forward}
 
 
 #SLDA for training DMNN
