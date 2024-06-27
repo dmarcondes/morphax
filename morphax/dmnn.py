@@ -856,7 +856,7 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8)
         hood = jnp.array([[l,0,0,0,0] for l in r]).reshape((neighbors,5))
         #For each layer sample a change
         for i in range(hood.shape[0]):
-            l = hood[i,0]
+            l = 0#hood[i,0]
             #If is not supgen/infgen
             if type_j[l] not in ['supgen','infgen']:
                 #Sample a node
