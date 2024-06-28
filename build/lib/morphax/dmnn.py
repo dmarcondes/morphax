@@ -956,7 +956,7 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8,
     return jnp.append(hood,res,1)
 
 #Training function MNN
-def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8,epochs = 1,batches = 1,notebook = False,epoch_print = 100,key = 0):
+def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8,epochs = 1,batches = 1,notebook = False,epoch_print = 100,epoch_store = 1,key = 0,store_jumps = False):
     """
     Stochastic Lattice Descent Algorithm to train Discrete Morphological Neural Networks.
     ----------
@@ -999,9 +999,17 @@ def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8
 
         Number of epochs to print the partial result
 
+    epoch_store : int
+
+        Number of epochs to store partial results
+
     key : int
 
         Key for sampling
+
+    store_jumps : logical
+
+        Whether to store jumps
 
     Returns
     -------
@@ -1037,6 +1045,7 @@ def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8
     min_loss = lf(params,x,y)
     trace_time = [0]
     trace_loss = [min_loss]
+    trace_epoch = [0]
     if xval is not None:
         min_val_loss = lf(params,xval,yval)
         trace_val_loss = [min_val_loss]
@@ -1065,19 +1074,24 @@ def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8
 
                 #Update
                 hood = hood[hood[:,-1] == jnp.min(hood[:,-1]),0:-1][0,:].astype(jnp.int32)
-                jumps = jnp.append(jumps,hood,0)
+                if store_jumps:
+                    jumps = jnp.append(jumps,hood,0)
                 new_params = params.at[hood[0],hood[1],hood[2],hood[3],hood[4]].set(1 - params[hood[0],hood[1],hood[2],hood[3],hood[4]])
                 del params
                 params = new_params.copy()
-                trace_time = trace_time + [time.time() - t0]
                 del hood, xb, yb, new_params
 
             #Compute loss and store at the end of epoch
             train_loss = lf(params,x,y)
-            trace_loss = trace_loss + [train_loss]
             if xval is not None:
                 val_loss = lf(params,xval,yval)
-                trace_val_loss = trace_val_loss + [val_loss]
+            if (e + 1) % epoch_store == 0:
+                trace_epoch = trace_epoch + [e + 1]
+                trace_time = trace_time + [time.time() - t0]
+                trace_loss = trace_loss + [train_loss]
+                if xval is not None:
+                    trace_val_loss = trace_val_loss + [val_loss]
+            #Update best
             if train_loss < min_loss:
                 del best_par
                 min_loss = train_loss
@@ -1090,7 +1104,7 @@ def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8
                     print('Epoch: ' + str(e) + " Time: " + str(jnp.round(time.time() - t0)) + " s Loss: " + str(jnp.round(train_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
             bar()
 
-    return {'best_par': best_par,'jumps': jumps,'trace_time': trace_time,'trace_loss': trace_loss,'trace_val_loss': trace_val_loss,'epochs': epochs,'oper': lambda x: foward(x,best_par),'forward': forward}
+    return {'best_par': best_par,'jumps': jumps,'trace_epoch': trace_epoch,'trace_time': trace_time,'trace_loss': trace_loss,'trace_val_loss': trace_val_loss,'epochs': epochs,'oper': lambda x: foward(x,best_par),'forward': forward}
 
 
 #SLDA for training DMNN
