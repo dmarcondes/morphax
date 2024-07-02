@@ -79,7 +79,7 @@ net['params'] = jnp.load("params_5_256_IoU.npy")
 #results = list(range(len(net)))
 #for i in [5]:#range(len(net)):
 #print(i)
-results = dmnn.train_dmnn(x,y,net,dmnn.IoU,xval = xval,yval = yval,sample = True,neighbors = 128,epochs = 20000,batches = 1,notebook = True,epoch_print= 100,epoch_store = 10,error_type = 'max')
+results = dmnn.train_dmnn(x,y,net,dmnn.IoU,xval = xval,yval = yval,sample = True,neighbors = 128,epochs = 2000,batches = 1,notebook = True,epoch_print= 100,epoch_store = 10,error_type = 'max')
 #tmp_table = pd.DataFrame(np.array([results[i]['trace_epoch'],results[i]['trace_time'],results[i]['trace_loss'],results[i]['trace_val_loss']]).transpose(),columns = ['epoch','time','train_loss','val_loss'])
 #tmp_table.to_csv('dmnn_gol_256_max_IoU_Gosper_1024.csv')
 jnp.save("params_156_mean_fineTrain_IoU_Gosper_1024.npy",results['best_par'])
