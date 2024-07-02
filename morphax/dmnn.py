@@ -956,7 +956,7 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8,
     return jnp.append(hood,res,1)
 
 #Training function MNN
-def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8,epochs = 1,batches = 1,notebook = False,epoch_print = 100,epoch_store = 1,key = 0,store_jumps = False):
+def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8,epochs = 1,batches = 1,notebook = False,epoch_print = 100,epoch_store = 1,key = 0,store_jumps = False,error_type = 'mean'):
     """
     Stochastic Lattice Descent Algorithm to train Discrete Morphological Neural Networks.
     ----------
@@ -1011,6 +1011,10 @@ def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8
 
         Whether to store jumps
 
+    error_type : str
+
+        Type of error to consider: 'mean' of loss or 'max' of loss
+
     Returns
     -------
     list of jax.numpy.array
@@ -1030,9 +1034,14 @@ def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8
     bsize = int(math.floor(x.shape[0]/batches))
 
     #Loss function
-    @jax.jit
-    def lf(params,x,y):
-        return jnp.mean(jax.vmap(loss)(forward(x,params),y))
+    if error_type == 'mean':
+        @jax.jit
+        def lf(params,x,y):
+            return jnp.mean(jax.vmap(loss)(forward(x,params),y))
+    else:
+        @jax.jit
+        def lf(params,x,y):
+            return jnp.max(jax.vmap(loss)(forward(x,params),y))
 
     #Training function
     @jax.jit
