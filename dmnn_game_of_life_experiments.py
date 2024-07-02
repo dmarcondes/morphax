@@ -77,8 +77,8 @@ net[8] = dmnn.cdmnn(['supgen','sup'],[1024,1],[3,1],shape_x = (32,32),sample = T
 results = list(range(len(net)))
 for i in [5]:#range(len(net)):
     print(i)
-    results[i] = dmnn.train_dmnn(x,y,net[i],dmnn.MSE,xval = xval,yval = yval,sample = True,neighbors = 8,epochs = 100000,batches = 1,notebook = True,epoch_print= 100,epoch_store = 10)
+    results[i] = dmnn.train_dmnn(x,y,net[i],dmnn.IoU,xval = xval,yval = yval,sample = True,neighbors = 8,epochs = 100000,batches = 1,notebook = True,epoch_print= 100,epoch_store = 10)
     tmp_table = pd.DataFrame(np.array([results[i]['trace_epoch'],results[i]['trace_time'],results[i]['trace_loss'],results[i]['trace_val_loss']]).transpose(),columns = ['epoch','time','train_loss','val_loss'])
-    tmp_table.to_csv('dmnn_gol_2bacthes' + str(i) + '.csv')
-    jnp.save("params_5.npy",results[i]['best_par'])
+    tmp_table.to_csv('dmnn_gol_2bacthes_IoU_' + str(i) + '.csv')
+    jnp.save("params_5_IoU.npy",results[i]['best_par'])
     del tmp_table
