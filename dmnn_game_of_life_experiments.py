@@ -17,7 +17,7 @@ y_files_path = ['/scratch/user/dmarcondes/morphax/data/y_' + str(i) + '.csv' for
 #Read train and test images
 x = md.read_data_frame(x_files_path[0]).reshape((1,56,56)).astype(jnp.int32)
 y = md.read_data_frame(y_files_path[0]).reshape((1,56,56)).astype(jnp.int32)
-for i in range(9):
+for i in range(99):
     x = jnp.append(x,md.read_data_frame(x_files_path[i+1]).reshape((1,56,56)).astype(jnp.int32),0)
     y = jnp.append(y,md.read_data_frame(y_files_path[i+1]).reshape((1,56,56)).astype(jnp.int32),0)
 
@@ -29,6 +29,7 @@ for i in range(10,100):
 
 #Architectures
 net = dmnn.cdmnn(['supgen','sup'],[128,1],[3,1],shape_x = (56,56),sample = True,p1 = 0.5)
+net['params'] = jnp.load("params_5_256_IoU.npy")
 #net = list(range(39))
 #net[0] = dmnn.cdmnn(['supgen','sup'],[4,1],[3,1],shape_x = (32,32),sample = True,p1 = 0.5)
 #net[1] = dmnn.cdmnn(['supgen','sup'],[8,1],[3,1],shape_x = (32,32),sample = True,p1 = 0.5)
@@ -78,8 +79,8 @@ net = dmnn.cdmnn(['supgen','sup'],[128,1],[3,1],shape_x = (56,56),sample = True,
 #results = list(range(len(net)))
 #for i in [5]:#range(len(net)):
 #print(i)
-results = dmnn.train_dmnn(x,y,net,dmnn.IoU,xval = xval,yval = yval,sample = True,neighbors = 256,epochs = 20000,batches = 1,notebook = True,epoch_print= 100,epoch_store = 10,error_type = 'max')
+results = dmnn.train_dmnn(x,y,net,dmnn.IoU,xval = xval,yval = yval,sample = True,neighbors = 128,epochs = 20000,batches = 1,notebook = True,epoch_print= 100,epoch_store = 10,error_type = 'max')
 #tmp_table = pd.DataFrame(np.array([results[i]['trace_epoch'],results[i]['trace_time'],results[i]['trace_loss'],results[i]['trace_val_loss']]).transpose(),columns = ['epoch','time','train_loss','val_loss'])
 #tmp_table.to_csv('dmnn_gol_256_max_IoU_Gosper_1024.csv')
-jnp.save("params_256_max_IoU_Gosper_1024.npy",results['best_par'])
-del tmp_table
+jnp.save("params_156_mean_fineTrain_IoU_Gosper_1024.npy",results['best_par'])
+#del tmp_table
