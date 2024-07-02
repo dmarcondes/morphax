@@ -21,11 +21,11 @@ for i in range(9):
     x = jnp.append(x,md.read_data_frame(x_files_path[i+1]).reshape((1,56,56)).astype(jnp.int32),0)
     y = jnp.append(y,md.read_data_frame(y_files_path[i+1]).reshape((1,56,56)).astype(jnp.int32),0)
 
-xval = md.read_data_frame(x_files_path[10]).reshape((1,32,32)).astype(jnp.int32)
-yval = md.read_data_frame(y_files_path[10]).reshape((1,32,32)).astype(jnp.int32)
+xval = md.read_data_frame(x_files_path[10]).reshape((1,56,56)).astype(jnp.int32)
+yval = md.read_data_frame(y_files_path[10]).reshape((1,56,56)).astype(jnp.int32)
 for i in range(10,100):
-    xval = jnp.append(xval,md.read_data_frame(x_files_path[i+1]).reshape((1,32,32)).astype(jnp.int32),0)
-    yval = jnp.append(yval,md.read_data_frame(y_files_path[i+1]).reshape((1,32,32)).astype(jnp.int32),0)
+    xval = jnp.append(xval,md.read_data_frame(x_files_path[i+1]).reshape((1,56,56)).astype(jnp.int32),0)
+    yval = jnp.append(yval,md.read_data_frame(y_files_path[i+1]).reshape((1,56,56)).astype(jnp.int32),0)
 
 #Architectures
 net = dmnn.cdmnn(['supgen','sup'],[128,1],[3,1],shape_x = (56,56),sample = True,p1 = 0.5)
