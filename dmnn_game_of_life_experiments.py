@@ -28,7 +28,7 @@ for i in range(100):
 #    yval = jnp.append(yval,md.read_data_frame(y_files_path[i+1]).reshape((1,32,32)).astype(jnp.int32),0)
 
 #Architectures
-net = dmnn.cdmnn(['supgen','sup'],[128,1],[3,1],shape_x = (32,32),sample = True,p1 = 0.5)
+net = dmnn.cdmnn(['supgen','sup'],[128,1],[3,1],shape_x = (128,128),sample = True,p1 = 0.5)
 #net = list(range(39))
 #net[0] = dmnn.cdmnn(['supgen','sup'],[4,1],[3,1],shape_x = (32,32),sample = True,p1 = 0.5)
 #net[1] = dmnn.cdmnn(['supgen','sup'],[8,1],[3,1],shape_x = (32,32),sample = True,p1 = 0.5)
