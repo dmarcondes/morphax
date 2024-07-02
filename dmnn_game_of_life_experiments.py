@@ -15,29 +15,30 @@ x_files_path = ['/scratch/user/dmarcondes/morphax/data/x_' + str(i) + '.csv' for
 y_files_path = ['/scratch/user/dmarcondes/morphax/data/y_' + str(i) + '.csv' for i in range(1000)]
 
 #Read train and test images
-x = md.read_data_frame(x_files_path[0]).reshape((1,32,32)).astype(jnp.int32)
-y = md.read_data_frame(y_files_path[0]).reshape((1,32,32)).astype(jnp.int32)
-for i in range(9):
-    x = jnp.append(x,md.read_data_frame(x_files_path[i+1]).reshape((1,32,32)).astype(jnp.int32),0)
-    y = jnp.append(y,md.read_data_frame(y_files_path[i+1]).reshape((1,32,32)).astype(jnp.int32),0)
+x = md.read_data_frame(x_files_path[0]).reshape((1,128,128)).astype(jnp.int32)
+y = md.read_data_frame(y_files_path[0]).reshape((1,128,128)).astype(jnp.int32)
+for i in range(100):
+    x = jnp.append(x,md.read_data_frame(x_files_path[i+1]).reshape((1,128,128)).astype(jnp.int32),0)
+    y = jnp.append(y,md.read_data_frame(y_files_path[i+1]).reshape((1,128,128)).astype(jnp.int32),0)
 
-xval = md.read_data_frame(x_files_path[10]).reshape((1,32,32)).astype(jnp.int32)
-yval = md.read_data_frame(y_files_path[10]).reshape((1,32,32)).astype(jnp.int32)
-for i in range(10,100):
-    xval = jnp.append(xval,md.read_data_frame(x_files_path[i+1]).reshape((1,32,32)).astype(jnp.int32),0)
-    yval = jnp.append(yval,md.read_data_frame(y_files_path[i+1]).reshape((1,32,32)).astype(jnp.int32),0)
+#xval = md.read_data_frame(x_files_path[10]).reshape((1,32,32)).astype(jnp.int32)
+#yval = md.read_data_frame(y_files_path[10]).reshape((1,32,32)).astype(jnp.int32)
+#for i in range(10,100):
+#    xval = jnp.append(xval,md.read_data_frame(x_files_path[i+1]).reshape((1,32,32)).astype(jnp.int32),0)
+#    yval = jnp.append(yval,md.read_data_frame(y_files_path[i+1]).reshape((1,32,32)).astype(jnp.int32),0)
 
 #Architectures
-net = list(range(39))
-net[0] = dmnn.cdmnn(['supgen','sup'],[4,1],[3,1],shape_x = (32,32),sample = True,p1 = 0.5)
-net[1] = dmnn.cdmnn(['supgen','sup'],[8,1],[3,1],shape_x = (32,32),sample = True,p1 = 0.5)
-net[2] = dmnn.cdmnn(['supgen','sup'],[16,1],[3,1],shape_x = (32,32),sample = True,p1 = 0.5)
-net[3] = dmnn.cdmnn(['supgen','sup'],[32,1],[3,1],shape_x = (32,32),sample = True,p1 = 0.5)
-net[4] = dmnn.cdmnn(['supgen','sup'],[64,1],[3,1],shape_x = (32,32),sample = True,p1 = 0.5)
-net[5] = dmnn.cdmnn(['supgen','sup'],[128,1],[3,1],shape_x = (32,32),sample = True,p1 = 0.5)
-net[6] = dmnn.cdmnn(['supgen','sup'],[256,1],[3,1],shape_x = (32,32),sample = True,p1 = 0.5)
-net[7] = dmnn.cdmnn(['supgen','sup'],[512,1],[3,1],shape_x = (32,32),sample = True,p1 = 0.5)
-net[8] = dmnn.cdmnn(['supgen','sup'],[1024,1],[3,1],shape_x = (32,32),sample = True,p1 = 0.5)
+net = dmnn.cdmnn(['supgen','sup'],[128,1],[3,1],shape_x = (32,32),sample = True,p1 = 0.5)
+#net = list(range(39))
+#net[0] = dmnn.cdmnn(['supgen','sup'],[4,1],[3,1],shape_x = (32,32),sample = True,p1 = 0.5)
+#net[1] = dmnn.cdmnn(['supgen','sup'],[8,1],[3,1],shape_x = (32,32),sample = True,p1 = 0.5)
+#net[2] = dmnn.cdmnn(['supgen','sup'],[16,1],[3,1],shape_x = (32,32),sample = True,p1 = 0.5)
+#net[3] = dmnn.cdmnn(['supgen','sup'],[32,1],[3,1],shape_x = (32,32),sample = True,p1 = 0.5)
+#net[4] = dmnn.cdmnn(['supgen','sup'],[64,1],[3,1],shape_x = (32,32),sample = True,p1 = 0.5)
+#net[5] = dmnn.cdmnn(['supgen','sup'],[128,1],[3,1],shape_x = (32,32),sample = True,p1 = 0.5)
+#net[6] = dmnn.cdmnn(['supgen','sup'],[256,1],[3,1],shape_x = (32,32),sample = True,p1 = 0.5)
+#net[7] = dmnn.cdmnn(['supgen','sup'],[512,1],[3,1],shape_x = (32,32),sample = True,p1 = 0.5)
+#net[8] = dmnn.cdmnn(['supgen','sup'],[1024,1],[3,1],shape_x = (32,32),sample = True,p1 = 0.5)
 
 #net[9] = dmnn.cdmnn(2 * ['supgen','sup'],2 * [2,1],2 * [3,1],shape_x = (32,32),sample = True,p1 = 0.5)
 #net[10] = dmnn.cdmnn(2 * ['supgen','sup'],2 * [4,1],2 * [3,1],shape_x = (32,32),sample = True,p1 = 0.5)
@@ -74,11 +75,11 @@ net[8] = dmnn.cdmnn(['supgen','sup'],[1024,1],[3,1],shape_x = (32,32),sample = T
 #net[38] = dmnn.cdmnn(16 * ['supgen','sup'],16 * [64,1],16 * [3,1],shape_x = (32,32),sample = True,p1 = 0.5)
 
 #Training each one
-results = list(range(len(net)))
-for i in [5]:#range(len(net)):
-    print(i)
-    results[i] = dmnn.train_dmnn(x,y,net[i],dmnn.IoU,xval = xval,yval = yval,sample = True,neighbors = 256,epochs = 15000,batches = 1,notebook = True,epoch_print= 100,epoch_store = 10,error_type = 'max')
-    tmp_table = pd.DataFrame(np.array([results[i]['trace_epoch'],results[i]['trace_time'],results[i]['trace_loss'],results[i]['trace_val_loss']]).transpose(),columns = ['epoch','time','train_loss','val_loss'])
-    tmp_table.to_csv('dmnn_gol_2bacthes_256_max_IoU_' + str(i) + '.csv')
-    jnp.save("params_5_256_IoU_max.npy",results[i]['best_par'])
-    del tmp_table
+#results = list(range(len(net)))
+#for i in [5]:#range(len(net)):
+#print(i)
+results = dmnn.train_dmnn(x,y,net,dmnn.IoU,sample = True,neighbors = 256,epochs = 20000,batches = 1,notebook = True,epoch_print= 100,epoch_store = 10,error_type = 'max')
+#tmp_table = pd.DataFrame(np.array([results[i]['trace_epoch'],results[i]['trace_time'],results[i]['trace_loss'],results[i]['trace_val_loss']]).transpose(),columns = ['epoch','time','train_loss','val_loss'])
+#tmp_table.to_csv('dmnn_gol_256_max_IoU_Gosper_1024.csv')
+jnp.save("params_256_max_IoU_Gosper_1024.npy",results['best_par'])
+del tmp_table
