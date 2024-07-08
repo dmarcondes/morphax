@@ -433,7 +433,7 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0,epochs = 1000):
     #Train
     input = jnp.array(list(itertools.product([0, 1], repeat = d ** 2)))
     output = jnp.where(input[:,math.ceil((d ** 2)/2)] == 1,1,0).reshape((input.shape[0],1))
-    params = train_fcnn(input,output,forward,params,MSE_SA,sa = True,epochs = epochs,epoch_print = 100)
+    params = sgd(input,output,forward,params,MSE_SA,sa = True,epochs = epochs,epoch_print = 100)
 
     #Return initial parameters and forward function
     return {'params': params,'forward': forward,'width': width}
@@ -683,7 +683,7 @@ def cmnn_iter(type,width,width_str,size,shape_x,x = None,width_wop = None,activa
             nn = fconNN_str(width_str,activation,key)
             forward_inner = nn['forward']
             w_y = mp.struct_lower(x,max_size).reshape((w_max.shape[0],1))
-            params_ll = train_fcnn(w_max,w_y,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
+            params_ll = sgd(w_max,w_y,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
             ll = forward_inner(w_max,params_ll).reshape((max_size,max_size))
 
             if 'supgen' in type or 'infgen' in type:
@@ -691,7 +691,7 @@ def cmnn_iter(type,width,width_str,size,shape_x,x = None,width_wop = None,activa
                 nn = fconNN_str(width_str,activation,key)
                 forward_inner = nn['forward']
                 w_y = mp.struct_upper(x,max_size).reshape((w_max.shape[0],1))
-                params_ul = train_fcnn(w_max,w_y,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
+                params_ul = sgd(w_max,w_y,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
                 ul = forward_inner(w_max,params_ul).reshape((max_size,max_size))
 
         #Assign trained parameters

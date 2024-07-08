@@ -188,7 +188,7 @@ def local_w_operator_nn(x,forward,params,l):
 
     """
     def jit_w_operator(index):
-        return forward(jax.lax.dynamic_slice(x, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1)),params)
+        return forward(jax.lax.dynamic_slice(x, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1)).reshape((1,(2*l + 1) ** 2)),params)
     return jit_w_operator
 
 #Apply W-operator with characteristic function f given by nn
