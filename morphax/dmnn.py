@@ -628,7 +628,7 @@ def apply_morph_layer(x,type,params,index_x):
     return fx
 
 #Initiliaze Canonical DMNN
-def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5,key = 0):
+def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5,continuous = False,activation = jax.nn.sigmoid,key = 0,par0 = -3.0,par1 = 3.0):
     """
     Initialize a Discrete Morphological Neural Network as the identity operator.
     ----------
@@ -659,9 +659,21 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5,key = 0):
 
         Expected proportion of ones in sampled parameters
 
+    continuous : logical
+
+        Wheter to initialize the DMNN as a continuous neural network
+
+    activation : function
+
+        Activation function for the continuous neural network
+
     key : int
 
         Key for sampling
+
+    par0,par1 : float
+
+        Initial values for the parameters related to points in the structuring element that should be 0 and 1, respectively
 
     Returns
     -------
@@ -732,6 +744,10 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5,key = 0):
         params[i] = jnp.pad(params[i],((0,max_width - params[i].shape[0]),(0,2 - params[i].shape[1]),(0,max_size - params[i].shape[2]),(0,max_size - params[i].shape[3])),constant_values = -2)
     params = jnp.array(params)
 
+    #If continuous, change to parameters
+    if continuous:
+        params = jnp.where(params == 0,par0,par1)
+
     #Numeric type
     type_num = []
     for i in range(len(type)):
@@ -743,27 +759,51 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5,key = 0):
             type_num = type_num + [1]
 
     #Forward pass
-    @jax.jit
-    def forward(x,params):
-        x = x.reshape((1,x.shape[0],x.shape[1],x.shape[2]))
-        j = 0
-        for i in range(len(type)):
-            #Apply sup and inf
-            if type[i] == 'sup':
-                x = vmap_sup(x)
-            elif type[i] == 'inf':
-                x = vmap_inf(x)
-            elif type[i] == 'complement':
-                x = 1 - x
-            elif type[i] == "supgen" or type[i] == "infgen":
-                #Apply other layer
-                x = apply_morph_layer(x[0,:,:,:],type[i],params[j,0:width[i],:,0:size[i],0:size[i]].reshape((width[i],2,size[i],size[i])),index_x)
-                j = j + 1
-            else:
-                #Apply other layer
-                x = apply_morph_layer(x[0,:,:,:],type[i],params[j,0:width[i],0,0:size[i],0:size[i]].reshape((width[i],1,size[i],size[i])),index_x)
-                j = j + 1
-        return x[0,:,:,:]
+    if continuous:
+        @jax.jit
+        def forward(x,params):
+            x = x.reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+            j = 0
+            for i in range(len(type)):
+                #Apply sup and inf
+                if type[i] == 'sup':
+                    x = vmap_sup(x)
+                elif type[i] == 'inf':
+                    x = vmap_inf(x)
+                elif type[i] == 'complement':
+                    x = 1 - x
+                elif type[i] == "supgen" or type[i] == "infgen":
+                    #Apply other layer
+                    x = apply_morph_layer(x[0,:,:,:],type[i],activation(params[j,0:width[i],:,0:size[i],0:size[i]].reshape((width[i],2,size[i],size[i]))),index_x)
+                    j = j + 1
+                else:
+                    #Apply other layer
+                    x = apply_morph_layer(x[0,:,:,:],type[i],activation(params[j,0:width[i],0,0:size[i],0:size[i]].reshape((width[i],1,size[i],size[i]))),index_x)
+                    j = j + 1
+            return x[0,:,:,:]
+
+    else:
+        @jax.jit
+        def forward(x,params):
+            x = x.reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+            j = 0
+            for i in range(len(type)):
+                #Apply sup and inf
+                if type[i] == 'sup':
+                    x = vmap_sup(x)
+                elif type[i] == 'inf':
+                    x = vmap_inf(x)
+                elif type[i] == 'complement':
+                    x = 1 - x
+                elif type[i] == "supgen" or type[i] == "infgen":
+                    #Apply other layer
+                    x = apply_morph_layer(x[0,:,:,:],type[i],params[j,0:width[i],:,0:size[i],0:size[i]].reshape((width[i],2,size[i],size[i])),index_x)
+                    j = j + 1
+                else:
+                    #Apply other layer
+                    x = apply_morph_layer(x[0,:,:,:],type[i],params[j,0:width[i],0,0:size[i],0:size[i]].reshape((width[i],1,size[i],size[i])),index_x)
+                    j = j + 1
+            return x[0,:,:,:]
 
     #Return initial parameters and forward function
     return {'params': params,'forward': forward,'width': width,'size': size,'type': type_num}
@@ -956,7 +996,7 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8,
     return jnp.append(hood,res,1)
 
 #Training function MNN
-def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8,epochs = 1,batches = 1,notebook = False,epoch_print = 100,epoch_store = 1,key = 0,store_jumps = False,error_type = 'mean'):
+def train_dmnn_slda(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8,epochs = 1,batches = 1,notebook = False,epoch_print = 100,epoch_store = 1,key = 0,store_jumps = False,error_type = 'mean'):
     """
     Stochastic Lattice Descent Algorithm to train Discrete Morphological Neural Networks.
     ----------
@@ -1115,69 +1155,4 @@ def train_dmnn(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8
     return {'best_par': best_par,'jumps': jumps,'trace_epoch': trace_epoch,'trace_time': trace_time,'trace_loss': trace_loss,'trace_val_loss': trace_val_loss,'epochs': epochs,'oper': lambda x: foward(x,best_par),'forward': forward}
 
 
-#SLDA for training DMNN
-def slda(x,y,x_val,y_val,forward,params,loss,epochs_nn,epochs_slda,sample_neigh,mask = None,sa = False,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 100):
-    #Find out width,size, type and calculate probabilities
-    width = []
-    size = []
-    prob = []
-    type = []
-    for i in range(len(params)):
-        width = width + [params[i].shape[0]]
-        size = size + [params[i].shape[2]]
-        if params[i].shape[2] > 1:
-            prob  = prob + [params[i].shape[0] * (params[i].shape[2] ** 2)]
-        else:
-            prob  = prob + [0]
-        if params[i].shape[1] == 2:
-            type = type + ['gen']
-            prob[-1] = 2*prob[-1]
-        else:
-            type = type + ['other']
-
-    prob = [x/sum(prob) for x in prob]
-
-    #Current error
-    current_error = loss(forward(x_val,params),y_val).tolist()
-
-    #Epochs of SLDA
-    for e in range(epochs_slda):
-        print("Epoch SLDA " + str(e) + ' Current validation error: ' + str(jnp.round(current_error,6)))
-        min_error = jnp.inf
-        #Sample neighbors
-        for n in range(sample_neigh):
-            print("Sample neighbor " + str(n) + ' Min local validation error :' + str(jnp.round(min_error,6)))
-            #Sample layer
-            layer = np.random.choice(list(range(len(width))),1,p = prob)[0]
-            #Sample node
-            node = np.random.choice(list(range(width[layer])),1)[0]
-            #Position
-            pos = np.random.choice(list(range(size[layer] ** 2)),1)[0]
-            pos = [math.floor(pos/size[layer]),pos - (math.floor(pos/size[layer]))*size[layer]]
-            #Limit of interval
-            if type[layer] == 'gen':
-                limit = np.random.choice([0,1],1)[0]
-            else:
-                limit = 0
-            #New mask
-            new_mask = mask
-            new_mask[layer] = new_mask[layer].at[node,limit,pos[0],pos[1]].set(jnp.abs(1 - new_mask[layer][node,limit,pos[0],pos[1]]))
-
-            #Train
-            res_neigh = train_morph(x,y,forward,params,loss,new_mask,sa,epochs_nn,batches,lr,b1,b2,eps,eps_root,key,notebook,epoch_print)
-
-            #Val error
-            error_neigh = loss(forward(x_val,res_neigh),y_val).tolist()
-
-            #Store is best
-            if error_neigh < min_error:
-                min_error = error_neigh
-                min_mask = new_mask
-                min_params = res_neigh
-
-        #Update
-        mask = min_mask
-        params = min_params
-        current_error = min_error
-
-    return {'params': params,'mask': mask}
+#SGD for training DMNN
