@@ -584,7 +584,7 @@ def IoU(pred,true):
 
     Returns
     -------
-    mean square error
+    intersection over union error
     """
     return 1 - (jnp.sum(jnp.minimum(pred,true))/jnp.sum(jnp.maximum(pred,true)))
 
@@ -614,7 +614,7 @@ def apply_morph_layer(x,type,params,index_x):
 
     Returns
     -------
-    mean square error
+    jax.numpy.array with output of layer
     """
     #Which operator
     oper = operator(type)
@@ -635,7 +635,7 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5,key = 0):
 
     Parameters
     ----------
-    types : list of str
+    type : list of str
 
         List with the names of the operators to be applied by each layer
 

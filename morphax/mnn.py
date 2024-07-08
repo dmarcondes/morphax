@@ -36,7 +36,7 @@ def MSE(pred,true):
     -------
     mean square error
     """
-  return jnp.mean((true - pred)**2)
+    return jnp.mean((true - pred)**2)
 
 #MSE self-adaptative
 @jax.jit
@@ -67,7 +67,7 @@ def MSE_SA(pred,true,wheight,c = 100,q = 2):
     -------
     self-adaptative mean square error
     """
-  return jnp.mean(c * (wheight ** q) * (true - pred)**2)
+    return jnp.mean(c * (wheight ** q) * (true - pred)**2)
 
 #L2 error
 @jax.jit
@@ -90,7 +90,7 @@ def L2error(pred,true):
     -------
     L2 error
     """
-  return jnp.sqrt(jnp.sum((true - pred)**2))/jnp.sqrt(jnp.sum(true ** 2))
+    return jnp.sqrt(jnp.sum((true - pred)**2))/jnp.sqrt(jnp.sum(true ** 2))
 
 #Croos entropy
 @jax.jit
@@ -113,7 +113,7 @@ def CE(pred,true):
     -------
     cross-entropy error
     """
-  return jnp.mean((- true * jnp.log(pred + 1e-6) - (1 - true) * jnp.log(1 - pred + 1e-6)))
+    return jnp.mean((- true * jnp.log(pred + 1e-6) - (1 - true) * jnp.log(1 - pred + 1e-6)))
 
 #Croos entropy self-adaptative
 @jax.jit
@@ -144,7 +144,7 @@ def CE_SA(pred,true,wheight,c = 100,q = 2):
     -------
     delf-adaptative cross-entropy error
     """
-  return jnp.mean(c * (wheight ** q) * (- true * jnp.log(pred + 1e-5) - (1 - true) * jnp.log(1 - pred + 1e-5)))
+    return jnp.mean(c * (wheight ** q) * (- true * jnp.log(pred + 1e-5) - (1 - true) * jnp.log(1 - pred + 1e-5)))
 
 #IoU
 @jax.jit
@@ -167,7 +167,7 @@ def IoU(pred,true):
     -------
     intersection over union error
     """
-  return 1 - (jnp.sum(2 * true * pred) + 1)/(jnp.sum(true + pred) + 1)
+    return 1 - (jnp.sum(2 * true * pred) + 1)/(jnp.sum(true + pred) + 1)
 
 #IoU self-adaptative
 @jax.jit
@@ -198,7 +198,7 @@ def IoU_SA(pred,true,wheight,c = 100,q = 2):
     -------
     selft adaptative intersection over union error
     """
-  return 1 - (jnp.sum(c * (wheight ** q) * 2 * true * pred) + 1)/(jnp.sum(c * (wheight ** q) * (true + pred + 1)))
+    return 1 - (jnp.sum(c * (wheight ** q) * 2 * true * pred) + 1)/(jnp.sum(c * (wheight ** q) * (true + pred + 1)))
 
 #Activation
 def activate(x,b = 4):

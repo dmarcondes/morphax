@@ -1,4 +1,4 @@
-#Functions to train NN
+#Functions to train (continuous) Morphological Neural Networks
 import jax
 import jax.numpy as jnp
 import optax
@@ -11,50 +11,241 @@ import matplotlib.pyplot as plt
 import pickle
 from morphax import morph as mp
 import sys
+import itertools
 
 __docformat__ = "numpy"
 
 #MSE
 @jax.jit
-def MSE(true,pred):
+def MSE(pred,true):
+    """
+    Mean square error
+    ----------
+
+    Parameters
+    ----------
+    pred : jax.numpy.array
+
+        A JAX numpy array with the predicted values
+
+    true : jax.numpy.array
+
+        A JAX numpy array with the true values
+
+    Returns
+    -------
+    mean square error
+    """
   return jnp.mean((true - pred)**2)
 
 #MSE self-adaptative
 @jax.jit
-def MSE_SA(true,pred,wheight,c = 100,q = 2):
+def MSE_SA(pred,true,wheight,c = 100,q = 2):
+    """
+    Selft-adaptative mean square error
+    ----------
+
+    Parameters
+    ----------
+    pred : jax.numpy.array
+
+        A JAX numpy array with the predicted values
+
+    true : jax.numpy.array
+
+        A JAX numpy array with the true values
+
+    wheight : jax.numpy.array
+
+        A JAX numpy array with the weights
+
+    c,q : float
+
+        Hyperparameters
+
+    Returns
+    -------
+    self-adaptative mean square error
+    """
   return jnp.mean(c * (wheight ** q) * (true - pred)**2)
 
 #L2 error
 @jax.jit
 def L2error(pred,true):
+    """
+    L2 error
+    ----------
+
+    Parameters
+    ----------
+    pred : jax.numpy.array
+
+        A JAX numpy array with the predicted values
+
+    true : jax.numpy.array
+
+        A JAX numpy array with the true values
+
+    Returns
+    -------
+    L2 error
+    """
   return jnp.sqrt(jnp.sum((true - pred)**2))/jnp.sqrt(jnp.sum(true ** 2))
 
 #Croos entropy
 @jax.jit
-def CE(true,pred):
-  return jnp.mean((- true * jnp.log(pred + 1e-5) - (1 - true) * jnp.log(1 - pred + 1e-5)))
+def CE(pred,true):
+    """
+    Cross entropy error
+    ----------
+
+    Parameters
+    ----------
+    pred : jax.numpy.array
+
+        A JAX numpy array with the predicted values
+
+    true : jax.numpy.array
+
+        A JAX numpy array with the true values
+
+    Returns
+    -------
+    cross-entropy error
+    """
+  return jnp.mean((- true * jnp.log(pred + 1e-6) - (1 - true) * jnp.log(1 - pred + 1e-6)))
 
 #Croos entropy self-adaptative
 @jax.jit
-def CE_SA(true,pred,wheight,c = 100,q = 2):
+def CE_SA(pred,true,wheight,c = 100,q = 2):
+    """
+    Self-adaptative cross entropy error
+    ----------
+
+    Parameters
+    ----------
+    pred : jax.numpy.array
+
+        A JAX numpy array with the predicted values
+
+    true : jax.numpy.array
+
+        A JAX numpy array with the true values
+
+    wheight : jax.numpy.array
+
+        A JAX numpy array with the weights
+
+    c,q : float
+
+        Hyperparameters
+
+    Returns
+    -------
+    delf-adaptative cross-entropy error
+    """
   return jnp.mean(c * (wheight ** q) * (- true * jnp.log(pred + 1e-5) - (1 - true) * jnp.log(1 - pred + 1e-5)))
 
 #IoU
 @jax.jit
-def IoU(true,pred):
+def IoU(pred,true):
+    """
+    Intersection over union error
+    ----------
+
+    Parameters
+    ----------
+    pred : jax.numpy.array
+
+        A JAX numpy array with the predicted values
+
+    true : jax.numpy.array
+
+        A JAX numpy array with the true values
+
+    Returns
+    -------
+    intersection over union error
+    """
   return 1 - (jnp.sum(2 * true * pred) + 1)/(jnp.sum(true + pred) + 1)
 
 #IoU self-adaptative
 @jax.jit
-def IoU_SA(true,pred,wheight,c = 100,q = 2):
+def IoU_SA(pred,true,wheight,c = 100,q = 2):
+    """
+    Selft-adaptative intersection over union error
+    ----------
+
+    Parameters
+    ----------
+    pred : jax.numpy.array
+
+        A JAX numpy array with the predicted values
+
+    true : jax.numpy.array
+
+        A JAX numpy array with the true values
+
+    wheight : jax.numpy.array
+
+        A JAX numpy array with the weights
+
+    c,q : float
+
+        Hyperparameters
+
+    Returns
+    -------
+    selft adaptative intersection over union error
+    """
   return 1 - (jnp.sum(c * (wheight ** q) * 2 * true * pred) + 1)/(jnp.sum(c * (wheight ** q) * (true + pred + 1)))
 
-#activation
-def cut2(x):
-    return jnp.minimum(jnp.maximum(x,-1.0),2.0)
+#Activation
+def activate(x,b = 4):
+    """
+    Activation function for structuring elements
+    ----------
+
+    Parameters
+    ----------
+    x : float
+
+        Input
+
+    b : float
+
+        Approximating constant
+
+    Returns
+    -------
+    outuput of activation function
+    """
+    return jax.nn.sigmoid(2 * b * x - b) - 1
 
 #Simple fully connected architecture. Return params and the function for the forward pass
 def fconNN(width,activation = jax.nn.tanh,key = 0):
+    """
+    Initialize a Fully Connected Neural Network.
+    ----------
+
+    Parameters
+    ----------
+    width : list of int
+
+        List with the width of each layer
+
+    activation : function
+
+        Activation function
+
+    key : int
+
+        Key for sampling
+
+    Returns
+    -------
+    dictionary with the initial parameters, forward function and width
+    """
     #Initialize parameters with Glorot initialization
     initializer = jax.nn.initializers.glorot_normal()
     key = jax.random.split(jax.random.PRNGKey(key),len(width) - 1) #Seed for initialization
@@ -73,10 +264,32 @@ def fconNN(width,activation = jax.nn.tanh,key = 0):
       return x @ output['W'] + output['B']
 
     #Return initial parameters and forward function
-    return {'params': params,'forward': forward}
+    return {'params': params,'forward': forward,'width': width}
 
 #Fully connected architecture for structural element
 def fconNN_str(width,activation = jax.nn.tanh,key = 0):
+    """
+    Initialize a Fully Connected Neural Network to represent a structural element.
+    ----------
+
+    Parameters
+    ----------
+    width : list of int
+
+        List with the width of each layer
+
+    activation : function
+
+        Activation function
+
+    key : int
+
+        Key for sampling
+
+    Returns
+    -------
+    dictionary with the initial parameters, forward function and width
+    """
     #Add first and last layer
     width = [2] + width + [1]
 
@@ -98,14 +311,38 @@ def fconNN_str(width,activation = jax.nn.tanh,key = 0):
       return x @ output['W'] + output['B']
 
     #Return initial parameters and forward function
-    return {'params': params,'forward': forward}
+    return {'params': params,'forward': forward,'width': width}
 
 #Fully connected architecture for w-operator characteristic function
-def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0,mask = None):
+def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0):
+    """
+    Initialize a Fully Connected Neural Network to represent the characteristic function of a W-operator.
+    ----------
+
+    Parameters
+    ----------
+    width : list of int
+
+        List with the width of each layer
+
+    d : int
+
+        Dimension of window
+
+    activation : function
+
+        Activation function
+
+    key : int
+
+        Key for sampling
+
+    Returns
+    -------
+    dictionary with the initial parameters, forward function and width
+    """
     #Add first and last layer
     width = [d ** 2] + width + [1]
-    if mask is None:
-        mask = 1.0 + jnp.zeros((d,d))
 
     #Initialize parameters with Glorot initialization
     initializer = jax.nn.initializers.glorot_normal()
@@ -119,40 +356,71 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0,mask = None):
     #Define function for forward pass
     @jax.jit
     def forward(x,params):
-        x = (mask * x).reshape((1,d ** 2))
+        x = x.reshape((1,d ** 2))
         *hidden,output = params
         for layer in hidden:
             x = activation(x @ layer['W'] + layer['B'])
         return jax.nn.sigmoid(x @ output['W'] + output['B'])
 
+    #Train
+    input = jnp.array(list(itertools.product([0, 1], repeat = d ** 2)))
+    output = jnp.where(input[:,math.ceil((d ** 2)/2)] == 1,1,0)
+    params = train_fcnn(x,y,forward,params,MSE_SA,sa = True,epochs = 1000,epoch_print = 10000)
+
     #Return initial parameters and forward function
-    return {'params': params,'forward': forward}
+    return {'params': params,'forward': forward,'width': width}
 
 #Apply a morphological layer
-def apply_morph_layer(x,type,params,index_x,h,forward_wop = None,d = None,mask = None):
-    #Create mask
-    if mask is None:
-        mask = 1.0 + jnp.zeros((d,d))
+def apply_morph_layer(x,type,params,index_x,forward_wop = None,d = None):
+    """
+    Apply a morphological layer.
+    ----------
 
+    Parameters
+    ----------
+    x : jax.numpy.array
+
+        A JAX array with images
+
+    type : str
+
+        Names of the operator to apply
+
+    params : jax.numpy.array
+
+        Parameters of the operator
+
+    index_x : jax.numpy.array
+
+        Array with the indexes of f
+
+    forward_wop : function
+
+        Forward function of the W-operator
+
+    d : int
+
+        Dimension of the window
+
+    Returns
+    -------
+    jax.numpy.array with output of layer
+    """
     #Apply each operator
     if type != "wop":
         oper = mp.operator(type,h)
         fx = None
         for i in range(params.shape[0]):
             if fx is None:
-                fx = oper(x,index_x,cut2(params[i,:,:,:]),mask).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+                fx = oper(x,index_x,activate(params[i,:,:,:])).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
             else:
-                fx = jnp.append(fx,oper(x,index_x,cut2(params[i,:,:,:]),mask).reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
+                fx = jnp.append(fx,oper(x,index_x,activate(params[i,:,:,:])).reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
     else:
         fx = mp.w_operator_nn(x,index_x,forward_wop,params,d).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
     return fx
 
 #Apply a morphological layer in iterated NN
-def apply_morph_layer_iter(x,type,params,index_x,w,forward_inner,d,h,forward_wop = None,mask = None):
-    #Create mask
-    if mask is None:
-        mask = 1.0 + jnp.zeros((d,d))
-
+def apply_morph_layer_iter(x,type,params,index_x,w,forward_inner,d,h,forward_wop = None):
     #Compute structural elements
     k = None
     if type == 'supgen' or type == 'infgen':
@@ -186,22 +454,55 @@ def apply_morph_layer_iter(x,type,params,index_x,w,forward_inner,d,h,forward_wop
     return fx
 
 #Canonical Morphological NN
-def cmnn(x,type,width,size,shape_x,h = 1/100,mask = None,key = 0,init = 'random',width_wop = None,activation = jax.nn.tanh):
+def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = None):
+    """
+    Initialize a Discrete Morphological Neural Network as the identity operator.
+    ----------
+
+    Parameters
+    ----------
+    type : list of str
+
+        List with the names of the operators to be applied by each layer
+
+    width : list of int
+
+        List with the width of each layer
+
+    size : list of int
+
+        List with the size of the structuring element of each layer
+
+    shape_x : list
+
+        Shape of the input images
+
+    sample : logical
+
+        Whether to sample initial parameters
+
+    p1 : float
+
+        Expected proportion of ones in sampled parameters
+
+    key : int
+
+        Key for sampling
+
+    width_wop : list of int
+
+        List with the width of each layer of the W-operator neural network
+
+    Returns
+    -------
+    dictionary with the initial parameters, forward function, width, size, type and forward funtion of the W-operator
+    """
     key = jax.random.split(jax.random.PRNGKey(key),(len(width),max(width)))
-    sd = 1/255
+    k = 0
     forward_wop = None
 
     #Index window
     index_x = mp.index_array(shape_x)
-
-    #Initialize mask
-    if mask is None:
-        mask = list()
-        for i in range(len(width)):
-            if type[i] in ['sup','inf','complement']:
-                mask.append(jnp.array(0.0))
-            else:
-                mask.append(1.0 + jnp.zeros((size[i],size[i])))
 
     #Initialize parameters
     params = list()
@@ -209,42 +510,57 @@ def cmnn(x,type,width,size,shape_x,h = 1/100,mask = None,key = 0,init = 'random'
         if type[i] in ['sup','inf','complement']:
             params.append(jnp.array(0.0).reshape((1,1,1)))
         elif type[i] == "wop":
-            net = fconNN_wop(width_wop,size[i],activation,key[i,0,0],mask[i])
+            net = fconNN_wop(width_wop,size[i],activation,key[k,0,0])
+            k = k + 1
             forward_wop = net['forward']
             params.append(net['params'])
         else:
-            if init == 'random':
+            if sample:
                 if type[i] == 'supgen' or type[i] == 'infgen':
-                    ll = sd*jax.random.normal(key[i,0,:],(size[i],size[i])).reshape((1,1,size[i],size[i]))
-                    ul = ll
+                    ll = np.zeros((1,1,size[i],size[i]),dtype = float)
+                    ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 1.0
+                    ll = jnp.array(ll)
+                    ul = 1.0 + jnp.zeros((1,1,size[i],size[i]),dtype = float)
+                    for j in range(width[i]):
+                        s = jax.random.choice(jax.random.PRNGKey(key[k,0]),2,p = jnp.array([1 - p1,p1]),shape = (1,1,size[i],size[i]))
+                        k = k + 1
+                        s = jnp.maximum(ll,s)
+                        if j == 0:
+                            p = jnp.append(s,ul,1)
+                        else:
+                            interval = jnp.append(s,ul,1)
+                            p = jnp.append(p,interval,0)
+                else:
+                    ll = np.zeros((1,1,size[i],size[i]),dtype = int)
+                    ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 1
+                    ll = jnp.array(ll)
+                    for j in range(width[i]):
+                        s = jax.random.choice(jax.random.PRNGKey(key[k,0]),2,p = jnp.array([1 - p1,p1]),shape = (1,1,size[i],size[i]))
+                        k = k + 1
+                        s = jnp.maximum(ll,s)
+                        if j == 0:
+                            p = jnp.array(s)
+                        else:
+                            p = jnp.append(p,s,0)
+            else:
+                if type[i] == 'supgen' or type[i] == 'infgen':
+                    ll = np.zeros((1,1,size[i],size[i]),dtype = int)
+                    ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 1
+                    ll = jnp.array(ll)
+                    ul = 1 + jnp.zeros((1,1,size[i],size[i]),dtype = int)
                     p = jnp.append(ll,ul,1)
                     for j in range(width[i] - 1):
-                        ll = sd*jax.random.normal(key[i,j,:],(size[i],size[i])).reshape((1,1,size[i],size[i]))
-                        ul = ll
                         interval = jnp.append(ll,ul,1)
                         p = jnp.append(p,interval,0)
                 else:
-                    ll = sd*jax.random.normal(key[i,0,:],(size[i],size[i])).reshape((1,1,size[i],size[i]))
+                    ll = np.zeros((1,1,size[i],size[i]),dtype = int)
+                    ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 1
+                    ll = jnp.array(ll)
                     p = ll
                     for j in range(width[i] - 1):
-                        interval = sd*jax.random.normal(key[i,j,:],(size[i],size[i])).reshape((1,1,size[i],size[i]))
+                        interval = ll
                         p = jnp.append(p,interval,0)
-                params.append(p)
-            else:
-                if type[i] == 'supgen' or type[i] == 'infgen':
-                    ll = mp.struct_lower(x,size[i]).reshape((1,1,size[i],size[i]))
-                    ul = mp.struct_upper(x,size[i]).reshape((1,1,size[i],size[i]))
-                    p = jnp.append(ll + sd*jax.random.normal(key[i,0,:],(size[i],size[i])).reshape((1,1,size[i],size[i])),ul + sd*jax.random.normal(key[i,0,:],(size[i],size[i])).reshape((1,1,size[i],size[i])),1)
-                    for j in range(width[i] - 1):
-                        interval = jnp.append(ll + sd*jax.random.normal(key[i,j+1,:],(size[i],size[i])).reshape((1,1,size[i],size[i])),ul + sd*jax.random.normal(key[i,j+1,:],(size[i],size[i])).reshape((1,1,size[i],size[i])),1)
-                        p = jnp.append(p,interval,0)
-                else:
-                    ll = mp.struct_lower(x,size[i]).reshape((1,1,size[i],size[i])) #jnp.arctanh(jnp.maximum(jnp.minimum(mp.struct_lower(x,size[i])/2,1-1e-5),-1 + 1e-5)).reshape((1,1,size[i],size[i]))
-                    p = ll + sd*jax.random.normal(key[i,0,:],(size[i],size[i])).reshape((1,1,size[i],size[i]))
-                    for j in range(width[i] - 1):
-                        interval = ll + sd*jax.random.normal(key[i,j + 1,:],(size[i],size[i])).reshape((1,1,size[i],size[i]))
-                        p = jnp.append(p,interval,0)
-                params.append(p)
+            params.append(p)
 
     #Forward pass
     @jax.jit
@@ -260,11 +576,11 @@ def cmnn(x,type,width,size,shape_x,h = 1/100,mask = None,key = 0,init = 'random'
                 x = 1 - x
             else:
                 #Apply other layer
-                x = apply_morph_layer(x[0,:,:,:],type[i],params[i],index_x,h,forward_wop,size[i],mask[i])
-        return x[0,:,:,:] #mp.minimum_array_number(mp.maximum_array_number(x[0,:,:,:],0.0,h),1.0,h)
+                x = apply_morph_layer(x[0,:,:,:],type[i],params[i],index_x,forward_wop,size[i])
+        return x[0,:,:,:]
 
     #Return initial parameters and forward function
-    return {'params': params,'forward': forward,'mask': mask,'forward_wop': forward_wop}
+    return {'params': params,'forward': forward,'forward_wop': forward_wop,'type': type,'width': width,'size': size}
 
 #Canonical Morphological NN with iterated NN
 def cmnn_iter(type,width,width_str,size,shape_x,h = 1/100,x = None,mask = None,width_wop = None,activation = jax.nn.tanh,key = 0,init = 'identity',loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 1000,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False):
@@ -515,229 +831,3 @@ def train_fcnn(x,y,forward,params,loss,sa = False,c = 100,q = 2,epochs = 1,batch
 
     del params[-1]
     return params
-
-#SLDA for training DMNN
-def slda(x,y,x_val,y_val,forward,params,loss,epochs_nn,epochs_slda,sample_neigh,mask = None,sa = False,c = 100,q = 2,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 100):
-    #Find out width,size, type and calculate probabilities
-    width = []
-    size = []
-    prob = []
-    type = []
-    for i in range(len(params)):
-        width = width + [params[i].shape[0]]
-        size = size + [params[i].shape[2]]
-        if params[i].shape[2] > 1:
-            prob  = prob + [params[i].shape[0] * (params[i].shape[2] ** 2)]
-        else:
-            prob  = prob + [0]
-        if params[i].shape[1] == 2:
-            type = type + ['gen']
-            prob[-1] = 2*prob[-1]
-        else:
-            type = type + ['other']
-
-    prob = [x/sum(prob) for x in prob]
-
-    #Current error
-    current_error = loss(forward(x_val,params),y_val).tolist()
-
-    #Epochs of SLDA
-    for e in range(epochs_slda):
-        print("Epoch SLDA " + str(e) + ' Current validation error: ' + str(jnp.round(current_error,6)))
-        min_error = jnp.inf
-        #Sample neighbors
-        for n in range(sample_neigh):
-            print("Sample neighbor " + str(n) + ' Min local validation error :' + str(jnp.round(min_error,6)))
-            #Sample layer
-            layer = np.random.choice(list(range(len(width))),1,p = prob)[0]
-            #Sample node
-            node = np.random.choice(list(range(width[layer])),1)[0]
-            #Position
-            pos = np.random.choice(list(range(size[layer] ** 2)),1)[0]
-            pos = [math.floor(pos/size[layer]),pos - (math.floor(pos/size[layer]))*size[layer]]
-            #Limit of interval
-            if type[layer] == 'gen':
-                limit = np.random.choice([0,1],1)[0]
-            else:
-                limit = 0
-            #New mask
-            new_mask = mask
-            new_mask[layer] = new_mask[layer].at[node,limit,pos[0],pos[1]].set(jnp.abs(1 - new_mask[layer][node,limit,pos[0],pos[1]]))
-
-            #Train
-            res_neigh = train_morph(x,y,forward,params,loss,new_mask,sa,c,q,epochs_nn,batches,lr,b1,b2,eps,eps_root,key,notebook,epoch_print)
-
-            #Val error
-            error_neigh = loss(forward(x_val,res_neigh),y_val).tolist()
-
-            #Store is best
-            if error_neigh < min_error:
-                min_error = error_neigh
-                min_mask = new_mask
-                min_params = res_neigh
-
-        #Update
-        mask = min_mask
-        params = min_params
-        current_error = min_error
-
-    return {'params': params,'mask': mask}
-
-#Name mask
-def name_mask(mask):
-    n = []
-    for i in range(len(mask)):
-        n = n + [' - '] + mask[i].astype(jnp.int32).reshape((1,mask[i].shape[0] * mask[i].shape[1])).tolist()[0]
-
-    return "".join(str(element) for element in n)
-
-#Lista valid neighbors of a window
-def list_neighbors(mask):
-    #Store valids
-    order = []
-    row = []
-    col = []
-
-    #Test each change
-    for m in range(len(mask)):
-        for i in range(mask[m].shape[0]):
-            for j in range(mask[m].shape[1]):
-                if mask[m][i,j] == 1:
-                    add = True
-                    tot = 0
-                    for ip in [i - 1,i,i + 1]:
-                        for jp in [j - 1,j,j + 1]:
-                            if ip >= 0 and ip < mask[m].shape[0] and jp >= 0 and jp < mask[m].shape[1] and (ip == i or jp == j) and not (jp == j and ip == i):
-                                if mask[m][ip,jp] == 1:
-                                    tot = tot + 1
-                                    if not ((mask[m][ip - 1,jp] == 1 and ip-1 >= 0 and ip - 1 != i) or (mask[m][ip+1,jp] == 1 and ip+1 < mask[m].shape[0] and ip + 1 != i) or (mask[m][ip,jp-1] == 1 and jp-1 >= 0 and jp - 1 != j) or (mask[m][ip,jp+1] == 1 and jp+1 < mask[m].shape[1] and jp + 1 != j)):
-                                        add = False
-                    if add and tot > 0:
-                        order = order + [m]
-                        row = row + [i]
-                        col = col + [j]
-                else:
-                    if (mask[m][i-1,j] == 1 and i-1 >= 0) or (mask[m][i+1,j] == 1 and i+1 < mask[m].shape[0]) or (mask[m][i,j-1] == 1 and j-1 >= 0) or (mask[m][i,j+1] == 1 and j+1 < mask[m].shape[1]):
-                        order = order + [m]
-                        row = row + [i]
-                        col = col + [j]
-
-    return np.array([order,row,col]).transpose()
-
-#SLDA for window lwarning
-def slda_window(x,y,x_val,y_val,type,width,size,shape_x,loss,epochs_slda = 1,sample = -1,iter = False,loss_val = None,width_str = None,epochs = 100,h = 1/100,mask = None,key = 0,init = 'random',width_wop = None,activation = jax.nn.tanh,sa = False,c = 100,q = 2,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False,epoch_print = 100):
-    #Loss validation
-    if loss_val is None:
-        loss_val = loss
-
-    #Initialize mask
-    if mask is None:
-        mask = list()
-        for i in range(len(width)):
-            if type[i] in ['sup','inf','complement']:
-                mask.append(np.array(0.0))
-            else:
-                m = jnp.zeros((size[i],size[i]))
-                l = math.floor(size[i]/2)
-                m = m.at[l,l].set(1.0)
-                mask.append(m)
-
-    #Train initial model
-    print('\n--------------------------\n Initial model \n--------------------------\n')
-    if iter:
-        #Broken
-        initial_net = cmnn_iter(type,width,width_str,size,shape_x,h,x,mask,width_wop,activation,key,init,loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 20000,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False)
-    else:
-        initial_net = cmnn(x,type,width,size,shape_x,h,mask,key,init,width_wop,activation)
-    params = initial_net['params']
-    forward = initial_net['forward']
-    for rate in lr:
-        params = train_morph(x,y,forward,params,loss,sa,c,q,epochs,batches,rate,b1,b2,eps,eps_root,key,notebook,epoch_print)
-
-    #Current point
-    current_error = loss_val(y_val,forward(x_val,params))
-    current_params = params
-    current_forward = forward
-    current_mask = mask
-    current_forward_wop = initial_net['forward_wop']
-    masks_visited = [name_mask(mask)]
-    loss_masks_visited = [current_error.tolist()]
-
-    #Current epoch
-    current_error_epoch = current_error
-    current_params_epoch = params
-    current_forward_epoch = forward
-    current_mask_epoch = mask
-    current_forward_wop_epoch = initial_net['forward_wop']
-
-    #Best
-    best_error = current_error
-    best_params = params
-    best_forward = forward
-    best_mask = mask
-    best_forward_wop = initial_net['forward_wop']
-
-    #Start SLDA
-    for e in range(epochs_slda):
-        print('\n--------------------------\n Epoch ' + str(e) + ' Current validation loss: ' + str(round(current_error_epoch,6)) + ' \n--------------------------\n')
-        #List neighbors
-        lneigh = list_neighbors(current_mask)
-
-        #Sample neighbors
-        if sample > 0 and sample < lneigh.shape[0]:
-            lneigh = lneigh[np.random.choice(lneigh.shape[0],sample,replace=False),:]
-        else:
-            lneigh = lneigh[np.random.choice(lneigh.shape[0],lneigh.shape[0],replace=False),:]
-
-        #Train each neighbor
-        for n in range(lneigh.shape[0]):
-            #Update mask
-            del mask
-            mask = current_mask.copy()
-            mask[lneigh[n,0]] = mask[lneigh[n,0]].at[lneigh[n,1],lneigh[n,2]].set(np.abs(1 - mask[lneigh[n,0]][lneigh[n,1],lneigh[n,2]]))
-
-            if not name_mask(mask) in masks_visited:
-                #Initialize cmnn
-                if iter:
-                    #Broken
-                    net = cmnn_iter(type,width,width_str,size,shape_x,h,x,mask,width_wop,activation,key,init,loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 20000,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False)
-                else:
-                    net = cmnn(x,type,width,size,shape_x,h,mask,key,init,width_wop,activation)
-
-                #Inititalize params
-                params = current_params
-                forward = net['forward']
-                for rate in lr:
-                    params = train_morph(x,y,forward,params,loss,sa,c,q,epochs,batches,rate,b1,b2,eps,eps_root,key,notebook,epoch_print)
-
-                #Save
-                error_mask = loss_val(y_val,forward(x_val,params))
-                masks_visited = masks_visited + [name_mask(mask)]
-                loss_masks_visited = loss_masks_visited + [error_mask.tolist()]
-            else:
-                error_mask = loss_masks_visited[name_mask(mask) == masks_visited]
-
-            print('Neighbor '+ str(n) + ' Validation loss: ' + str(round(error_mask,6)))
-
-
-            if error_mask < current_error_epoch:
-                current_error_epoch = error_mask
-                current_params_epoch = params
-                current_forward_epoch = forward
-                current_mask_epoch = mask
-                current_forward_wop_epoch = net['forward_wop']
-
-        current_error = current_error_epoch
-        current_params = current_params_epoch
-        current_forward = current_forward_epoch
-        current_mask = current_mask_epoch
-        current_forward_wop = current_forward_wop_epoch
-
-        if current_error < best_error:
-            best_error = current_error
-            best_params = current_params
-            best_forward = current_forward
-            best_mask = current_mask
-            best_forward_wop = current_forward_wop
-
-    return {"params": best_params,"forward": best_forward,'mask': best_mask,'forward_wop': best_forward_wop,'val_loss': best_error,'masks_visisted': masks_visited,'loss_masks_visited': loss_masks_visited}

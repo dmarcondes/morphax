@@ -420,7 +420,7 @@ def dilation_2D(f,index_f,kt):
     a JAX numpy array
 
     """
-    l = math.floor(k.shape[0]/2)
+    l = math.floor(kt.shape[0]/2)
     jit_local_dilation = local_dilation(f,kt,l)
     return jnp.apply_along_axis(jit_local_dilation,1,l + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
 
@@ -454,7 +454,7 @@ def dilation(f,index_f,k):
     l = math.floor(k.shape[0]/2)
     f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
     k = dmnn.transpose_se(k)
-    db = jax.vmap(lambda f: dilation_2D(f,index_f,k,h,mask),in_axes = (0),out_axes = 0)(f)
+    db = jax.vmap(lambda f: dilation_2D(f,index_f,k),in_axes = (0),out_axes = 0)(f)
     return db
 
 #Opening of f by k
@@ -600,7 +600,7 @@ def supgen(f,index_f,k1,k2,m = 1):
     a JAX numpy array
 
     """
-    return jnp.minimum(erosion(f,index_f,k1),complement(dilation(f,index_f,complement(transpose_se(k2),m)),m))
+    return  jnp.minimum(erosion(f,index_f,k1),complement(dilation(f,index_f,complement(dmnn.transpose_se(k2 + m),m) - m),m))
 
 #Inf-generating with interval [k1,k2]
 def infgen(f,index_f,k1,k2,m = 1):
@@ -632,7 +632,7 @@ def infgen(f,index_f,k1,k2,m = 1):
     a JAX numpy array
 
     """
-    return jnp.maximum(dilation(f,index_f,k1),complement(erosion(f,index_f,complement(transpose_se(k2),m)),m))
+    return jnp.maximum(dilation(f,index_f,k1),complement(erosion(f,index_f,complement(dmnn.transpose_se(k2 + m),m) - m),m))
 
 #Sup of array of images
 @jax.jit

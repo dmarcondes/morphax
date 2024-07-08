@@ -724,7 +724,7 @@
 </span><span id="L-584"><a href="#L-584"><span class="linenos"> 584</span></a>
 </span><span id="L-585"><a href="#L-585"><span class="linenos"> 585</span></a><span class="sd">    Returns</span>
 </span><span id="L-586"><a href="#L-586"><span class="linenos"> 586</span></a><span class="sd">    -------</span>
-</span><span id="L-587"><a href="#L-587"><span class="linenos"> 587</span></a><span class="sd">    mean square error</span>
+</span><span id="L-587"><a href="#L-587"><span class="linenos"> 587</span></a><span class="sd">    intersection over union error</span>
 </span><span id="L-588"><a href="#L-588"><span class="linenos"> 588</span></a><span class="sd">    &quot;&quot;&quot;</span>
 </span><span id="L-589"><a href="#L-589"><span class="linenos"> 589</span></a>    <span class="k">return</span> <span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span><span class="n">true</span><span class="p">))</span><span class="o">/</span><span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span><span class="n">true</span><span class="p">)))</span>
 </span><span id="L-590"><a href="#L-590"><span class="linenos"> 590</span></a>
@@ -754,7 +754,7 @@
 </span><span id="L-614"><a href="#L-614"><span class="linenos"> 614</span></a>
 </span><span id="L-615"><a href="#L-615"><span class="linenos"> 615</span></a><span class="sd">    Returns</span>
 </span><span id="L-616"><a href="#L-616"><span class="linenos"> 616</span></a><span class="sd">    -------</span>
-</span><span id="L-617"><a href="#L-617"><span class="linenos"> 617</span></a><span class="sd">    mean square error</span>
+</span><span id="L-617"><a href="#L-617"><span class="linenos"> 617</span></a><span class="sd">    jax.numpy.array with output of layer</span>
 </span><span id="L-618"><a href="#L-618"><span class="linenos"> 618</span></a><span class="sd">    &quot;&quot;&quot;</span>
 </span><span id="L-619"><a href="#L-619"><span class="linenos"> 619</span></a>    <span class="c1">#Which operator</span>
 </span><span id="L-620"><a href="#L-620"><span class="linenos"> 620</span></a>    <span class="n">oper</span> <span class="o">=</span> <span class="n">operator</span><span class="p">(</span><span class="nb">type</span><span class="p">)</span>
@@ -775,7 +775,7 @@
 </span><span id="L-635"><a href="#L-635"><span class="linenos"> 635</span></a>
 </span><span id="L-636"><a href="#L-636"><span class="linenos"> 636</span></a><span class="sd">    Parameters</span>
 </span><span id="L-637"><a href="#L-637"><span class="linenos"> 637</span></a><span class="sd">    ----------</span>
-</span><span id="L-638"><a href="#L-638"><span class="linenos"> 638</span></a><span class="sd">    types : list of str</span>
+</span><span id="L-638"><a href="#L-638"><span class="linenos"> 638</span></a><span class="sd">    type : list of str</span>
 </span><span id="L-639"><a href="#L-639"><span class="linenos"> 639</span></a>
 </span><span id="L-640"><a href="#L-640"><span class="linenos"> 640</span></a><span class="sd">        List with the names of the operators to be applied by each layer</span>
 </span><span id="L-641"><a href="#L-641"><span class="linenos"> 641</span></a>
@@ -2573,7 +2573,7 @@
 </span><span id="IoU-585"><a href="#IoU-585"><span class="linenos">585</span></a>
 </span><span id="IoU-586"><a href="#IoU-586"><span class="linenos">586</span></a><span class="sd">    Returns</span>
 </span><span id="IoU-587"><a href="#IoU-587"><span class="linenos">587</span></a><span class="sd">    -------</span>
-</span><span id="IoU-588"><a href="#IoU-588"><span class="linenos">588</span></a><span class="sd">    mean square error</span>
+</span><span id="IoU-588"><a href="#IoU-588"><span class="linenos">588</span></a><span class="sd">    intersection over union error</span>
 </span><span id="IoU-589"><a href="#IoU-589"><span class="linenos">589</span></a><span class="sd">    &quot;&quot;&quot;</span>
 </span><span id="IoU-590"><a href="#IoU-590"><span class="linenos">590</span></a>    <span class="k">return</span> <span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span><span class="n">true</span><span class="p">))</span><span class="o">/</span><span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span><span class="n">true</span><span class="p">)))</span>
 </span></pre></div>
@@ -2595,7 +2595,7 @@
 
 <h2 id="returns">Returns</h2>
 
-<p>mean square error</p>
+<p>intersection over union error</p>
 </div>
 
 
@@ -2636,7 +2636,7 @@
 </span><span id="apply_morph_layer-615"><a href="#apply_morph_layer-615"><span class="linenos">615</span></a>
 </span><span id="apply_morph_layer-616"><a href="#apply_morph_layer-616"><span class="linenos">616</span></a><span class="sd">    Returns</span>
 </span><span id="apply_morph_layer-617"><a href="#apply_morph_layer-617"><span class="linenos">617</span></a><span class="sd">    -------</span>
-</span><span id="apply_morph_layer-618"><a href="#apply_morph_layer-618"><span class="linenos">618</span></a><span class="sd">    mean square error</span>
+</span><span id="apply_morph_layer-618"><a href="#apply_morph_layer-618"><span class="linenos">618</span></a><span class="sd">    jax.numpy.array with output of layer</span>
 </span><span id="apply_morph_layer-619"><a href="#apply_morph_layer-619"><span class="linenos">619</span></a><span class="sd">    &quot;&quot;&quot;</span>
 </span><span id="apply_morph_layer-620"><a href="#apply_morph_layer-620"><span class="linenos">620</span></a>    <span class="c1">#Which operator</span>
 </span><span id="apply_morph_layer-621"><a href="#apply_morph_layer-621"><span class="linenos">621</span></a>    <span class="n">oper</span> <span class="o">=</span> <span class="n">operator</span><span class="p">(</span><span class="nb">type</span><span class="p">)</span>
@@ -2677,7 +2677,7 @@
 
 <h2 id="returns">Returns</h2>
 
-<p>mean square error</p>
+<p>jax.numpy.array with output of layer</p>
 </div>
 
 
@@ -2700,7 +2700,7 @@
 </span><span id="cdmnn-636"><a href="#cdmnn-636"><span class="linenos">636</span></a>
 </span><span id="cdmnn-637"><a href="#cdmnn-637"><span class="linenos">637</span></a><span class="sd">    Parameters</span>
 </span><span id="cdmnn-638"><a href="#cdmnn-638"><span class="linenos">638</span></a><span class="sd">    ----------</span>
-</span><span id="cdmnn-639"><a href="#cdmnn-639"><span class="linenos">639</span></a><span class="sd">    types : list of str</span>
+</span><span id="cdmnn-639"><a href="#cdmnn-639"><span class="linenos">639</span></a><span class="sd">    type : list of str</span>
 </span><span id="cdmnn-640"><a href="#cdmnn-640"><span class="linenos">640</span></a>
 </span><span id="cdmnn-641"><a href="#cdmnn-641"><span class="linenos">641</span></a><span class="sd">        List with the names of the operators to be applied by each layer</span>
 </span><span id="cdmnn-642"><a href="#cdmnn-642"><span class="linenos">642</span></a>
@@ -2839,7 +2839,7 @@
 
 <h2 id="parameters">Parameters</h2>
 
-<p>types : list of str</p>
+<p>type : list of str</p>
 
 <pre><code>List with the names of the operators to be applied by each layer
 </code></pre>
