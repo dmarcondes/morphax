@@ -2,9 +2,9 @@ README.md
 setup.py
 morphax/__init__.py
 morphax/data.py
-morphax/dmnn.py
+morphax/dmorph.py
+morphax/mnn.py
 morphax/morph.py
-morphax/nn.py
 morphax.egg-info/PKG-INFO
 morphax.egg-info/SOURCES.txt
 morphax.egg-info/dependency_links.txt

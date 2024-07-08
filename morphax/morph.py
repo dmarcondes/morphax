@@ -3,7 +3,7 @@ import jax
 import jax.numpy as jnp
 import math
 import sys
-from morphax import dmnn as dmnn
+from morphax import dmorph as dmnn
 
 #Approximate maximum
 #def max(x,h = 1/5):
