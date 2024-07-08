@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 from morphax import morph as mp
+from morphax import dmorph as dmp
 import sys
 import itertools
 
@@ -488,40 +489,6 @@ def apply_morph_layer(x,type,params,index_x,forward_wop = None,d = None):
         fx = mp.w_operator_nn(x,index_x,forward_wop,params,d).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
     return fx
 
-#Apply a morphological layer in iterated NN
-def apply_morph_layer_iter(x,type,params,index_x,w,forward_inner,d,h,forward_wop = None):
-    #Compute structural elements
-    k = None
-    if type == 'supgen' or type == 'infgen':
-        for i in range(int(len(params)/2)):
-            tmp = forward_inner(w,params[2*i]).reshape((1,d,d))
-            tmp = jnp.append(tmp,forward_inner(w,params[2*i + 1]).reshape((1,d,d)),0).reshape((1,2,d,d))
-            if k is None:
-                k = tmp
-            else:
-                k = jnp.append(k,tmp,0)
-    elif type != "wop":
-        for i in range(len(params)):
-            tmp = forward_inner(w,params[i]).reshape((1,1,d,d))
-            if k is None:
-                k = tmp
-            else:
-                k = jnp.append(k,tmp,0)
-    params = k
-
-    #Apply each operator
-    if type != "wop":
-        oper = mp.operator(type,h)
-        fx = None
-        for i in range(params.shape[0]):
-            if fx is None:
-                fx = oper(x,index_x,cut2(params[i,:,:,:]),mask).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
-            else:
-                fx = jnp.append(fx,oper(x,index_x,cut2(params[i,:,:,:]),mask).reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
-    else:
-        fx = mp.w_operator_nn(x,index_x,forward_wop,params,d).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
-    return fx
-
 #Canonical Morphological NN
 def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = None):
     """
@@ -571,7 +538,7 @@ def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = Non
     forward_wop = None
 
     #Index window
-    index_x = mp.index_array(shape_x)
+    index_x = dmp.index_array(shape_x)
 
     #Initialize parameters
     params = list()
@@ -651,10 +618,46 @@ def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = Non
     #Return initial parameters and forward function
     return {'params': params,'forward': forward,'forward_wop': forward_wop,'type': type,'width': width,'size': size}
 
+
+#Apply a morphological layer in iterated NN
+def apply_morph_layer_iter(x,type,params,index_x,w,forward_inner,d,h,forward_wop = None):
+    #Compute structural elements
+    k = None
+    if type == 'supgen' or type == 'infgen':
+        for i in range(int(len(params)/2)):
+            tmp = forward_inner(w,params[2*i]).reshape((1,d,d))
+            tmp = jnp.append(tmp,forward_inner(w,params[2*i + 1]).reshape((1,d,d)),0).reshape((1,2,d,d))
+            if k is None:
+                k = tmp
+            else:
+                k = jnp.append(k,tmp,0)
+    elif type != "wop":
+        for i in range(len(params)):
+            tmp = forward_inner(w,params[i]).reshape((1,1,d,d))
+            if k is None:
+                k = tmp
+            else:
+                k = jnp.append(k,tmp,0)
+    params = k
+
+    #Apply each operator
+    if type != "wop":
+        oper = mp.operator(type,h)
+        fx = None
+        for i in range(params.shape[0]):
+            if fx is None:
+                fx = oper(x,index_x,cut2(params[i,:,:,:]),mask).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+            else:
+                fx = jnp.append(fx,oper(x,index_x,cut2(params[i,:,:,:]),mask).reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
+    else:
+        fx = mp.w_operator_nn(x,index_x,forward_wop,params,d).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+    return fx
+
+
 #Canonical Morphological NN with iterated NN
 def cmnn_iter(type,width,width_str,size,shape_x,h = 1/100,x = None,mask = None,width_wop = None,activation = jax.nn.tanh,key = 0,init = 'identity',loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 1000,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False):
     #Index window
-    index_x = mp.index_array(shape_x)
+    index_x = dmp.index_array(shape_x)
     forward_wop = None
 
     #Initialize mask
