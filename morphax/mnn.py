@@ -268,6 +268,64 @@ def fconNN(width,activation = jax.nn.tanh,key = 0):
 
 #Training function FCNN
 def train_fcnn(x,y,forward,params,loss,sa = False,c = 100,q = 2,epochs = 1,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 1000):
+    """
+    Train a fully connected neural network.
+    ----------
+
+    Parameters
+    ----------
+    x,y : jax.numpy.array
+
+        Input and output data
+
+    forward : function
+
+        Forward function
+
+    params : list
+
+        Initial parameters
+
+    loss : function
+
+        loss function
+
+    sa : logical
+
+        Whether to consider self-adaptative weights
+
+    c,q : float
+
+        Hyperparameters of self-adaptative weights
+
+    epochs : int
+
+        Number of training epochs
+
+    batches : int
+
+        Number of batches
+
+    lr,b1,b2,eps,eps_root: float
+
+        Hyperparameters of the Adam algorithm. Default lr = 0.001, b1 = 0.9, b2 = 0.999, eps = 1e-08, eps_root = 0.0
+
+    key : int
+
+        Seed for parameters initialization. Default 0
+
+    notebook : logical
+
+        Whether code is being executed in a notebook
+
+    epoch_print : int
+
+        Number of epochs to print training error
+
+    Returns
+    -------
+    list of parameters
+    """
     #Key
     key = jax.random.split(jax.random.PRNGKey(key),epochs)
 
@@ -334,7 +392,7 @@ def train_fcnn(x,y,forward,params,loss,sa = False,c = 100,q = 2,epochs = 1,batch
 
 
 #Fully connected architecture for w-operator characteristic function
-def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0):
+def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0,epochs = 1000):
     """
     Initialize a Fully Connected Neural Network to represent the characteristic function of a W-operator.
     ----------
@@ -357,6 +415,10 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0):
 
         Key for sampling
 
+    epochs : int
+
+        Epochs to pretrain neural network
+
     Returns
     -------
     dictionary with the initial parameters, forward function and width
@@ -372,7 +434,7 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0):
     #Train
     input = jnp.array(list(itertools.product([0, 1], repeat = d ** 2)))
     output = jnp.where(input[:,math.ceil((d ** 2)/2)] == 1,1,0).reshape((input.shape[0],1))
-    params = train_fcnn(x,y,forward,params,MSE_SA,sa = True,epochs = 1000,epoch_print = 10000)
+    params = train_fcnn(x,y,forward,params,MSE_SA,sa = True,epochs = epochs,epoch_print = 100)
 
     #Return initial parameters and forward function
     return {'params': params,'forward': forward,'width': width}
