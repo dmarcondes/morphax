@@ -781,7 +781,6 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5,continuous = False,act
                     x = apply_morph_layer(x[0,:,:,:],type[i],activation(params[j,0:width[i],0,0:size[i],0:size[i]].reshape((width[i],1,size[i],size[i]))),index_x)
                     j = j + 1
             return x[0,:,:,:]
-
     else:
         @jax.jit
         def forward(x,params):
