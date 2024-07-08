@@ -628,7 +628,7 @@ def apply_morph_layer(x,type,params,index_x):
     return fx
 
 #Initiliaze Canonical DMNN
-def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5,continuous = False,activation = jax.nn.sigmoid,key = 0,par0 = -3.0,par1 = 3.0):
+def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5,key = 0):
     """
     Initialize a Discrete Morphological Neural Network as the identity operator.
     ----------
@@ -659,21 +659,9 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5,continuous = False,act
 
         Expected proportion of ones in sampled parameters
 
-    continuous : logical
-
-        Wheter to initialize the DMNN as a continuous neural network
-
-    activation : function
-
-        Activation function for the continuous neural network
-
     key : int
 
         Key for sampling
-
-    par0,par1 : float
-
-        Initial values for the parameters related to points in the structuring element that should be 0 and 1, respectively
 
     Returns
     -------
@@ -744,10 +732,6 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5,continuous = False,act
         params[i] = jnp.pad(params[i],((0,max_width - params[i].shape[0]),(0,2 - params[i].shape[1]),(0,max_size - params[i].shape[2]),(0,max_size - params[i].shape[3])),constant_values = -2)
     params = jnp.array(params)
 
-    #If continuous, change to parameters
-    if continuous:
-        params = jnp.where(params == 0,par0,par1)
-
     #Numeric type
     type_num = []
     for i in range(len(type)):
@@ -759,50 +743,27 @@ def cdmnn(type,width,size,shape_x,sample = False,p1 = 0.5,continuous = False,act
             type_num = type_num + [1]
 
     #Forward pass
-    if continuous:
-        @jax.jit
-        def forward(x,params):
-            x = x.reshape((1,x.shape[0],x.shape[1],x.shape[2]))
-            j = 0
-            for i in range(len(type)):
-                #Apply sup and inf
-                if type[i] == 'sup':
-                    x = vmap_sup(x)
-                elif type[i] == 'inf':
-                    x = vmap_inf(x)
-                elif type[i] == 'complement':
-                    x = 1 - x
-                elif type[i] == "supgen" or type[i] == "infgen":
-                    #Apply other layer
-                    x = apply_morph_layer(x[0,:,:,:],type[i],activation(params[j,0:width[i],:,0:size[i],0:size[i]].reshape((width[i],2,size[i],size[i]))),index_x)
-                    j = j + 1
-                else:
-                    #Apply other layer
-                    x = apply_morph_layer(x[0,:,:,:],type[i],activation(params[j,0:width[i],0,0:size[i],0:size[i]].reshape((width[i],1,size[i],size[i]))),index_x)
-                    j = j + 1
-            return x[0,:,:,:]
-    else:
-        @jax.jit
-        def forward(x,params):
-            x = x.reshape((1,x.shape[0],x.shape[1],x.shape[2]))
-            j = 0
-            for i in range(len(type)):
-                #Apply sup and inf
-                if type[i] == 'sup':
-                    x = vmap_sup(x)
-                elif type[i] == 'inf':
-                    x = vmap_inf(x)
-                elif type[i] == 'complement':
-                    x = 1 - x
-                elif type[i] == "supgen" or type[i] == "infgen":
-                    #Apply other layer
-                    x = apply_morph_layer(x[0,:,:,:],type[i],params[j,0:width[i],:,0:size[i],0:size[i]].reshape((width[i],2,size[i],size[i])),index_x)
-                    j = j + 1
-                else:
-                    #Apply other layer
-                    x = apply_morph_layer(x[0,:,:,:],type[i],params[j,0:width[i],0,0:size[i],0:size[i]].reshape((width[i],1,size[i],size[i])),index_x)
-                    j = j + 1
-            return x[0,:,:,:]
+    @jax.jit
+    def forward(x,params):
+        x = x.reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+        j = 0
+        for i in range(len(type)):
+            #Apply sup and inf
+            if type[i] == 'sup':
+                x = vmap_sup(x)
+            elif type[i] == 'inf':
+                x = vmap_inf(x)
+            elif type[i] == 'complement':
+                x = 1 - x
+            elif type[i] == "supgen" or type[i] == "infgen":
+                #Apply other layer
+                x = apply_morph_layer(x[0,:,:,:],type[i],params[j,0:width[i],:,0:size[i],0:size[i]].reshape((width[i],2,size[i],size[i])),index_x)
+                j = j + 1
+            else:
+                #Apply other layer
+                x = apply_morph_layer(x[0,:,:,:],type[i],params[j,0:width[i],0,0:size[i],0:size[i]].reshape((width[i],1,size[i],size[i])),index_x)
+                j = j + 1
+        return x[0,:,:,:]
 
     #Return initial parameters and forward function
     return {'params': params,'forward': forward,'width': width,'size': size,'type': type_num}
@@ -1152,6 +1113,3 @@ def train_dmnn_slda(x,y,net,loss,xval = None,yval = None,sample = False,neighbor
             bar()
 
     return {'best_par': best_par,'jumps': jumps,'trace_epoch': trace_epoch,'trace_time': trace_time,'trace_loss': trace_loss,'trace_val_loss': trace_val_loss,'epochs': epochs,'oper': lambda x: foward(x,best_par),'forward': forward}
-
-
-#SGD for training DMNN

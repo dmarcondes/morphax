@@ -1,4 +1,4 @@
-#Morphology module
+#Continuous morphology module
 import jax
 import jax.numpy as jnp
 import math
