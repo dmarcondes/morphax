@@ -356,7 +356,6 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0):
     #Define function for forward pass
     @jax.jit
     def forward(x,params):
-        x = x.reshape((1,d ** 2))
         *hidden,output = params
         for layer in hidden:
             x = activation(x @ layer['W'] + layer['B'])
@@ -364,7 +363,7 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0):
 
     #Train
     input = jnp.array(list(itertools.product([0, 1], repeat = d ** 2)))
-    output = jnp.where(input[:,math.ceil((d ** 2)/2)] == 1,1,0)
+    output = jnp.where(input[:,math.ceil((d ** 2)/2)] == 1,1,0).reshape((input.shape[0],1))
     params = train_fcnn(x,y,forward,params,MSE_SA,sa = True,epochs = 1000,epoch_print = 10000)
 
     #Return initial parameters and forward function
