@@ -434,7 +434,7 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0,epochs = 1000):
     #Train
     input = jnp.array(list(itertools.product([0, 1], repeat = d ** 2)))
     output = jnp.where(input[:,math.ceil((d ** 2)/2)] == 1,1,0).reshape((input.shape[0],1))
-    params = train_fcnn(x,y,forward,params,MSE_SA,sa = True,epochs = epochs,epoch_print = 100)
+    params = train_fcnn(input,output,forward,params,MSE_SA,sa = True,epochs = epochs,epoch_print = 100)
 
     #Return initial parameters and forward function
     return {'params': params,'forward': forward,'width': width}

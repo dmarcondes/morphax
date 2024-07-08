@@ -36,7 +36,7 @@ def MSE(pred,true):
     -------
     mean square error
     """
-  return jnp.mean((true - pred)**2)
+    return jnp.mean((true - pred)**2)
 
 #MSE self-adaptative
 @jax.jit
@@ -67,7 +67,7 @@ def MSE_SA(pred,true,wheight,c = 100,q = 2):
     -------
     self-adaptative mean square error
     """
-  return jnp.mean(c * (wheight ** q) * (true - pred)**2)
+    return jnp.mean(c * (wheight ** q) * (true - pred)**2)
 
 #L2 error
 @jax.jit
@@ -90,7 +90,7 @@ def L2error(pred,true):
     -------
     L2 error
     """
-  return jnp.sqrt(jnp.sum((true - pred)**2))/jnp.sqrt(jnp.sum(true ** 2))
+    return jnp.sqrt(jnp.sum((true - pred)**2))/jnp.sqrt(jnp.sum(true ** 2))
 
 #Croos entropy
 @jax.jit
@@ -113,7 +113,7 @@ def CE(pred,true):
     -------
     cross-entropy error
     """
-  return jnp.mean((- true * jnp.log(pred + 1e-6) - (1 - true) * jnp.log(1 - pred + 1e-6)))
+    return jnp.mean((- true * jnp.log(pred + 1e-6) - (1 - true) * jnp.log(1 - pred + 1e-6)))
 
 #Croos entropy self-adaptative
 @jax.jit
@@ -144,7 +144,7 @@ def CE_SA(pred,true,wheight,c = 100,q = 2):
     -------
     delf-adaptative cross-entropy error
     """
-  return jnp.mean(c * (wheight ** q) * (- true * jnp.log(pred + 1e-5) - (1 - true) * jnp.log(1 - pred + 1e-5)))
+    return jnp.mean(c * (wheight ** q) * (- true * jnp.log(pred + 1e-5) - (1 - true) * jnp.log(1 - pred + 1e-5)))
 
 #IoU
 @jax.jit
@@ -167,7 +167,7 @@ def IoU(pred,true):
     -------
     intersection over union error
     """
-  return 1 - (jnp.sum(2 * true * pred) + 1)/(jnp.sum(true + pred) + 1)
+    return 1 - (jnp.sum(2 * true * pred) + 1)/(jnp.sum(true + pred) + 1)
 
 #IoU self-adaptative
 @jax.jit
@@ -198,7 +198,7 @@ def IoU_SA(pred,true,wheight,c = 100,q = 2):
     -------
     selft adaptative intersection over union error
     """
-  return 1 - (jnp.sum(c * (wheight ** q) * 2 * true * pred) + 1)/(jnp.sum(c * (wheight ** q) * (true + pred + 1)))
+    return 1 - (jnp.sum(c * (wheight ** q) * 2 * true * pred) + 1)/(jnp.sum(c * (wheight ** q) * (true + pred + 1)))
 
 #Activation
 def activate(x,b = 4):
@@ -266,55 +266,133 @@ def fconNN(width,activation = jax.nn.tanh,key = 0):
     #Return initial parameters and forward function
     return {'params': params,'forward': forward,'width': width}
 
-#Fully connected architecture for structural element
-def fconNN_str(width,activation = jax.nn.tanh,key = 0):
+#Training function FCNN
+def train_fcnn(x,y,forward,params,loss,sa = False,c = 100,q = 2,epochs = 1,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 1000):
     """
-    Initialize a Fully Connected Neural Network to represent a structural element.
+    Train a fully connected neural network.
     ----------
 
     Parameters
     ----------
-    width : list of int
+    x,y : jax.numpy.array
 
-        List with the width of each layer
+        Input and output data
 
-    activation : function
+    forward : function
 
-        Activation function
+        Forward function
+
+    params : list
+
+        Initial parameters
+
+    loss : function
+
+        loss function
+
+    sa : logical
+
+        Whether to consider self-adaptative weights
+
+    c,q : float
+
+        Hyperparameters of self-adaptative weights
+
+    epochs : int
+
+        Number of training epochs
+
+    batches : int
+
+        Number of batches
+
+    lr,b1,b2,eps,eps_root: float
+
+        Hyperparameters of the Adam algorithm. Default lr = 0.001, b1 = 0.9, b2 = 0.999, eps = 1e-08, eps_root = 0.0
 
     key : int
 
-        Key for sampling
+        Seed for parameters initialization. Default 0
+
+    notebook : logical
+
+        Whether code is being executed in a notebook
+
+    epoch_print : int
+
+        Number of epochs to print training error
 
     Returns
     -------
-    dictionary with the initial parameters, forward function and width
+    list of parameters
     """
-    #Add first and last layer
-    width = [2] + width + [1]
+    #Key
+    key = jax.random.split(jax.random.PRNGKey(key),epochs)
 
-    #Initialize parameters with Glorot initialization
-    initializer = jax.nn.initializers.glorot_normal()
-    key = jax.random.split(jax.random.PRNGKey(key),len(width)-1) #Seed for initialization
-    params = list()
-    for key,lin,lout in zip(key,width[:-1],width[1:]):
-        W = initializer(key,(lin,lout),jnp.float32)
-        B = initializer(key,(1,lout),jnp.float32)
-        params.append({'W':W,'B':B})
+    #Batch size
+    bsize = int(math.floor(x.shape[0]/batches))
 
-    #Define function for forward pass
+    #Data
+    xy = jnp.append(x,y,1)
+
+    #Self-adaptative
+    if sa:
+        params.append({'w': jnp.zeros((y.shape)) + (1/c) ** (1/q)})
+        @jax.jit
+        def lf(params,x,y):
+            return jnp.mean(jax.vmap(lambda true,pred,weight: loss(true,pred,weight,c,q),in_axes = (0,0,0))(forward(x,params[:-1]),y,params[-1]['w']))
+    else:
+        #Loss function
+        @jax.jit
+        def lf(params,x,y):
+            return jnp.mean(jax.vmap(loss,in_axes = (0,0))(forward(x,params),y))
+
+    #Optmizer NN
+    optimizer = optax.adam(lr,b1,b2,eps,eps_root)
+    opt_state = optimizer.init(params)
+
+    #Training function
+    grad_loss = jax.jit(jax.grad(lf,0))
     @jax.jit
-    def forward(x,params):
-      *hidden,output = params
-      for layer in hidden:
-        x = activation(x @ layer['W'] + layer['B'])
-      return x @ output['W'] + output['B']
+    def update(opt_state,params,x,y):
+      grads = grad_loss(params,x,y)
+      if sa:
+          grads[-1]['w'] = - grads[-1]['w']
+      updates, opt_state = optimizer.update(grads, opt_state)
+      params = optax.apply_updates(params, updates)
+      return opt_state,params
 
-    #Return initial parameters and forward function
-    return {'params': params,'forward': forward,'width': width}
+    #Train
+    t0 = time.time()
+    with alive_bar(epochs) as bar:
+        for e in range(epochs):
+            #Permutate x
+            if not sa:
+                xy = jax.random.permutation(jax.random.PRNGKey(key[e,0]),xy,0)
+                for b in range(batches):
+                    if b < batches - 1:
+                        xb = jax.lax.dynamic_slice(xy[:,:-1],(b*bsize,0),(bsize,x.shape[1]))
+                        yb = jax.lax.dynamic_slice(xy[:,-1],(b*bsize,0),(bsize,x.shape[1]))
+                    else:
+                        xb = xy[b*bsize:x.shape[0],:-1]
+                        yb = xy[b*bsize:y.shape[0],-1]
+                    opt_state,params = update(opt_state,params,xb,yb)
+            else:
+                opt_state,params = update(opt_state,params,x,y)
+            l = str(jnp.round(lf(params,x,y),10))
+            if(e % epoch_print == 0 and notebook):
+                print('Epoch: ' + str(e) + ' Time: ' + str(jnp.round(time.time() - t0,2)) + ' s Loss: ' + l)
+            if not notebook:
+                bar.title("Loss: " + l)
+                bar()
+
+    if sa:
+        del params[-1]
+    return params
+
 
 #Fully connected architecture for w-operator characteristic function
-def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0):
+def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0,epochs = 1000):
     """
     Initialize a Fully Connected Neural Network to represent the characteristic function of a W-operator.
     ----------
@@ -337,6 +415,10 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0):
 
         Key for sampling
 
+    epochs : int
+
+        Epochs to pretrain neural network
+
     Returns
     -------
     dictionary with the initial parameters, forward function and width
@@ -344,28 +426,15 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0):
     #Add first and last layer
     width = [d ** 2] + width + [1]
 
-    #Initialize parameters with Glorot initialization
-    initializer = jax.nn.initializers.glorot_normal()
-    key = jax.random.split(jax.random.PRNGKey(key),len(width)-1) #Seed for initialization
-    params = list()
-    for key,lin,lout in zip(key,width[:-1],width[1:]):
-        W = initializer(key,(lin,lout),jnp.float32)
-        B = initializer(key,(1,lout),jnp.float32)
-        params.append({'W':W,'B':B})
-
-    #Define function for forward pass
-    @jax.jit
-    def forward(x,params):
-        x = x.reshape((1,d ** 2))
-        *hidden,output = params
-        for layer in hidden:
-            x = activation(x @ layer['W'] + layer['B'])
-        return jax.nn.sigmoid(x @ output['W'] + output['B'])
+    #Forward and params
+    net = fconNN(width,activation,key)
+    forward = net[ 'forward']
+    params = net['params']
 
     #Train
     input = jnp.array(list(itertools.product([0, 1], repeat = d ** 2)))
-    output = jnp.where(input[:,math.ceil((d ** 2)/2)] == 1,1,0)
-    params = train_fcnn(x,y,forward,params,MSE_SA,sa = True,epochs = 1000,epoch_print = 10000)
+    output = jnp.where(input[:,math.ceil((d ** 2)/2)] == 1,1,0).reshape((input.shape[0],1))
+    params = train_fcnn(x,y,forward,params,MSE_SA,sa = True,epochs = epochs,epoch_print = 100)
 
     #Return initial parameters and forward function
     return {'params': params,'forward': forward,'width': width}
@@ -767,67 +836,4 @@ def train_morph(x,y,forward,params,loss,sa = False,c = 100,q = 2,epochs = 1,batc
                     bar.title("Loss: " + l)
             bar()
 
-    return params
-
-
-#Training function FCNN
-def train_fcnn(x,y,forward,params,loss,sa = False,c = 100,q = 2,epochs = 1,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 1000):
-    #Key
-    key = jax.random.split(jax.random.PRNGKey(key),epochs)
-
-    #Batch size
-    bsize = int(math.floor(x.shape[0]/batches))
-
-    #Self-adaptative
-    if sa:
-        params.append({'w': jnp.zeros((y.shape)) + (1/c) ** (1/q)})
-        @jax.jit
-        def lf(params,x,y):
-            return jnp.mean(jax.vmap(lambda true,pred,weight: loss(true,pred,weight,c,q),in_axes = (0,0,0))(forward(x,params[:-1]),y,params[-1]['w']))
-    else:
-        #Loss function
-        @jax.jit
-        def lf(params,x,y):
-            return jnp.mean(jax.vmap(loss,in_axes = (0,0))(forward(x,params),y))
-
-    #Optmizer NN
-    optimizer = optax.adam(lr,b1,b2,eps,eps_root)
-    opt_state = optimizer.init(params)
-
-    #Training function
-    grad_loss = jax.jit(jax.grad(lf,0))
-    @jax.jit
-    def update(opt_state,params,x,y):
-      grads = grad_loss(params,x,y)
-      if sa:
-          grads[-1]['w'] = - grads[-1]['w']
-      updates, opt_state = optimizer.update(grads, opt_state)
-      params = optax.apply_updates(params, updates)
-      return opt_state,params
-
-    #Train
-    t0 = time.time()
-    with alive_bar(epochs) as bar:
-        for e in range(epochs):
-            #Permutate x
-            if not sa:
-                x = jax.random.permutation(jax.random.PRNGKey(key[e,0]),x,0)
-                for b in range(batches):
-                    if b < batches - 1:
-                        xb = jax.lax.dynamic_slice(x,(b*bsize,0),(bsize,x.shape[1]))
-                        yb = jax.lax.dynamic_slice(x,(b*bsize,0),(bsize,x.shape[1]))
-                    else:
-                        xb = x[b*bsize:x.shape[0],:]
-                        yb = y[b*bsize:y.shape[0],:]
-                    opt_state,params = update(opt_state,params,xb,yb)
-            else:
-                opt_state,params = update(opt_state,params,x,y)
-            l = str(jnp.round(lf(params,x,y),10))
-            if(e % epoch_print == 0 and notebook):
-                print('Epoch: ' + str(e) + ' Time: ' + str(jnp.round(time.time() - t0,2)) + ' s Loss: ' + l)
-            if not notebook:
-                bar.title("Loss: " + l)
-                bar()
-
-    del params[-1]
     return params
