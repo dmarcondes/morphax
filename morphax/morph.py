@@ -454,7 +454,7 @@ def dilation(f,index_f,k):
     l = math.floor(k.shape[0]/2)
     f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
     k = dmnn.transpose_se(k)
-    db = jax.vmap(lambda f: dilation_2D(f,index_f,k,h,mask),in_axes = (0),out_axes = 0)(f)
+    db = jax.vmap(lambda f: dilation_2D(f,index_f,k),in_axes = (0),out_axes = 0)(f)
     return db
 
 #Opening of f by k
