@@ -420,7 +420,7 @@ def dilation_2D(f,index_f,kt):
     a JAX numpy array
 
     """
-    l = math.floor(k.shape[0]/2)
+    l = math.floor(kt.shape[0]/2)
     jit_local_dilation = local_dilation(f,kt,l)
     return jnp.apply_along_axis(jit_local_dilation,1,l + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
 
