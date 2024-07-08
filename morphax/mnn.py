@@ -490,7 +490,7 @@ def apply_morph_layer(x,type,params,index_x,forward_wop = None,d = None):
     return fx
 
 #Canonical Morphological NN
-def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = None):
+def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = None,activation = jax.nn.sigmoid):
     """
     Initialize a Discrete Morphological Neural Network as the identity operator.
     ----------
@@ -528,6 +528,10 @@ def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = Non
     width_wop : list of int
 
         List with the width of each layer of the W-operator neural network
+
+    activation : function
+
+        Activation function for W-operator neural network
 
     Returns
     -------
