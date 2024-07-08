@@ -159,7 +159,7 @@ def local_dilation(f,kt,l):
 
         A binary image
 
-    k : jax.numpy.array
+    kt : jax.numpy.array
 
         The transpose of the structuring element
 
