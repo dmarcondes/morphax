@@ -600,7 +600,7 @@ def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = Non
                     for j in range(width[i] - 1):
                         interval = ll
                         p = jnp.append(p,interval,0)
-            params.append(p)
+            params.append(p.astype(jnp.float32))
 
     #Forward pass
     @jax.jit
