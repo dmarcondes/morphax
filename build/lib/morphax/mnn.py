@@ -202,7 +202,7 @@ def IoU_SA(pred,true,wheight,c = 100,q = 2):
     return 1 - (jnp.sum(c * (wheight ** q) * 2 * true * pred) + 1)/(jnp.sum(c * (wheight ** q) * (true + pred + 1)))
 
 #Activation
-def activate(x,b = 4):
+def activate(x,b = 50):
     """
     Activation function for structuring elements
     ----------
