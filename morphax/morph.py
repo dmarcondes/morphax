@@ -600,6 +600,7 @@ def supgen(f,index_f,k1,k2,m = 1):
     a JAX numpy array
 
     """
+    k2 = k1 + k2 ** 2
     return  jnp.minimum(erosion(f,index_f,k1),complement(dilation(f,index_f,complement(dmnn.transpose_se(k2 + m),m) - m),m))
 
 #Inf-generating with interval [k1,k2]
@@ -632,6 +633,7 @@ def infgen(f,index_f,k1,k2,m = 1):
     a JAX numpy array
 
     """
+    k2 = k1 + k2 ** 2
     return jnp.maximum(dilation(f,index_f,k1),complement(erosion(f,index_f,complement(dmnn.transpose_se(k2 + m),m) - m),m))
 
 #Sup of array of images
