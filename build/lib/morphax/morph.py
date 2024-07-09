@@ -600,7 +600,7 @@ def supgen(f,index_f,k1,k2,m = 1):
     a JAX numpy array
 
     """
-    return  jnp.minimum(erosion(f,index_f,k1),complement(dilation(f,index_f,complement(dmnn.transpose_se(k2 + m),m) - m),m))
+    return  minimum(erosion(f,index_f,k1),complement(dilation(f,index_f,complement(dmnn.transpose_se(k2 + m),m) - m),m))
 
 #Inf-generating with interval [k1,k2]
 def infgen(f,index_f,k1,k2,m = 1):
@@ -632,7 +632,7 @@ def infgen(f,index_f,k1,k2,m = 1):
     a JAX numpy array
 
     """
-    return jnp.maximum(dilation(f,index_f,k1),complement(erosion(f,index_f,complement(dmnn.transpose_se(k2 + m),m) - m),m))
+    return maximum(dilation(f,index_f,k1),complement(erosion(f,index_f,complement(dmnn.transpose_se(k2 + m),m) - m),m))
 
 #Sup of array of images
 @jax.jit
@@ -653,7 +653,7 @@ def sup(f):
     a JAX numpy array
 
     """
-    fs = jnp.apply_along_axis(jnp.max,0,f)
+    fs = jnp.apply_along_axis(max,0,f)
     return fs.reshape((1,f.shape[1],f.shape[2]))
 
 #Sup vmap for arch
@@ -678,7 +678,7 @@ def inf(f):
     a JAX numpy array
 
     """
-    fi = jnp.apply_along_axis(jnp.min,0,f)
+    fi = jnp.apply_along_axis(min,0,f)
     return fi.reshape((1,f.shape[1],f.shape[2]))
 
 #Inf vmap for arch
