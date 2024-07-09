@@ -6,27 +6,27 @@ import sys
 from morphax import dmorph as dmnn
 
 #Approximate maximum
-def max(x,h = 1/50):
-    return h * jnp.log(jnp.sum(jnp.exp(x/h)))
+#def max(x,h = 1/5):
+#    return h * jnp.log(jnp.sum(jnp.exp(x/h)))
 
-def maximum(x,y,h = 1/50):
-    if len(x.shape) == 2:
-        x = x.reshape((1,x.shape[0],x.shape[1]))
-        y = y.reshape((1,y.shape[0],y.shape[1]))
-    return jax.vmap(jax.vmap(jax.vmap(lambda x,y: h * jnp.log(jnp.sum(jnp.exp(jnp.append(x,y)/h))))))(x,y)
+#def maximum(x,y,h = 1/50):
+#    if len(x.shape) == 2:
+#        x = x.reshape((1,x.shape[0],x.shape[1]))
+#        y = y.reshape((1,y.shape[0],y.shape[1]))
+#    return jax.vmap(jax.vmap(jax.vmap(lambda x,y: h * jnp.log(jnp.sum(jnp.exp(jnp.append(x,y)/h))))))(x,y)
 
-def maximum_array_number(arr,x,h = 1/50):
-    return h * jnp.log(jnp.exp(arr/h) + jnp.exp(x/h))
+#def maximum_array_number(arr,x,h = 1/5):
+#    return h * jnp.log(jnp.exp(arr/h) + jnp.exp(x/h))
 
 #Approximate minimum
-def min(x,h = 1/50):
-    return max(x,-h)
+#def min(x,h = 1/5):
+#    return max(x,-h)
 
-def minimum(x,y,h = 1/50):
-    return maximum(x,y,-h)
+#def minimum(x,y,h = 1/5):
+#    return maximum(x,y,-h)
 
-def minimum_array_number(arr,x,h = 1/50):
-    return maximum_array_number(arr,x,-h)
+#def minimum_array_number(arr,x,h = 1/5):
+#    return maximum_array_number(arr,x,-h)
 
 #Structuring element from function
 def struct_function(k,d):
@@ -296,7 +296,7 @@ def local_erosion(f,k,l):
     """
     def jit_local_erosion(index):
         fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
-        return minimum_array_number(maximum_array_number(min(fw - k),0.0),1.0)
+        return jnp.minimum(jnp.maximum(jnp.min(fw - k),0.0),1.0)
     return jit_local_erosion
 
 #Erosion of f by k
@@ -390,7 +390,7 @@ def local_dilation(f,kt,l):
     """
     def jit_local_dilation(index):
         fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
-        return minimum_array_number(maximum_array_number(max(fw + kt),0.0),1.0)
+        return jnp.minimum(jnp.maximum(jnp.max(fw + kt),0.0),1.0)
     return jit_local_dilation
 
 #Dilation of f by k assuming k already transposed
@@ -600,7 +600,7 @@ def supgen(f,index_f,k1,k2,m = 1):
     a JAX numpy array
 
     """
-    return  minimum(erosion(f,index_f,k1),complement(dilation(f,index_f,complement(dmnn.transpose_se(k2 + m),m) - m),m))
+    return  jnp.minimum(erosion(f,index_f,k1),complement(dilation(f,index_f,complement(dmnn.transpose_se(k2 + m),m) - m),m))
 
 #Inf-generating with interval [k1,k2]
 def infgen(f,index_f,k1,k2,m = 1):
@@ -632,7 +632,7 @@ def infgen(f,index_f,k1,k2,m = 1):
     a JAX numpy array
 
     """
-    return maximum(dilation(f,index_f,k1),complement(erosion(f,index_f,complement(dmnn.transpose_se(k2 + m),m) - m),m))
+    return jnp.maximum(dilation(f,index_f,k1),complement(erosion(f,index_f,complement(dmnn.transpose_se(k2 + m),m) - m),m))
 
 #Sup of array of images
 @jax.jit
@@ -653,7 +653,7 @@ def sup(f):
     a JAX numpy array
 
     """
-    fs = jnp.apply_along_axis(max,0,f)
+    fs = jnp.apply_along_axis(jnp.max,0,f)
     return fs.reshape((1,f.shape[1],f.shape[2]))
 
 #Sup vmap for arch
@@ -678,7 +678,7 @@ def inf(f):
     a JAX numpy array
 
     """
-    fi = jnp.apply_along_axis(min,0,f)
+    fi = jnp.apply_along_axis(jnp.min,0,f)
     return fi.reshape((1,f.shape[1],f.shape[2]))
 
 #Inf vmap for arch
