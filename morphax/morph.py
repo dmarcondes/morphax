@@ -590,6 +590,8 @@ def supgen_2D(f,index_f,k1,k2):
 def ap_supgen(f,index_f,k1,k2):
     l = math.floor(k1.shape[0]/2)
     f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
+    k2 = k1 + k2 ** 2
+    k2 = jnp.where(k2 > 1,1,k2)
     sg = jax.vmap(lambda f: supgen_2D(f,index_f,k1 + 1,k2 + 1),in_axes = (0),out_axes = 0)(f)
     return sg
 
