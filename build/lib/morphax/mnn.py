@@ -475,7 +475,17 @@ def apply_morph_layer(x,type,params,index_x,forward_wop = None,d = None):
     jax.numpy.array with output of layer
     """
     #Apply each operator
-    if type != "wop":
+    if type in ['supgen','infgen']:
+        tmp = params.copy()
+        oper = mp.operator(type)
+        fx = None
+        for i in range(tmp.shape[0]):
+            tmp.at[i,1,:,:].set((tmp[i,1,:,:] ** 2) + tmp[i,0,:,:])
+            if fx is None:
+                fx = oper(x,index_x,activate(tmp[i,:,:,:])).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+            else:
+                fx = jnp.append(fx,oper(x,index_x,activate(tmp[i,:,:,:])).reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
+    elif type != "wop":
         oper = mp.operator(type)
         fx = None
         for i in range(params.shape[0]):
@@ -563,7 +573,7 @@ def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = Non
                     for j in range(width[i]):
                         s = jax.random.choice(jax.random.PRNGKey(key[k,0,0]),2,p = jnp.array([1 - p1,p1]),shape = (1,1,size[i],size[i]))
                         k = k + 1
-                        s = jnp.maximum(ll,s)
+                        s = jnp.sqrt(jnp.maximum(ll,s) - ll)
                         if j == 0:
                             p = jnp.append(s,ul,1)
                         else:
@@ -576,7 +586,7 @@ def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = Non
                     for j in range(width[i]):
                         s = jax.random.choice(jax.random.PRNGKey(key[k,0,0]),2,p = jnp.array([1 - p1,p1]),shape = (1,1,size[i],size[i]))
                         k = k + 1
-                        s = jnp.maximum(ll,s)
+                        s = jnp.sqrt(jnp.maximum(ll,s) - ll)
                         if j == 0:
                             p = jnp.array(s)
                         else:
@@ -586,7 +596,7 @@ def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = Non
                     ll = np.zeros((1,1,size[i],size[i]),dtype = int)
                     ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 1
                     ll = jnp.array(ll)
-                    ul = 1 + jnp.zeros((1,1,size[i],size[i]),dtype = int)
+                    ul = jnp.sqrt(1 + jnp.zeros((1,1,size[i],size[i]),dtype = int) - ll)
                     p = jnp.append(ll,ul,1)
                     for j in range(width[i] - 1):
                         interval = jnp.append(ll,ul,1)
