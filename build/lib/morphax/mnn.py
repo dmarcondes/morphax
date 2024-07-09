@@ -535,7 +535,7 @@ def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = Non
     -------
     dictionary with the initial parameters, forward function, width, size, type and forward funtion of the W-operator
     """
-    key = jax.random.split(jax.random.PRNGKey(key),(2*len(width),2*max(width)))
+    key = jax.random.split(jax.random.PRNGKey(key),(2*len(width)*max(width)))
     k = 0
     forward_wop = None
     initializer = jax.nn.initializers.glorot_normal()
@@ -659,7 +659,7 @@ def apply_morph_layer_iter(x,type,params,index_x,w,forward_inner,d,forward_wop =
 
 
 #Canonical Morphological NN with iterated NN
-def cmnn_iter(type,width,width_str,size,shape_x,x = None,width_wop = None,activation = jax.nn.tanh,key = 0,init = 'identity',loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 1000,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False):
+def cmnn_iter(type,width,width_str,size,shape_x,x = None,width_wop = None,activation = jax.nn.sigmoid,key = 0,sample = False,init = 'identity',loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 1000,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False):
     #Index window
     index_x = dmp.index_array(shape_x)
     forward_wop = None
@@ -669,6 +669,10 @@ def cmnn_iter(type,width,width_str,size,shape_x,x = None,width_wop = None,activa
     w = {}
     for d in unique_size:
         w[str(d)] = jnp.array([[x1.tolist(),x2.tolist()] for x1 in jnp.linspace(-jnp.floor(d/2),jnp.floor(d/2),d) for x2 in jnp.linspace(jnp.floor(d/2),-jnp.floor(d/2),d)])
+
+    #Init params
+    init_net = mnn.cmnn(type,width,size,shape_x,sample = sample,p1 = p1,key = key,width_wop = width_wop,activation = activation)
+    init_params = init_net['params']
 
     #Initialize parameters
     ll = None
@@ -682,7 +686,7 @@ def cmnn_iter(type,width,width_str,size,shape_x,x = None,width_wop = None,activa
             l = math.floor(max_size/2)
 
             #Lower limit
-            nn = fconNN_str(width_str,activation,key)
+            nn = fconNN([2] + width_str + [1],activation,key)
             forward_inner = nn['forward']
             w_y = mp.struct_lower(x,max_size).reshape((w_max.shape[0],1))
             params_ll = sgd(w_max,w_y,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
