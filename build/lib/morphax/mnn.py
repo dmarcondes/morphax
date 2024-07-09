@@ -427,7 +427,7 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0,epochs = 1000):
 
     #Forward and params
     net = fconNN(width,activation,key)
-    forward = net[ 'forward']
+    forward = lambda x,params: jax.nn.sigmoid(net['forward'](x,params))
     params = net['params']
 
     #Train
@@ -740,13 +740,13 @@ def cmnn_iter(type,width,width_str,size,shape_x,width_wop = None,activation = ja
                     for j in range(width[i]):
                         #Lower
                         nn = fconNN([2] + width_str + [1],activation,key)
-                        forward_inner = nn['forward']
+                        forward_inner = lambda x,params: jax.nn.sigmoid(nn['forward'](x,params))
                         w_input = w[str(size[i])]
                         w_output = init_params[i][j,0,:,:].transpose().reshape((w_input.shape[0],1))
                         params_lower = sgd(w_input,w_output,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
                         #Upper
                         nn = fconNN([2] + width_str + [1],activation,key)
-                        forward_inner = nn['forward']
+                        forward_inner = lambda x,params: jax.nn.sigmoid(nn['forward'](x,params))
                         w_input = w[str(size[i])]
                         w_output = init_params[i][j,1,:,:].transpose().reshape((w_input.shape[0],1))
                         params_upper = sgd(w_input,w_output,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
@@ -756,7 +756,7 @@ def cmnn_iter(type,width,width_str,size,shape_x,width_wop = None,activation = ja
                     par_layer = list()
                     for j in range(width[i]):
                         nn = fconNN([2] + width_str + [1],activation,key)
-                        forward_inner = nn['forward']
+                        forward_inner = lambda x,params: jax.nn.sigmoid(nn['forward'](x,params))
                         w_input = w[str(size[i])]
                         w_output = init_params[i][j,:,:,:].transpose().reshape((w_input.shape[0],1))
                         params_str = sgd(w_input,w_output,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
@@ -775,12 +775,12 @@ def cmnn_iter(type,width,width_str,size,shape_x,width_wop = None,activation = ja
                         #Lower
                         nn_lower = fconNN([2] + width_str + [1],activation,key[k,0])
                         k = k + 1
-                        forward_inner = nn_lower['forward']
+                        forward_inner = lambda x,params: jax.nn.sigmoid(nn_lower['forward'](x,params))
                         params_lower = nn_lower['params']
                         #Upper
                         nn_upper = fconNN([2] + width_str + [1],activation,key[k,0])
                         k = k + 1
-                        forward_inner = nn_upper['forward']
+                        forward_inner = lambda x,params: jax.nn.sigmoid(nn_upper['forward'](x,params))
                         params_upper = nn_upper['params']
                         par_layer.append([params_lower,params_upper])
                     params.append(par_layer)
@@ -789,7 +789,7 @@ def cmnn_iter(type,width,width_str,size,shape_x,width_wop = None,activation = ja
                     for j in range(width[i]):
                         nn_str = fconNN([2] + width_str + [1],activation,key[k,0])
                         k = k + 1
-                        forward_inner = nn_str['forward']
+                        forward_inner = lambda x,params: jax.nn.sigmoid(nn_str['forward'](x,params))
                         params_str = nn_lower['params']
                         params_str = nn_str['params']
                         par_layer.append(params_str)
