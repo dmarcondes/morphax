@@ -6,27 +6,27 @@ import sys
 from morphax import dmorph as dmnn
 
 #Approximate maximum
-#def max(x,h = 1/5):
-#    return h * jnp.log(jnp.sum(jnp.exp(x/h)))
+def max(x,h = 1/5):
+    return h * jnp.log(jnp.sum(jnp.exp(x/h)))
 
-#def maximum(x,y,h = 1/50):
-#    if len(x.shape) == 2:
-#        x = x.reshape((1,x.shape[0],x.shape[1]))
-#        y = y.reshape((1,y.shape[0],y.shape[1]))
-#    return jax.vmap(jax.vmap(jax.vmap(lambda x,y: h * jnp.log(jnp.sum(jnp.exp(jnp.append(x,y)/h))))))(x,y)
+def maximum(x,y,h = 1/50):
+    if len(x.shape) == 2:
+        x = x.reshape((1,x.shape[0],x.shape[1]))
+        y = y.reshape((1,y.shape[0],y.shape[1]))
+    return jax.vmap(jax.vmap(jax.vmap(lambda x,y: h * jnp.log(jnp.sum(jnp.exp(jnp.append(x,y)/h))))))(x,y)
 
-#def maximum_array_number(arr,x,h = 1/5):
-#    return h * jnp.log(jnp.exp(arr/h) + jnp.exp(x/h))
+def maximum_array_number(arr,x,h = 1/5):
+    return h * jnp.log(jnp.exp(arr/h) + jnp.exp(x/h))
 
 #Approximate minimum
-#def min(x,h = 1/5):
-#    return max(x,-h)
+def min(x,h = 1/5):
+    return max(x,-h)
 
-#def minimum(x,y,h = 1/5):
-#    return maximum(x,y,-h)
+def minimum(x,y,h = 1/5):
+    return maximum(x,y,-h)
 
-#def minimum_array_number(arr,x,h = 1/5):
-#    return maximum_array_number(arr,x,-h)
+def minimum_array_number(arr,x,h = 1/5):
+    return maximum_array_number(arr,x,-h)
 
 #Structuring element from function
 def struct_function(k,d):
@@ -296,7 +296,7 @@ def local_erosion(f,k,l):
     """
     def jit_local_erosion(index):
         fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
-        return jnp.minimum(jnp.maximum(jnp.min(fw - k),0.0),1.0)
+        return minimum_array_number(maximum_array_number(min(fw - k),0.0),1.0)
     return jit_local_erosion
 
 #Erosion of f by k
@@ -390,7 +390,7 @@ def local_dilation(f,kt,l):
     """
     def jit_local_dilation(index):
         fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
-        return jnp.minimum(jnp.maximum(jnp.max(fw + kt),0.0),1.0)
+        return minimum_array_number(maximum_array_number(max(fw + kt),0.0),1.0)
     return jit_local_dilation
 
 #Dilation of f by k assuming k already transposed

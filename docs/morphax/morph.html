@@ -31,6 +31,24 @@
             <h2>API Documentation</h2>
                 <ul class="memberlist">
             <li>
+                    <a class="function" href="#max">max</a>
+            </li>
+            <li>
+                    <a class="function" href="#maximum">maximum</a>
+            </li>
+            <li>
+                    <a class="function" href="#maximum_array_number">maximum_array_number</a>
+            </li>
+            <li>
+                    <a class="function" href="#min">min</a>
+            </li>
+            <li>
+                    <a class="function" href="#minimum">minimum</a>
+            </li>
+            <li>
+                    <a class="function" href="#minimum_array_number">minimum_array_number</a>
+            </li>
+            <li>
                     <a class="function" href="#struct_function">struct_function</a>
             </li>
             <li>
@@ -131,27 +149,27 @@
 </span><span id="L-6"><a href="#L-6"><span class="linenos">  6</span></a><span class="kn">from</span> <span class="nn">morphax</span> <span class="kn">import</span> <span class="n">dmorph</span> <span class="k">as</span> <span class="n">dmnn</span>
 </span><span id="L-7"><a href="#L-7"><span class="linenos">  7</span></a>
 </span><span id="L-8"><a href="#L-8"><span class="linenos">  8</span></a><span class="c1">#Approximate maximum</span>
-</span><span id="L-9"><a href="#L-9"><span class="linenos">  9</span></a><span class="c1">#def max(x,h = 1/5):</span>
-</span><span id="L-10"><a href="#L-10"><span class="linenos"> 10</span></a><span class="c1">#    return h * jnp.log(jnp.sum(jnp.exp(x/h)))</span>
+</span><span id="L-9"><a href="#L-9"><span class="linenos">  9</span></a><span class="k">def</span> <span class="nf">max</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">h</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="mi">5</span><span class="p">):</span>
+</span><span id="L-10"><a href="#L-10"><span class="linenos"> 10</span></a>    <span class="k">return</span> <span class="n">h</span> <span class="o">*</span> <span class="n">jnp</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">x</span><span class="o">/</span><span class="n">h</span><span class="p">)))</span>
 </span><span id="L-11"><a href="#L-11"><span class="linenos"> 11</span></a>
-</span><span id="L-12"><a href="#L-12"><span class="linenos"> 12</span></a><span class="c1">#def maximum(x,y,h = 1/50):</span>
-</span><span id="L-13"><a href="#L-13"><span class="linenos"> 13</span></a><span class="c1">#    if len(x.shape) == 2:</span>
-</span><span id="L-14"><a href="#L-14"><span class="linenos"> 14</span></a><span class="c1">#        x = x.reshape((1,x.shape[0],x.shape[1]))</span>
-</span><span id="L-15"><a href="#L-15"><span class="linenos"> 15</span></a><span class="c1">#        y = y.reshape((1,y.shape[0],y.shape[1]))</span>
-</span><span id="L-16"><a href="#L-16"><span class="linenos"> 16</span></a><span class="c1">#    return jax.vmap(jax.vmap(jax.vmap(lambda x,y: h * jnp.log(jnp.sum(jnp.exp(jnp.append(x,y)/h))))))(x,y)</span>
+</span><span id="L-12"><a href="#L-12"><span class="linenos"> 12</span></a><span class="k">def</span> <span class="nf">maximum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">h</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="mi">50</span><span class="p">):</span>
+</span><span id="L-13"><a href="#L-13"><span class="linenos"> 13</span></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+</span><span id="L-14"><a href="#L-14"><span class="linenos"> 14</span></a>        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+</span><span id="L-15"><a href="#L-15"><span class="linenos"> 15</span></a>        <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+</span><span id="L-16"><a href="#L-16"><span class="linenos"> 16</span></a>    <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">:</span> <span class="n">h</span> <span class="o">*</span> <span class="n">jnp</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">)</span><span class="o">/</span><span class="n">h</span><span class="p">))))))(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">)</span>
 </span><span id="L-17"><a href="#L-17"><span class="linenos"> 17</span></a>
-</span><span id="L-18"><a href="#L-18"><span class="linenos"> 18</span></a><span class="c1">#def maximum_array_number(arr,x,h = 1/5):</span>
-</span><span id="L-19"><a href="#L-19"><span class="linenos"> 19</span></a><span class="c1">#    return h * jnp.log(jnp.exp(arr/h) + jnp.exp(x/h))</span>
+</span><span id="L-18"><a href="#L-18"><span class="linenos"> 18</span></a><span class="k">def</span> <span class="nf">maximum_array_number</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="n">h</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="mi">5</span><span class="p">):</span>
+</span><span id="L-19"><a href="#L-19"><span class="linenos"> 19</span></a>    <span class="k">return</span> <span class="n">h</span> <span class="o">*</span> <span class="n">jnp</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">arr</span><span class="o">/</span><span class="n">h</span><span class="p">)</span> <span class="o">+</span> <span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">x</span><span class="o">/</span><span class="n">h</span><span class="p">))</span>
 </span><span id="L-20"><a href="#L-20"><span class="linenos"> 20</span></a>
 </span><span id="L-21"><a href="#L-21"><span class="linenos"> 21</span></a><span class="c1">#Approximate minimum</span>
-</span><span id="L-22"><a href="#L-22"><span class="linenos"> 22</span></a><span class="c1">#def min(x,h = 1/5):</span>
-</span><span id="L-23"><a href="#L-23"><span class="linenos"> 23</span></a><span class="c1">#    return max(x,-h)</span>
+</span><span id="L-22"><a href="#L-22"><span class="linenos"> 22</span></a><span class="k">def</span> <span class="nf">min</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">h</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="mi">5</span><span class="p">):</span>
+</span><span id="L-23"><a href="#L-23"><span class="linenos"> 23</span></a>    <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="o">-</span><span class="n">h</span><span class="p">)</span>
 </span><span id="L-24"><a href="#L-24"><span class="linenos"> 24</span></a>
-</span><span id="L-25"><a href="#L-25"><span class="linenos"> 25</span></a><span class="c1">#def minimum(x,y,h = 1/5):</span>
-</span><span id="L-26"><a href="#L-26"><span class="linenos"> 26</span></a><span class="c1">#    return maximum(x,y,-h)</span>
+</span><span id="L-25"><a href="#L-25"><span class="linenos"> 25</span></a><span class="k">def</span> <span class="nf">minimum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">h</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="mi">5</span><span class="p">):</span>
+</span><span id="L-26"><a href="#L-26"><span class="linenos"> 26</span></a>    <span class="k">return</span> <span class="n">maximum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="o">-</span><span class="n">h</span><span class="p">)</span>
 </span><span id="L-27"><a href="#L-27"><span class="linenos"> 27</span></a>
-</span><span id="L-28"><a href="#L-28"><span class="linenos"> 28</span></a><span class="c1">#def minimum_array_number(arr,x,h = 1/5):</span>
-</span><span id="L-29"><a href="#L-29"><span class="linenos"> 29</span></a><span class="c1">#    return maximum_array_number(arr,x,-h)</span>
+</span><span id="L-28"><a href="#L-28"><span class="linenos"> 28</span></a><span class="k">def</span> <span class="nf">minimum_array_number</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="n">h</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="mi">5</span><span class="p">):</span>
+</span><span id="L-29"><a href="#L-29"><span class="linenos"> 29</span></a>    <span class="k">return</span> <span class="n">maximum_array_number</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="o">-</span><span class="n">h</span><span class="p">)</span>
 </span><span id="L-30"><a href="#L-30"><span class="linenos"> 30</span></a>
 </span><span id="L-31"><a href="#L-31"><span class="linenos"> 31</span></a><span class="c1">#Structuring element from function</span>
 </span><span id="L-32"><a href="#L-32"><span class="linenos"> 32</span></a><span class="k">def</span> <span class="nf">struct_function</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">d</span><span class="p">):</span>
@@ -421,7 +439,7 @@
 </span><span id="L-296"><a href="#L-296"><span class="linenos">296</span></a><span class="sd">    &quot;&quot;&quot;</span>
 </span><span id="L-297"><a href="#L-297"><span class="linenos">297</span></a>    <span class="k">def</span> <span class="nf">jit_local_erosion</span><span class="p">(</span><span class="n">index</span><span class="p">):</span>
 </span><span id="L-298"><a href="#L-298"><span class="linenos">298</span></a>        <span class="n">fw</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">lax</span><span class="o">.</span><span class="n">dynamic_slice</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="p">(</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">l</span><span class="p">,</span> <span class="n">index</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">l</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">l</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">l</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
-</span><span id="L-299"><a href="#L-299"><span class="linenos">299</span></a>        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">fw</span> <span class="o">-</span> <span class="n">k</span><span class="p">),</span><span class="mf">0.0</span><span class="p">),</span><span class="mf">1.0</span><span class="p">)</span>
+</span><span id="L-299"><a href="#L-299"><span class="linenos">299</span></a>        <span class="k">return</span> <span class="n">minimum_array_number</span><span class="p">(</span><span class="n">maximum_array_number</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">fw</span> <span class="o">-</span> <span class="n">k</span><span class="p">),</span><span class="mf">0.0</span><span class="p">),</span><span class="mf">1.0</span><span class="p">)</span>
 </span><span id="L-300"><a href="#L-300"><span class="linenos">300</span></a>    <span class="k">return</span> <span class="n">jit_local_erosion</span>
 </span><span id="L-301"><a href="#L-301"><span class="linenos">301</span></a>
 </span><span id="L-302"><a href="#L-302"><span class="linenos">302</span></a><span class="c1">#Erosion of f by k</span>
@@ -515,7 +533,7 @@
 </span><span id="L-390"><a href="#L-390"><span class="linenos">390</span></a><span class="sd">    &quot;&quot;&quot;</span>
 </span><span id="L-391"><a href="#L-391"><span class="linenos">391</span></a>    <span class="k">def</span> <span class="nf">jit_local_dilation</span><span class="p">(</span><span class="n">index</span><span class="p">):</span>
 </span><span id="L-392"><a href="#L-392"><span class="linenos">392</span></a>        <span class="n">fw</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">lax</span><span class="o">.</span><span class="n">dynamic_slice</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="p">(</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">l</span><span class="p">,</span> <span class="n">index</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">l</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">l</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">l</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
-</span><span id="L-393"><a href="#L-393"><span class="linenos">393</span></a>        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">fw</span> <span class="o">+</span> <span class="n">kt</span><span class="p">),</span><span class="mf">0.0</span><span class="p">),</span><span class="mf">1.0</span><span class="p">)</span>
+</span><span id="L-393"><a href="#L-393"><span class="linenos">393</span></a>        <span class="k">return</span> <span class="n">minimum_array_number</span><span class="p">(</span><span class="n">maximum_array_number</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">fw</span> <span class="o">+</span> <span class="n">kt</span><span class="p">),</span><span class="mf">0.0</span><span class="p">),</span><span class="mf">1.0</span><span class="p">)</span>
 </span><span id="L-394"><a href="#L-394"><span class="linenos">394</span></a>    <span class="k">return</span> <span class="n">jit_local_dilation</span>
 </span><span id="L-395"><a href="#L-395"><span class="linenos">395</span></a>
 </span><span id="L-396"><a href="#L-396"><span class="linenos">396</span></a><span class="c1">#Dilation of f by k assuming k already transposed</span>
@@ -877,6 +895,123 @@
 
 
             </section>
+                <section id="max">
+                            <input id="max-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">max</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">x</span>, </span><span class="param"><span class="n">h</span><span class="o">=</span><span class="mf">0.2</span></span><span class="return-annotation">):</span></span>
+
+                <label class="view-source-button" for="max-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#max"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="max-10"><a href="#max-10"><span class="linenos">10</span></a><span class="k">def</span> <span class="nf">max</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">h</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="mi">5</span><span class="p">):</span>
+</span><span id="max-11"><a href="#max-11"><span class="linenos">11</span></a>    <span class="k">return</span> <span class="n">h</span> <span class="o">*</span> <span class="n">jnp</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">x</span><span class="o">/</span><span class="n">h</span><span class="p">)))</span>
+</span></pre></div>
+
+
+    
+
+                </section>
+                <section id="maximum">
+                            <input id="maximum-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">maximum</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">x</span>, </span><span class="param"><span class="n">y</span>, </span><span class="param"><span class="n">h</span><span class="o">=</span><span class="mf">0.02</span></span><span class="return-annotation">):</span></span>
+
+                <label class="view-source-button" for="maximum-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#maximum"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="maximum-13"><a href="#maximum-13"><span class="linenos">13</span></a><span class="k">def</span> <span class="nf">maximum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">h</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="mi">50</span><span class="p">):</span>
+</span><span id="maximum-14"><a href="#maximum-14"><span class="linenos">14</span></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+</span><span id="maximum-15"><a href="#maximum-15"><span class="linenos">15</span></a>        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+</span><span id="maximum-16"><a href="#maximum-16"><span class="linenos">16</span></a>        <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+</span><span id="maximum-17"><a href="#maximum-17"><span class="linenos">17</span></a>    <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">:</span> <span class="n">h</span> <span class="o">*</span> <span class="n">jnp</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">)</span><span class="o">/</span><span class="n">h</span><span class="p">))))))(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">)</span>
+</span></pre></div>
+
+
+    
+
+                </section>
+                <section id="maximum_array_number">
+                            <input id="maximum_array_number-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">maximum_array_number</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">arr</span>, </span><span class="param"><span class="n">x</span>, </span><span class="param"><span class="n">h</span><span class="o">=</span><span class="mf">0.2</span></span><span class="return-annotation">):</span></span>
+
+                <label class="view-source-button" for="maximum_array_number-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#maximum_array_number"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="maximum_array_number-19"><a href="#maximum_array_number-19"><span class="linenos">19</span></a><span class="k">def</span> <span class="nf">maximum_array_number</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="n">h</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="mi">5</span><span class="p">):</span>
+</span><span id="maximum_array_number-20"><a href="#maximum_array_number-20"><span class="linenos">20</span></a>    <span class="k">return</span> <span class="n">h</span> <span class="o">*</span> <span class="n">jnp</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">arr</span><span class="o">/</span><span class="n">h</span><span class="p">)</span> <span class="o">+</span> <span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">x</span><span class="o">/</span><span class="n">h</span><span class="p">))</span>
+</span></pre></div>
+
+
+    
+
+                </section>
+                <section id="min">
+                            <input id="min-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">min</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">x</span>, </span><span class="param"><span class="n">h</span><span class="o">=</span><span class="mf">0.2</span></span><span class="return-annotation">):</span></span>
+
+                <label class="view-source-button" for="min-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#min"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="min-23"><a href="#min-23"><span class="linenos">23</span></a><span class="k">def</span> <span class="nf">min</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">h</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="mi">5</span><span class="p">):</span>
+</span><span id="min-24"><a href="#min-24"><span class="linenos">24</span></a>    <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="o">-</span><span class="n">h</span><span class="p">)</span>
+</span></pre></div>
+
+
+    
+
+                </section>
+                <section id="minimum">
+                            <input id="minimum-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">minimum</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">x</span>, </span><span class="param"><span class="n">y</span>, </span><span class="param"><span class="n">h</span><span class="o">=</span><span class="mf">0.2</span></span><span class="return-annotation">):</span></span>
+
+                <label class="view-source-button" for="minimum-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#minimum"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="minimum-26"><a href="#minimum-26"><span class="linenos">26</span></a><span class="k">def</span> <span class="nf">minimum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">h</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="mi">5</span><span class="p">):</span>
+</span><span id="minimum-27"><a href="#minimum-27"><span class="linenos">27</span></a>    <span class="k">return</span> <span class="n">maximum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="o">-</span><span class="n">h</span><span class="p">)</span>
+</span></pre></div>
+
+
+    
+
+                </section>
+                <section id="minimum_array_number">
+                            <input id="minimum_array_number-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">minimum_array_number</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">arr</span>, </span><span class="param"><span class="n">x</span>, </span><span class="param"><span class="n">h</span><span class="o">=</span><span class="mf">0.2</span></span><span class="return-annotation">):</span></span>
+
+                <label class="view-source-button" for="minimum_array_number-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#minimum_array_number"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="minimum_array_number-29"><a href="#minimum_array_number-29"><span class="linenos">29</span></a><span class="k">def</span> <span class="nf">minimum_array_number</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="n">h</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="mi">5</span><span class="p">):</span>
+</span><span id="minimum_array_number-30"><a href="#minimum_array_number-30"><span class="linenos">30</span></a>    <span class="k">return</span> <span class="n">maximum_array_number</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="o">-</span><span class="n">h</span><span class="p">)</span>
+</span></pre></div>
+
+
+    
+
+                </section>
                 <section id="struct_function">
                             <input id="struct_function-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
@@ -1447,7 +1582,7 @@
 </span><span id="local_erosion-297"><a href="#local_erosion-297"><span class="linenos">297</span></a><span class="sd">    &quot;&quot;&quot;</span>
 </span><span id="local_erosion-298"><a href="#local_erosion-298"><span class="linenos">298</span></a>    <span class="k">def</span> <span class="nf">jit_local_erosion</span><span class="p">(</span><span class="n">index</span><span class="p">):</span>
 </span><span id="local_erosion-299"><a href="#local_erosion-299"><span class="linenos">299</span></a>        <span class="n">fw</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">lax</span><span class="o">.</span><span class="n">dynamic_slice</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="p">(</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">l</span><span class="p">,</span> <span class="n">index</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">l</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">l</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">l</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
-</span><span id="local_erosion-300"><a href="#local_erosion-300"><span class="linenos">300</span></a>        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">fw</span> <span class="o">-</span> <span class="n">k</span><span class="p">),</span><span class="mf">0.0</span><span class="p">),</span><span class="mf">1.0</span><span class="p">)</span>
+</span><span id="local_erosion-300"><a href="#local_erosion-300"><span class="linenos">300</span></a>        <span class="k">return</span> <span class="n">minimum_array_number</span><span class="p">(</span><span class="n">maximum_array_number</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">fw</span> <span class="o">-</span> <span class="n">k</span><span class="p">),</span><span class="mf">0.0</span><span class="p">),</span><span class="mf">1.0</span><span class="p">)</span>
 </span><span id="local_erosion-301"><a href="#local_erosion-301"><span class="linenos">301</span></a>    <span class="k">return</span> <span class="n">jit_local_erosion</span>
 </span></pre></div>
 
@@ -1657,7 +1792,7 @@
 </span><span id="local_dilation-391"><a href="#local_dilation-391"><span class="linenos">391</span></a><span class="sd">    &quot;&quot;&quot;</span>
 </span><span id="local_dilation-392"><a href="#local_dilation-392"><span class="linenos">392</span></a>    <span class="k">def</span> <span class="nf">jit_local_dilation</span><span class="p">(</span><span class="n">index</span><span class="p">):</span>
 </span><span id="local_dilation-393"><a href="#local_dilation-393"><span class="linenos">393</span></a>        <span class="n">fw</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">lax</span><span class="o">.</span><span class="n">dynamic_slice</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="p">(</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">l</span><span class="p">,</span> <span class="n">index</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">l</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">l</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">l</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
-</span><span id="local_dilation-394"><a href="#local_dilation-394"><span class="linenos">394</span></a>        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">fw</span> <span class="o">+</span> <span class="n">kt</span><span class="p">),</span><span class="mf">0.0</span><span class="p">),</span><span class="mf">1.0</span><span class="p">)</span>
+</span><span id="local_dilation-394"><a href="#local_dilation-394"><span class="linenos">394</span></a>        <span class="k">return</span> <span class="n">minimum_array_number</span><span class="p">(</span><span class="n">maximum_array_number</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">fw</span> <span class="o">+</span> <span class="n">kt</span><span class="p">),</span><span class="mf">0.0</span><span class="p">),</span><span class="mf">1.0</span><span class="p">)</span>
 </span><span id="local_dilation-395"><a href="#local_dilation-395"><span class="linenos">395</span></a>    <span class="k">return</span> <span class="n">jit_local_dilation</span>
 </span></pre></div>
 
