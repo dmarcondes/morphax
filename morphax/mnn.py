@@ -574,7 +574,7 @@ def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = Non
                     ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 1
                     ll = jnp.array(ll)
                     for j in range(width[i]):
-                        s = jax.random.choice(jax.random.PRNGKey(key[k,0]),2,p = jnp.array([1 - p1,p1]),shape = (1,1,size[i],size[i]))
+                        s = jax.random.choice(jax.random.PRNGKey(key[k,0,0]),2,p = jnp.array([1 - p1,p1]),shape = (1,1,size[i],size[i]))
                         k = k + 1
                         s = jnp.maximum(ll,s)
                         if j == 0:
@@ -623,46 +623,100 @@ def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = Non
     return {'params': params,'forward': forward,'forward_wop': forward_wop,'type': type,'width': width,'size': size}
 
 
-#Apply a morphological layer in iterated NN
-def apply_morph_layer_iter(x,type,params,index_x,w,forward_inner,d,forward_wop = None):
-    #Compute structural elements
-    k = None
-    if type == 'supgen' or type == 'infgen':
-        for i in range(int(len(params)/2)):
-            tmp = forward_inner(w,params[2*i]).reshape((1,d,d))
-            tmp = jnp.append(tmp,forward_inner(w,params[2*i + 1]).reshape((1,d,d)),0).reshape((1,2,d,d))
-            if k is None:
-                k = tmp
-            else:
-                k = jnp.append(k,tmp,0)
-    elif type != "wop":
-        for i in range(len(params)):
-            tmp = forward_inner(w,params[i]).reshape((1,1,d,d))
-            if k is None:
-                k = tmp
-            else:
-                k = jnp.append(k,tmp,0)
-    params = k
-
-    #Apply each operator
-    if type != "wop":
-        oper = mp.operator(type)
-        fx = None
-        for i in range(params.shape[0]):
-            if fx is None:
-                fx = oper(x,index_x,cut2(params[i,:,:,:])).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
-            else:
-                fx = jnp.append(fx,oper(x,index_x,cut2(params[i,:,:,:])).reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
-    else:
-        fx = mp.w_operator_nn(x,index_x,forward_wop,params,d).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
-    return fx
-
-
 #Canonical Morphological NN with iterated NN
-def cmnn_iter(type,width,width_str,size,shape_x,x = None,width_wop = None,activation = jax.nn.sigmoid,key = 0,sample = False,init = 'identity',loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 1000,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False):
+def cmnn_iter(type,width,width_str,size,shape_x,width_wop = None,activation = jax.nn.sigmoid,identity = True,sample = False,p1 = 0.1,key = 0,loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 1000,batches = 5000,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False,epochs_print = 500):
+    """
+    Initialize a Morphological Neural Network with FCNN representing the structuring elements.
+    ----------
+
+    Parameters
+    ----------
+    type : list of str
+
+        List with the names of the operators to be applied by each layer
+
+    width : list of int
+
+        List with the width of each layer
+
+    width : list of int
+
+        List with the width of each layer of the FCNN for structuring elements
+
+    size : list of int
+
+        List with the size of the structuring element of each layer
+
+    shape_x : list
+
+        Shape of the input images
+
+    width_wop : list of int
+
+        List with the width of each layer of the W-operator neural network
+
+    activation : function
+
+        Activation function for W-operator neural network
+
+    identity : logical
+
+        Whether to initiate the parameters so the operator is a random perturbation of the identity operator
+
+    sample : logical
+
+        Whether to sample initial parameters
+
+    p1 : float
+
+        Expected proportion of ones in sampled parameters
+
+    key : int
+
+        Key for sampling
+
+    loss : function
+
+        loss function
+
+    sa : logical
+
+        Whether to consider self-adaptative weights
+
+    c,q : float
+
+        Hyperparameters of self-adaptative weights
+
+    epochs : int
+
+        Number of training epochs
+
+    batches : int
+
+        Number of batches
+
+    lr,b1,b2,eps,eps_root: float
+
+        Hyperparameters of the Adam algorithm. Default lr = 0.001, b1 = 0.9, b2 = 0.999, eps = 1e-08, eps_root = 0.0
+
+    key : int
+
+        Seed for parameters initialization. Default 0
+
+    notebook : logical
+
+        Whether code is being executed in a notebook
+
+    epoch_print : int
+
+        Number of epochs to print training error
+
+    Returns
+    -------
+    dictionary with the initial parameters, forward function, function to comput structuring elements, width, size, type, forward funtion of the W-operator and forward function of the inner FCNN
+    """
     #Index window
     index_x = dmp.index_array(shape_x)
-    forward_wop = None
 
     #Create w to apply str NN
     unique_size = set(size)
@@ -673,75 +727,102 @@ def cmnn_iter(type,width,width_str,size,shape_x,x = None,width_wop = None,activa
     #Init params
     init_net = mnn.cmnn(type,width,size,shape_x,sample = sample,p1 = p1,key = key,width_wop = width_wop,activation = activation)
     init_params = init_net['params']
+    forward_wop = init_net['forward_wop']
 
-    #Initialize parameters
-    ll = None
-    ul = None
-    forward_inner = None
-    if init == 'identity':
-        if 'erosion' in type or 'dilation' in type or 'opening' in type or 'closing' in type or 'asf' in type or 'supgen' in type or 'infgen' in type:
-            #Train inner NN to generate zero and one kernel
-            max_size = max(size)
-            w_max = w[str(max_size)]
-            l = math.floor(max_size/2)
-
-            #Lower limit
-            nn = fconNN([2] + width_str + [1],activation,key)
-            forward_inner = nn['forward']
-            w_y = mp.struct_lower(x,max_size).reshape((w_max.shape[0],1))
-            params_ll = sgd(w_max,w_y,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
-            ll = forward_inner(w_max,params_ll).reshape((max_size,max_size))
-
-            if 'supgen' in type or 'infgen' in type:
-                #Upper limit
-                nn = fconNN_str(width_str,activation,key)
-                forward_inner = nn['forward']
-                w_y = mp.struct_upper(x,max_size).reshape((w_max.shape[0],1))
-                params_ul = sgd(w_max,w_y,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
-                ul = forward_inner(w_max,params_ul).reshape((max_size,max_size))
-
-        #Assign trained parameters
-        params = list()
+    #Initialize parameters NN
+    params = list()
+    if identity:
         for i in range(len(width)):
-            params.append(list())
-            for j in range(width[i]):
-                if type[i] ==  'sup' or type[i] ==  'inf' or type[i] ==  'complement':
-                    params[i].append(jnp.array(0.0,dtype = jnp.float32))
-                elif type[i] == "wop":
-                    net = fconNN_wop(width_wop,size[i],activation,key)
-                    forward_wop = net['forward']
-                    params.append(net['params'])
+            if type[i] in ['sup','inf','complement','wop']:
+                params.append(init_params[i])
+            else:
+                if type[i] in ['supgen','infgen']:
+                    par_layer = list()
+                    for j in range(width[i]):
+                        #Lower
+                        nn = mnn.fconNN([2] + width_str + [1],activation,key)
+                        forward_inner = nn['forward']
+                        w_input = w[str(size[i])]
+                        w_output = init_params[i][j,0,:,:].transpose().reshape((w_input.shape[0],1))
+                        params_lower = mnn.sgd(w_input,w_output,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
+                        #Upper
+                        nn = mnn.fconNN([2] + width_str + [1],activation,key)
+                        forward_inner = nn['forward']
+                        w_input = w[str(size[i])]
+                        w_output = init_params[i][j,1,:,:].transpose().reshape((w_input.shape[0],1))
+                        params_upper = mnn.sgd(w_input,w_output,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
+                        par_layer.append([params_lower,params_upper])
+                    params.append(par_layer)
                 else:
-                    params[i].append(params_ll)
-                    if type[i] == 'supgen' or type[i] == 'infgen':
-                        params[i].append(params_ul)
-    elif init == 'random':
-        initializer = jax.nn.initializers.normal()
-        k = jax.random.split(jax.random.PRNGKey(key),(len(width)*max(width))) #Seed for initialization
-        c = 0
-        params = list()
+                    par_layer = list()
+                    for j in range(width[i]):
+                        nn = mnn.fconNN([2] + width_str + [1],activation,key)
+                        forward_inner = nn['forward']
+                        w_input = w[str(size[i])]
+                        w_output = init_params[i][j,:,:,:].transpose().reshape((w_input.shape[0],1))
+                        params_str = mnn.sgd(w_input,w_output,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
+                        par_layer.append(params_str)
+                    params.append(par_layer)
+    else:
+        key = jax.random.split(jax.random.PRNGKey(key),(2*len(width)*max(width)))
+        k = 1
         for i in range(len(width)):
-            params.append(list())
-            for j in range(width[i]):
-                if type[i] ==  'sup' or type[i] ==  'inf' or type[i] ==  'complement':
-                    params[i].append(jnp.array(0.0,dtype = jnp.float32))
-                elif type[i] == "wop":
-                    net = fconNN_wop(width_wop,size[i],activation,k[c,0])
-                    forward_wop = net['forward']
-                    params.append(net['params'])
-                    c = c + 1
+            if type[i] in ['sup','inf','complement','wop']:
+                params.append(init_params[i])
+            else:
+                if type[i] in ['supgen','infgen']:
+                    par_layer = list()
+                    for j in range(width[i]):
+                        #Lower
+                        nn_lower = mnn.fconNN([2] + width_str + [1],activation,key[k,0])
+                        k = k + 1
+                        forward_inner = nn_lower['forward']
+                        params_lower = nn_lower['params']
+                        #Upper
+                        nn_upper = mnn.fconNN([2] + width_str + [1],activation,key[k,0])
+                        k = k + 1
+                        forward_inner = nn_upper['forward']
+                        params_upper = nn_upper['params']
+                        par_layer.append([params_lower,params_upper])
+                    params.append(par_layer)
                 else:
-                    forward_inner = fconNN_str(width_str,activation = jax.nn.tanh,key = 0)['forward']
-                    tmp = fconNN_str(width_str,activation = jax.nn.tanh,key = k[c,0])
-                    params[i].append(tmp['params'])
-                    if type[i] == 'supgen' or type[i] == 'infgen':
-                        tmp2 = fconNN_str(width_str,activation = jax.nn.tanh,key = k[c,1])
-                        params[i].append(tmp2['params'])
-                    c = c + 1
+                    par_layer = list()
+                    for j in range(width[i]):
+                        nn_str = mnn.fconNN([2] + width_str + [1],activation,key[k,0])
+                        k = k + 1
+                        forward_inner = nn_str['forward']
+                        params_str = nn_lower['params']
+                        params_str = nn_str['params']
+                        par_layer.append(params_str)
+                    params.append(par_layer)
+
+    #Compute structuring elements
+    @jax.jit
+    def compute_struct(params):
+        #Compute for each layer
+        struct = list()
+        for i in range(len(type)):
+            if type[i] in ['sup','inf','complement','wop']:
+                struct.append(params[i])
+            elif type[i] in ['infgen','supgen']:
+                par = forward_inner(w[str(size[i])],params[i][0][0]).reshape((size[i],size[i])).transpose().reshape((1,size[i],size[i]))
+                par = jnp.append(par,forward_inner(w[str(size[i])],params[i][0][1]).reshape((size[i],size[i])).transpose().reshape((1,size[i],size[i])),0).reshape((1,2,size[i],size[i]))
+                for j in range(width[i] - 1):
+                    tmp = forward_inner(w[str(size[i])],params[i][j + 1][0]).reshape((size[i],size[i])).transpose().reshape((1,size[i],size[i]))
+                    tmp = jnp.append(tmp,forward_inner(w[str(size[i])],params[i][j + 1][1]).reshape((size[i],size[i])).transpose().reshape((1,size[i],size[i])),0).reshape((1,2,size[i],size[i]))
+                    par = jnp.append(par,tmp,0)
+                struct.append(par)
+            else:
+                par = forward_inner(w[str(size[i])],params[i][0]).reshape((size[i],size[i])).transpose().reshape((1,1,size[i],size[i]))
+                for j in range(width[i] - 1):
+                    par = jnp.append(par,forward_inner(w[str(size[i])],params[i][j + 1]).reshape((size[i],size[i])).transpose().reshape((1,size[i],size[i])),0)
+                struct.append(par)
+        return struct
 
     #Forward pass
     @jax.jit
     def forward(x,params):
+        params_array = compute_struct(params)
         x = x.reshape((1,x.shape[0],x.shape[1],x.shape[2]))
         for i in range(len(type)):
             #Apply sup and inf
@@ -752,28 +833,8 @@ def cmnn_iter(type,width,width_str,size,shape_x,x = None,width_wop = None,activa
             elif type[i] == 'complement':
                 x = 1 - x
             else:
-                #Apply other layer
-                x = apply_morph_layer_iter(x[0,:,:,:],type[i],params[i],index_x,w[str(size[i])],forward_inner,size[i],forward_wop)
+                x = apply_morph_layer(x[0,:,:,:],type[i],params_array[i],index_x,forward_wop,size[i])
         return x[0,:,:,:]
 
-    #Compute structuring elements
-    @jax.jit
-    def compute_struct(params):
-        #Compute for each layer
-        struct = list()
-        for i in range(len(width)):
-            struct.append(list())
-            if type[i] ==  'sup' or type[i] ==  'inf' or type[i] ==  'complement':
-                struct[i].append(jnp.array(0.0,dtype = jnp.float32))
-            elif type[i] in ['infgen','supgen']:
-                for j in range(width[i]):
-                    k0 = forward_inner(w[str(size[i])],params[i][2*j]).reshape((1,size[i],size[i]))
-                    k1 = forward_inner(w[str(size[i])],params[i][2*j + 1]).reshape((1,size[i],size[i]))
-                    struct[i].append(cut2(jnp.append(k0,k1,0)))
-            else:
-                for j in range(width[i]):
-                    struct[i].append(cut2(forward_inner(w[str(size[i])],params[i][j]).reshape((size[i],size[i]))))
-        return struct
-
     #Return initial parameters and forward function
-    return {'params': params,'forward': forward,'ll': ll,'ul': ul,'compute_struct': compute_struct,'forward_wop': forward_wop}
+    return {'params': params,'forward': forward,'compute_struct': compute_struct,'forward_wop': forward_wop,'forward_inner': forward_inner,'width': width,'size': size,'type': type}
