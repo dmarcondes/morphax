@@ -267,7 +267,7 @@ def fconNN(width,activation = jax.nn.tanh,key = 0):
     #Return initial parameters and forward function
     return {'params': params,'forward': forward,'width': width}
 
-#Training function FCNN
+#Stochastic gradient descent
 def sgd(x,y,forward,params,loss,sa = False,c = 100,q = 2,epochs = 1,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 1000):
     """
     Stochastic gradient descent algorithm
@@ -433,7 +433,7 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0,epochs = 1000):
     #Train
     input = jnp.array(list(itertools.product([0, 1], repeat = d ** 2)))
     output = jnp.where(input[:,math.ceil((d ** 2)/2)] == 1,1,0).reshape((input.shape[0],1))
-    params = train_fcnn(input,output,forward,params,MSE_SA,sa = True,epochs = epochs,epoch_print = 100)
+    params = sgd(input,output,forward,params,MSE_SA,sa = True,epochs = epochs,epoch_print = 100)
 
     #Return initial parameters and forward function
     return {'params': params,'forward': forward,'width': width}
@@ -535,9 +535,10 @@ def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = Non
     -------
     dictionary with the initial parameters, forward function, width, size, type and forward funtion of the W-operator
     """
-    key = jax.random.split(jax.random.PRNGKey(key),(len(width),max(width)))
+    key = jax.random.split(jax.random.PRNGKey(key),(2*len(width),2*max(width)))
     k = 0
     forward_wop = None
+    initializer = jax.nn.initializers.glorot_normal()
 
     #Index window
     index_x = dmp.index_array(shape_x)
@@ -598,7 +599,8 @@ def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = Non
                     for j in range(width[i] - 1):
                         interval = ll
                         p = jnp.append(p,interval,0)
-            params.append(p.astype(jnp.float32))
+            params.append(p.astype(jnp.float32) + initializer(key[k,0],p.shape,jnp.float32))
+            k = k + 1
 
     #Forward pass
     @jax.jit
@@ -683,7 +685,7 @@ def cmnn_iter(type,width,width_str,size,shape_x,x = None,width_wop = None,activa
             nn = fconNN_str(width_str,activation,key)
             forward_inner = nn['forward']
             w_y = mp.struct_lower(x,max_size).reshape((w_max.shape[0],1))
-            params_ll = train_fcnn(w_max,w_y,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
+            params_ll = sgd(w_max,w_y,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
             ll = forward_inner(w_max,params_ll).reshape((max_size,max_size))
 
             if 'supgen' in type or 'infgen' in type:
@@ -691,7 +693,7 @@ def cmnn_iter(type,width,width_str,size,shape_x,x = None,width_wop = None,activa
                 nn = fconNN_str(width_str,activation,key)
                 forward_inner = nn['forward']
                 w_y = mp.struct_upper(x,max_size).reshape((w_max.shape[0],1))
-                params_ul = train_fcnn(w_max,w_y,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
+                params_ul = sgd(w_max,w_y,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
                 ul = forward_inner(w_max,params_ul).reshape((max_size,max_size))
 
         #Assign trained parameters
