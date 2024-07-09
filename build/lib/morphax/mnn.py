@@ -725,7 +725,7 @@ def cmnn_iter(type,width,width_str,size,shape_x,width_wop = None,activation = ja
         w[str(d)] = jnp.array([[x1.tolist(),x2.tolist()] for x1 in jnp.linspace(-jnp.floor(d/2),jnp.floor(d/2),d) for x2 in jnp.linspace(jnp.floor(d/2),-jnp.floor(d/2),d)])
 
     #Init params
-    init_net = mnn.cmnn(type,width,size,shape_x,sample = sample,p1 = p1,key = key,width_wop = width_wop,activation = activation)
+    init_net = cmnn(type,width,size,shape_x,sample = sample,p1 = p1,key = key,width_wop = width_wop,activation = activation)
     init_params = init_net['params']
     forward_wop = init_net['forward_wop']
 
@@ -740,27 +740,27 @@ def cmnn_iter(type,width,width_str,size,shape_x,width_wop = None,activation = ja
                     par_layer = list()
                     for j in range(width[i]):
                         #Lower
-                        nn = mnn.fconNN([2] + width_str + [1],activation,key)
+                        nn = fconNN([2] + width_str + [1],activation,key)
                         forward_inner = nn['forward']
                         w_input = w[str(size[i])]
                         w_output = init_params[i][j,0,:,:].transpose().reshape((w_input.shape[0],1))
-                        params_lower = mnn.sgd(w_input,w_output,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
+                        params_lower = sgd(w_input,w_output,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
                         #Upper
-                        nn = mnn.fconNN([2] + width_str + [1],activation,key)
+                        nn = fconNN([2] + width_str + [1],activation,key)
                         forward_inner = nn['forward']
                         w_input = w[str(size[i])]
                         w_output = init_params[i][j,1,:,:].transpose().reshape((w_input.shape[0],1))
-                        params_upper = mnn.sgd(w_input,w_output,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
+                        params_upper = sgd(w_input,w_output,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
                         par_layer.append([params_lower,params_upper])
                     params.append(par_layer)
                 else:
                     par_layer = list()
                     for j in range(width[i]):
-                        nn = mnn.fconNN([2] + width_str + [1],activation,key)
+                        nn = fconNN([2] + width_str + [1],activation,key)
                         forward_inner = nn['forward']
                         w_input = w[str(size[i])]
                         w_output = init_params[i][j,:,:,:].transpose().reshape((w_input.shape[0],1))
-                        params_str = mnn.sgd(w_input,w_output,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
+                        params_str = sgd(w_input,w_output,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
                         par_layer.append(params_str)
                     params.append(par_layer)
     else:
@@ -774,12 +774,12 @@ def cmnn_iter(type,width,width_str,size,shape_x,width_wop = None,activation = ja
                     par_layer = list()
                     for j in range(width[i]):
                         #Lower
-                        nn_lower = mnn.fconNN([2] + width_str + [1],activation,key[k,0])
+                        nn_lower = fconNN([2] + width_str + [1],activation,key[k,0])
                         k = k + 1
                         forward_inner = nn_lower['forward']
                         params_lower = nn_lower['params']
                         #Upper
-                        nn_upper = mnn.fconNN([2] + width_str + [1],activation,key[k,0])
+                        nn_upper = fconNN([2] + width_str + [1],activation,key[k,0])
                         k = k + 1
                         forward_inner = nn_upper['forward']
                         params_upper = nn_upper['params']
@@ -788,7 +788,7 @@ def cmnn_iter(type,width,width_str,size,shape_x,width_wop = None,activation = ja
                 else:
                     par_layer = list()
                     for j in range(width[i]):
-                        nn_str = mnn.fconNN([2] + width_str + [1],activation,key[k,0])
+                        nn_str = fconNN([2] + width_str + [1],activation,key[k,0])
                         k = k + 1
                         forward_inner = nn_str['forward']
                         params_str = nn_lower['params']
