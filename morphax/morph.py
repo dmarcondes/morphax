@@ -6,7 +6,7 @@ import sys
 from morphax import dmorph as dmnn
 
 #Approximate maximum
-def max(x,h = 1/5):
+def max(x,h = 1/50):
     return h * jnp.log(jnp.sum(jnp.exp(x/h)))
 
 def maximum(x,y,h = 1/50):
@@ -15,17 +15,17 @@ def maximum(x,y,h = 1/50):
         y = y.reshape((1,y.shape[0],y.shape[1]))
     return jax.vmap(jax.vmap(jax.vmap(lambda x,y: h * jnp.log(jnp.sum(jnp.exp(jnp.append(x,y)/h))))))(x,y)
 
-def maximum_array_number(arr,x,h = 1/5):
+def maximum_array_number(arr,x,h = 1/50):
     return h * jnp.log(jnp.exp(arr/h) + jnp.exp(x/h))
 
 #Approximate minimum
-def min(x,h = 1/5):
+def min(x,h = 1/50):
     return max(x,-h)
 
-def minimum(x,y,h = 1/5):
+def minimum(x,y,h = 1/50):
     return maximum(x,y,-h)
 
-def minimum_array_number(arr,x,h = 1/5):
+def minimum_array_number(arr,x,h = 1/50):
     return maximum_array_number(arr,x,-h)
 
 #Structuring element from function
