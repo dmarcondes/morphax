@@ -297,7 +297,7 @@
 </span><span id="L-202"><a href="#L-202"><span class="linenos">202</span></a>    <span class="k">return</span> <span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">c</span> <span class="o">*</span> <span class="p">(</span><span class="n">wheight</span> <span class="o">**</span> <span class="n">q</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">true</span> <span class="o">*</span> <span class="n">pred</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">c</span> <span class="o">*</span> <span class="p">(</span><span class="n">wheight</span> <span class="o">**</span> <span class="n">q</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">true</span> <span class="o">+</span> <span class="n">pred</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)))</span>
 </span><span id="L-203"><a href="#L-203"><span class="linenos">203</span></a>
 </span><span id="L-204"><a href="#L-204"><span class="linenos">204</span></a><span class="c1">#Activation</span>
-</span><span id="L-205"><a href="#L-205"><span class="linenos">205</span></a><span class="k">def</span> <span class="nf">activate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">b</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+</span><span id="L-205"><a href="#L-205"><span class="linenos">205</span></a><span class="k">def</span> <span class="nf">activate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">b</span> <span class="o">=</span> <span class="mi">5</span><span class="p">):</span>
 </span><span id="L-206"><a href="#L-206"><span class="linenos">206</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span id="L-207"><a href="#L-207"><span class="linenos">207</span></a><span class="sd">    Activation function for structuring elements</span>
 </span><span id="L-208"><a href="#L-208"><span class="linenos">208</span></a><span class="sd">    ----------</span>
@@ -1369,13 +1369,13 @@ Hyperparameters</li>
 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">activate</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">x</span>, </span><span class="param"><span class="n">b</span><span class="o">=</span><span class="mi">1</span></span><span class="return-annotation">):</span></span>
+        <span class="name">activate</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">x</span>, </span><span class="param"><span class="n">b</span><span class="o">=</span><span class="mi">5</span></span><span class="return-annotation">):</span></span>
 
                 <label class="view-source-button" for="activate-view-source"><span>View Source</span></label>
 
     </div>
     <a class="headerlink" href="#activate"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="activate-206"><a href="#activate-206"><span class="linenos">206</span></a><span class="k">def</span> <span class="nf">activate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">b</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="activate-206"><a href="#activate-206"><span class="linenos">206</span></a><span class="k">def</span> <span class="nf">activate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">b</span> <span class="o">=</span> <span class="mi">5</span><span class="p">):</span>
 </span><span id="activate-207"><a href="#activate-207"><span class="linenos">207</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span id="activate-208"><a href="#activate-208"><span class="linenos">208</span></a><span class="sd">    Activation function for structuring elements</span>
 </span><span id="activate-209"><a href="#activate-209"><span class="linenos">209</span></a><span class="sd">    ----------</span>
