@@ -538,7 +538,6 @@ def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = Non
     key = jax.random.split(jax.random.PRNGKey(key),(2*len(width),max(width)))
     k = 0
     forward_wop = None
-    initializer = jax.nn.initializers.glorot_normal()
 
     #Index window
     index_x = dmp.index_array(shape_x)
@@ -599,7 +598,7 @@ def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = Non
                     for j in range(width[i] - 1):
                         interval = ll
                         p = jnp.append(p,interval,0)
-            params.append(p.astype(jnp.float32) + initializer(key[k,0],p.shape,jnp.float32))
+            params.append(p.astype(jnp.float32) + 0.01*jax.random.normal(key[k,0],p.shape,jnp.float32))
             k = k + 1
 
     #Forward pass
