@@ -535,7 +535,7 @@ def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = Non
     -------
     dictionary with the initial parameters, forward function, width, size, type and forward funtion of the W-operator
     """
-    key = jax.random.split(jax.random.PRNGKey(key),(2*len(width)*max(width)))
+    key = jax.random.split(jax.random.PRNGKey(key),(2*len(width),max(width)))
     k = 0
     forward_wop = None
     initializer = jax.nn.initializers.glorot_normal()
@@ -561,7 +561,7 @@ def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = Non
                     ll = jnp.array(ll)
                     ul = 1.0 + jnp.zeros((1,1,size[i],size[i]),dtype = float)
                     for j in range(width[i]):
-                        s = jax.random.choice(jax.random.PRNGKey(key[k,0]),2,p = jnp.array([1 - p1,p1]),shape = (1,1,size[i],size[i]))
+                        s = jax.random.choice(jax.random.PRNGKey(key[k,0,0]),2,p = jnp.array([1 - p1,p1]),shape = (1,1,size[i],size[i]))
                         k = k + 1
                         s = jnp.maximum(ll,s)
                         if j == 0:
