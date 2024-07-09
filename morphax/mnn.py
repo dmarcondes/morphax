@@ -267,7 +267,7 @@ def fconNN(width,activation = jax.nn.tanh,key = 0):
     #Return initial parameters and forward function
     return {'params': params,'forward': forward,'width': width}
 
-#Training function FCNN
+#Stochastic gradient descent
 def sgd(x,y,forward,params,loss,sa = False,c = 100,q = 2,epochs = 1,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 1000):
     """
     Stochastic gradient descent algorithm
@@ -535,9 +535,10 @@ def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = Non
     -------
     dictionary with the initial parameters, forward function, width, size, type and forward funtion of the W-operator
     """
-    key = jax.random.split(jax.random.PRNGKey(key),(len(width),max(width)))
+    key = jax.random.split(jax.random.PRNGKey(key),(2*len(width),2*max(width)))
     k = 0
     forward_wop = None
+    initializer = jax.nn.initializers.glorot_normal()
 
     #Index window
     index_x = dmp.index_array(shape_x)
@@ -598,7 +599,8 @@ def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = Non
                     for j in range(width[i] - 1):
                         interval = ll
                         p = jnp.append(p,interval,0)
-            params.append(p.astype(jnp.float32))
+            params.append(p.astype(jnp.float32) + initializer(key[k,0],p.shape,jnp.float32))
+            k = k + 1
 
     #Forward pass
     @jax.jit
