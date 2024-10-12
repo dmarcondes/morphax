@@ -384,7 +384,7 @@ def sgd(x,y,forward,params,loss,x_val = None,y_val = None,sa = False,c = 100,q =
                 opt_state,params = update(opt_state,params,x,y)
             l = str(jnp.round(lf(params,x,y),10))
             if x_val is not None:
-                l = l + 'Val loss: ' + str(jnp.round(lf(params,x_val,y_val),10))
+                l = l + ' Val loss: ' + str(jnp.round(lf(params,x_val,y_val),10))
             if(e % epoch_print == 0 and notebook):
                 print('Epoch: ' + str(e) + ' Time: ' + str(jnp.round(time.time() - t0,2)) + ' s Loss: ' + l)
             if not notebook:
