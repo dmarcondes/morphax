@@ -268,7 +268,7 @@ def fconNN(width,activation = jax.nn.tanh,key = 0):
     return {'params': params,'forward': forward,'width': width}
 
 #Stochastic gradient descent
-def sgd(x,y,forward,params,loss,sa = False,c = 100,q = 2,epochs = 1,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 1000):
+def sgd(x,y,forward,params,loss,x_val = None,y_val = None,sa = False,c = 100,q = 2,epochs = 1,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 1000):
     """
     Stochastic gradient descent algorithm
     ----------
@@ -286,6 +286,10 @@ def sgd(x,y,forward,params,loss,sa = False,c = 100,q = 2,epochs = 1,batches = 1,
     params : list
 
         Initial parameters
+
+    x_val,y_val : jax.numpy.array
+
+        Validation data
 
     loss : function
 
@@ -379,6 +383,8 @@ def sgd(x,y,forward,params,loss,sa = False,c = 100,q = 2,epochs = 1,batches = 1,
             else:
                 opt_state,params = update(opt_state,params,x,y)
             l = str(jnp.round(lf(params,x,y),10))
+            if x_val is not None:
+                l = l + ' Val loss: ' + str(jnp.round(lf(params,x_val,y_val),10))
             if(e % epoch_print == 0 and notebook):
                 print('Epoch: ' + str(e) + ' Time: ' + str(jnp.round(time.time() - t0,2)) + ' s Loss: ' + l)
             if not notebook:
