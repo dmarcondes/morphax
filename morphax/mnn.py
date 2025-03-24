@@ -437,7 +437,7 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0,epochs = 1000,train = Fa
 
     #Forward and params
     net = fconNN(width,activation,key)
-    forward = lambda x,params: jax.nn.sigmoid(net['forward'](x,params))
+    forward = lambda x,params: net['forward'](x,params)
     params = net['params']
 
     #Train
