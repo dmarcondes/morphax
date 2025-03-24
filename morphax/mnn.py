@@ -397,7 +397,7 @@ def sgd(x,y,forward,params,loss,x_val = None,y_val = None,sa = False,c = 100,q =
 
 
 #Fully connected architecture for w-operator characteristic function
-def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0,epochs = 1000):
+def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0,epochs = 1000,train = False):
     """
     Initialize a Fully Connected Neural Network to represent the characteristic function of a W-operator.
     ----------
@@ -424,6 +424,10 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0,epochs = 1000):
 
         Epochs to pretrain neural network
 
+    train : logical
+
+        Whether to train the neural network to initialise as the identity function
+
     Returns
     -------
     dictionary with the initial parameters, forward function and width
@@ -437,9 +441,10 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0,epochs = 1000):
     params = net['params']
 
     #Train
-    input = jnp.array(list(itertools.product([0, 1], repeat = d ** 2)))
-    output = jnp.where(input[:,math.ceil((d ** 2)/2)] == 1,1,0).reshape((input.shape[0],1))
-    params = sgd(input,output,forward,params,MSE_SA,sa = True,epochs = epochs,epoch_print = 100)
+    if train:
+        input = jnp.array(list(itertools.product([0, 1], repeat = d ** 2)))
+        output = jnp.where(input[:,math.ceil((d ** 2)/2)] == 1,1,0).reshape((input.shape[0],1))
+        params = sgd(input,output,forward,params,MSE_SA,sa = True,epochs = epochs,epoch_print = 100)
 
     #Return initial parameters and forward function
     return {'params': params,'forward': forward,'width': width}
