@@ -1209,18 +1209,12 @@ def train_dmnn_stack_slda(x,y,net,loss,xval = None,yval = None,sample = False,ne
     if error_type == 'mean':
         @jax.jit
         def lf(params,x,y):
-            pred = forward(threshold(x,1),params)
-            for t in range(K-1):
-                pred = pred + forward(threshold(x,t + 2),params)
-            #pred = jnp.sum(jax.vmap(lambda x: forward(x,params))(jax.vmap(lambda t: threshold(x,t))(stacks)),0)
+            pred = jnp.sum(jax.vmap(lambda x: forward(x,params))(jax.vmap(lambda t: threshold(x,t))(stacks)),0)
             return jnp.mean(jax.vmap(loss)(pred,y))
     else:
         @jax.jit
         def lf(params,x,y):
-            pred = forward(threshold(x,1),params)
-            for t in range(K-1):
-                pred = pred + forward(threshold(x,t + 2),params)
-            #pred = jnp.sum(jax.vmap(lambda x: forward(x,params))(jax.vmap(lambda t: threshold(x,t))(stacks)),0)
+            pred = jnp.sum(jax.vmap(lambda x: forward(x,params))(jax.vmap(lambda t: threshold(x,t))(stacks)),0)
             return jnp.max(jax.vmap(loss)(forward(x,params),y))
 
     #Training function
