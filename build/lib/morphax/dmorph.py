@@ -1118,10 +1118,10 @@ def train_dmnn_slda(x,y,net,loss,xval = None,yval = None,sample = False,neighbor
 def threshold(X,t):
     return jnp.where(X >= t,1,0)
 
-#Training function DMNN for stack filters
+#Training function DMNN for stack operators
 def train_dmnn_stack_slda(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8,epochs = 1,batches = 1,K = 255,notebook = False,epoch_print = 100,epoch_store = 1,key = 0,store_jumps = False,error_type = 'mean'):
     """
-    Stochastic Lattice Descent Algorithm to train Discrete Morphological Neural Networks for stack filters.
+    Stochastic Lattice Descent Algorithm to train Discrete Morphological Neural Networks for stack operators.
     ----------
 
     Parameters
@@ -1209,12 +1209,18 @@ def train_dmnn_stack_slda(x,y,net,loss,xval = None,yval = None,sample = False,ne
     if error_type == 'mean':
         @jax.jit
         def lf(params,x,y):
-            pred = jnp.sum(jax.vmap(lambda x: forward(x,params))(jax.vmap(lambda t: threshold(x,t))(stacks)),0)
+            pred = forward(threshold(x,1),params)
+            for t in range(K-1):
+                pred = pred + forward(threshold(x,t + 2),params)
+            #pred = jnp.sum(jax.vmap(lambda x: forward(x,params))(jax.vmap(lambda t: threshold(x,t))(stacks)),0)
             return jnp.mean(jax.vmap(loss)(pred,y))
     else:
         @jax.jit
         def lf(params,x,y):
-            pred = jnp.sum(jax.vmap(lambda x: forward(x,params))(jax.vmap(lambda t: threshold(x,t))(stacks)),0)
+            pred = forward(threshold(x,1),params)
+            for t in range(K-1):
+                pred = pred + forward(threshold(x,t + 2),params)
+            #pred = jnp.sum(jax.vmap(lambda x: forward(x,params))(jax.vmap(lambda t: threshold(x,t))(stacks)),0)
             return jnp.max(jax.vmap(loss)(forward(x,params),y))
 
     #Training function
