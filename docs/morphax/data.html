@@ -157,7 +157,7 @@
 </span><span id="L-92"><a href="#L-92"><span class="linenos"> 92</span></a>            <span class="n">dat</span> <span class="o">=</span> <span class="n">img</span>
 </span><span id="L-93"><a href="#L-93"><span class="linenos"> 93</span></a>        <span class="k">else</span><span class="p">:</span>
 </span><span id="L-94"><a href="#L-94"><span class="linenos"> 94</span></a>            <span class="n">dat</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dat</span><span class="p">,</span><span class="n">img</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
-</span><span id="L-95"><a href="#L-95"><span class="linenos"> 95</span></a>    <span class="k">return</span> <span class="n">dat</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+</span><span id="L-95"><a href="#L-95"><span class="linenos"> 95</span></a>    <span class="k">return</span> <span class="n">dat</span>
 </span><span id="L-96"><a href="#L-96"><span class="linenos"> 96</span></a>
 </span><span id="L-97"><a href="#L-97"><span class="linenos"> 97</span></a><span class="c1">#Save images</span>
 </span><span id="L-98"><a href="#L-98"><span class="linenos"> 98</span></a><span class="k">def</span> <span class="nf">save_images</span><span class="p">(</span><span class="n">images</span><span class="p">,</span><span class="n">files_path</span><span class="p">):</span>
@@ -338,7 +338,7 @@ Sheet number for .xls and .xlsx files. Default 0</li>
 </span><span id="image_to_jnp-93"><a href="#image_to_jnp-93"><span class="linenos">93</span></a>            <span class="n">dat</span> <span class="o">=</span> <span class="n">img</span>
 </span><span id="image_to_jnp-94"><a href="#image_to_jnp-94"><span class="linenos">94</span></a>        <span class="k">else</span><span class="p">:</span>
 </span><span id="image_to_jnp-95"><a href="#image_to_jnp-95"><span class="linenos">95</span></a>            <span class="n">dat</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dat</span><span class="p">,</span><span class="n">img</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
-</span><span id="image_to_jnp-96"><a href="#image_to_jnp-96"><span class="linenos">96</span></a>    <span class="k">return</span> <span class="n">dat</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+</span><span id="image_to_jnp-96"><a href="#image_to_jnp-96"><span class="linenos">96</span></a>    <span class="k">return</span> <span class="n">dat</span>
 </span></pre></div>
 
 
