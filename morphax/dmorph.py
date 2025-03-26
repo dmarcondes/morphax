@@ -912,11 +912,14 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8,
                 k = k + 1
                 #Neighbor
                 nei = jnp.append(jnp.append(jnp.append(l.reshape((1,1)),node,1),lim,1),rc,1).astype(jnp.int32)
+                error_tmp = visit_neighbor(nei,params,x,y,lf)
                 if hood is None:
                     hood = nei
+                    error = error_tmp
                 else:
                     hood = jnp.append(hood,nei,0)
-                del count, tmp_prob, tmp_random, par_l, node, rc, lim
+                    error = jnp.append(error,error_tmp)
+                del count, tmp_prob, tmp_random, par_l, node, rc, lim, error_tmp
     else:
         hood = None
         j = 0
@@ -938,21 +941,24 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8,
                         v = jnp.where(obs == 2,0,v)
                         tmp = tmp.at[i,2].set(v)
                     del v
+                error_tmp = visit_neighbor(tmp,params,x,y,lf)
                 if hood is None:
                     hood = tmp
+                    error = error_tmp
                 else:
                     hood = jnp.append(hood,tmp,0)
+                    error = jnp.append(error,error_tmp)
                 j = j + 1
-                del tmp
+                del tmp, error_tmp
 
     #Shuffle hood
     hood = jax.random.permutation(jax.random.PRNGKey(key[k,0]),hood,0)
     k = k + 1
 
     #Compute error for each point in the hood
-    res = jax.vmap(lambda h: visit_neighbor(h,params,x,y,lf))(hood).reshape((hood.shape[0],1))
+    #res = jax.vmap(lambda h: visit_neighbor(h,params,x,y,lf))(hood).reshape((hood.shape[0],1))
 
-    return jnp.append(hood,res,1)
+    return jnp.append(hood,error.reshape((hood.shape[0],1)),1)
 
 #Training function DMNN
 def train_dmnn_slda(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8,epochs = 1,batches = 1,notebook = False,epoch_print = 100,epoch_store = 1,key = 0,store_jumps = False,error_type = 'mean'):
