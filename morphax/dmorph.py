@@ -380,6 +380,7 @@ def supgen(f,index_f,k1,k2):
     return jnp.minimum(erosion(f,index_f,k1),complement(dilation(f,index_f,complement(transpose_se(k2)))))
 
 #Inf-generating with interval [k1,k2]
+@jax.jit
 def infgen(f,index_f,k1,k2):
     """
     Inf-generating operator applied to batches of images.
@@ -1040,11 +1041,11 @@ def train_dmnn_slda(x,y,net,loss,xval = None,yval = None,sample = False,neighbor
 
     #Loss function
     if error_type == 'mean':
-        @jax.jit
+        #@jax.jit
         def lf(params,x,y):
             return jnp.mean(jax.vmap(loss)(forward(x,params),y))
     else:
-        @jax.jit
+        #@jax.jit
         def lf(params,x,y):
             return jnp.max(jax.vmap(loss)(forward(x,params),y))
 
@@ -1215,12 +1216,12 @@ def train_dmnn_stack_slda(x,y,net,loss,xval = None,yval = None,sample = False,ne
 
     #Loss function
     if error_type == 'mean':
-        @jax.jit
+        #@jax.jit
         def lf(params,x,y):
             pred = jnp.sum(jax.vmap(lambda x: forward(x,params))(jax.vmap(lambda t: threshold(x,t))(stacks)),0)
             return jnp.mean(jax.vmap(loss)(pred,y))
     else:
-        @jax.jit
+        #@jax.jit
         def lf(params,x,y):
             pred = jnp.sum(jax.vmap(lambda x: forward(x,params))(jax.vmap(lambda t: threshold(x,t))(stacks)),0)
             return jnp.max(jax.vmap(loss)(forward(x,params),y))
