@@ -1205,8 +1205,12 @@ def train_dmnn_stack_slda(x,y,net,loss,xval = None,yval = None,sample = False,ne
     type = net['type']
     width = net['width']
     size = net['size']
-    xy = jnp.append(x.reshape((1,x.shape[0],x.shape[1],x.shape[2])),y.reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
+    #xy = jnp.append(x.reshape((1,x.shape[0],x.shape[1],x.shape[2])),y.reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
     stacks = 1 + jnp.arange(K)
+
+    #Stack data
+    x = jax.vmap(lambda t: threshold(x,t))(stacks)
+    x = x.reshape((1,x.shape[0],x.shape[1],x.shape[2],x.shape[3]))
 
     #Key
     key = jax.random.split(jax.random.PRNGKey(key),epochs)
@@ -1216,14 +1220,14 @@ def train_dmnn_stack_slda(x,y,net,loss,xval = None,yval = None,sample = False,ne
 
     #Loss function
     if error_type == 'mean':
-        #@jax.jit
+        @jax.jit
         def lf(params,x,y):
-            pred = jnp.sum(jax.vmap(lambda x: forward(x,params))(jax.vmap(lambda t: threshold(x,t))(stacks)),0)
+            pred = jnp.sum(jax.vmap(lambda x: forward(x,params))(x),0)
             return jnp.mean(jax.vmap(loss)(pred,y))
     else:
-        #@jax.jit
+        @jax.jit
         def lf(params,x,y):
-            pred = jnp.sum(jax.vmap(lambda x: forward(x,params))(jax.vmap(lambda t: threshold(x,t))(stacks)),0)
+            pred = jnp.sum(jax.vmap(lambda x: forward(x,params))(x),0)
             return jnp.max(jax.vmap(loss)(forward(x,params),y))
 
     #Training function
@@ -1239,6 +1243,8 @@ def train_dmnn_stack_slda(x,y,net,loss,xval = None,yval = None,sample = False,ne
     trace_loss = [min_loss]
     trace_epoch = [0]
     if xval is not None:
+        xval = jax.vmap(lambda t: threshold(xval,t))(stacks)
+        xval = xval.reshape((1,xval.shape[0],xval.shape[1],xval.shape[2],xval.shape[3]))
         min_val_loss = lf(params,xval,yval)
         trace_val_loss = [min_val_loss]
     else:
@@ -1253,14 +1259,16 @@ def train_dmnn_stack_slda(x,y,net,loss,xval = None,yval = None,sample = False,ne
         bar.title('Epoch: ' + str(0) + " Loss: " + str(jnp.round(min_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
         for e in range(epochs):
             #Permutate xy
-            xy = jax.random.permutation(jax.random.PRNGKey(key[e,0]),xy,1)
+            per = jax.random.permutation(jax.random.PRNGKey(key[e,0]),jnp.arange(x.shape[2]))
+            x = x[:,:,per,:,:]
+            y = y[per,:,:]
             for b in range(batches):
                 if b < batches - 1:
-                    xb = jax.lax.dynamic_slice(xy[0,:,:,:],(b*bsize,0,0),(bsize,x.shape[1],x.shape[2]))
-                    yb = jax.lax.dynamic_slice(xy[1,:,:,:],(b*bsize,0,0),(bsize,x.shape[1],x.shape[2]))
+                    xb = jax.lax.dynamic_slice(x,(0,0,b*bsize,0,0),(x.shape[0],x.shape[1],bsize,x.shape[3],x.shape[4]))
+                    yb = jax.lax.dynamic_slice(y,(b*bsize,0,0),(bsize,y.shape[1],y.shape[2]))
                 else:
-                    xb = xy[0,b*bsize:x.shape[0],:,:]
-                    yb = xy[1,b*bsize:y.shape[0],:,:]
+                    xb = x[:,:,b*bsize:x.shape[2],:,:]
+                    yb = y[b*bsize:y.shape[0],:,:]
                 #Search neighbors
                 hood = update(params,xb,yb,key[e,1])
 
