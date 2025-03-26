@@ -25,7 +25,7 @@ def index_array(shape):
     a JAX numpy array
 
     """
-    return jnp.array([[x,y] for x in range(shape[0]) for y in range(shape[1])]).astype(jnp.float32)
+    return jnp.array([[x,y] for x in range(shape[0]) for y in range(shape[1])])
 
 #Transpose a structuring element
 @jax.jit
