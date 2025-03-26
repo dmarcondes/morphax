@@ -92,7 +92,7 @@ def image_to_jnp(files_path):
             dat = img
         else:
             dat = jnp.append(dat,img,0)
-    return dat
+    return dat.astype(jnp.float32)
 
 #Save images
 def save_images(images,files_path):
