@@ -1081,13 +1081,15 @@ def train_dmnn_slda(x,y,net,loss,xval = None,yval = None,sample = False,neighbor
                 hood = update(params,xb,yb,key[e,1])
 
                 #Update
-                hood = hood[hood[:,-1] == jnp.min(hood[:,-1]),0:-1][0,:].astype(jnp.int32)
-                if store_jumps:
-                    jumps = jnp.append(jumps,hood,0)
-                new_params = params.at[hood[0],hood[1],hood[2],hood[3],hood[4]].set(1 - params[hood[0],hood[1],hood[2],hood[3],hood[4]])
-                del params
-                params = new_params.copy()
-                del hood, xb, yb, new_params
+                hood = hood[hood[:,-1] == jnp.min(hood[:,-1]),0:-1].astype(jnp.int32)
+                if hood.shape[0] > 0:
+                    hood = hood[0,:]
+                    if store_jumps:
+                        jumps = jnp.append(jumps,hood,0)
+                    new_params = params.at[hood[0],hood[1],hood[2],hood[3],hood[4]].set(1 - params[hood[0],hood[1],hood[2],hood[3],hood[4]])
+                    del params
+                    params = new_params.copy()
+                    del hood, xb, yb, new_params
 
             #Compute loss and store at the end of epoch
             train_loss = lf(params,x,y)
@@ -1256,13 +1258,15 @@ def train_dmnn_stack_slda(x,y,net,loss,xval = None,yval = None,sample = False,ne
                 hood = update(params,xb,yb,key[e,1])
 
                 #Update
-                hood = hood[hood[:,-1] == jnp.min(hood[:,-1]),0:-1][0,:].astype(jnp.int32)
-                if store_jumps:
-                    jumps = jnp.append(jumps,hood,0)
-                new_params = params.at[hood[0],hood[1],hood[2],hood[3],hood[4]].set(1 - params[hood[0],hood[1],hood[2],hood[3],hood[4]])
-                del params
-                params = new_params.copy()
-                del hood, xb, yb, new_params
+                hood = hood[hood[:,-1] == jnp.min(hood[:,-1]),0:-1].astype(jnp.int32)
+                if hood.shape[0] > 0:
+                    hood = hood[0,:]
+                    if store_jumps:
+                        jumps = jnp.append(jumps,hood,0)
+                    new_params = params.at[hood[0],hood[1],hood[2],hood[3],hood[4]].set(1 - params[hood[0],hood[1],hood[2],hood[3],hood[4]])
+                    del params
+                    params = new_params.copy()
+                    del hood, xb, yb, new_params
 
             #Compute loss and store at the end of epoch
             train_loss = lf(params,x,y)
