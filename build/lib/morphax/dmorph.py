@@ -143,7 +143,7 @@ def erosion(f,index_f,k):
 
     """
     l = math.floor(k.shape[0]/2)
-    f = jax.lax.pad(f,0,((0,0,0),(l,l,0),(l,l,0)))
+    f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
     eb = jax.vmap(lambda f: erosion_2D(f,index_f,k),in_axes = (0),out_axes = 0)(f)
     return eb
 
@@ -237,7 +237,7 @@ def dilation(f,index_f,k):
 
     """
     l = math.floor(k.shape[0]/2)
-    f = jax.lax.pad(f,0,((0,0,0),(l,l,0),(l,l,0)))
+    f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
     k = transpose_se(k)
     db = jax.vmap(lambda f: dilation_2D(f,index_f,k),in_axes = (0),out_axes = 0)(f)
     return db
@@ -1125,7 +1125,7 @@ def train_dmnn_slda(x,y,net,loss,xval = None,yval = None,sample = False,neighbor
 #Threshold gray scale image
 @jax.jit
 def threshold(X,t):
-    return jnp.where(X >= t,1,0)
+    return jnp.where(X >= t,1.0,0.0)
 
 #Training function DMNN for stack operators
 def train_dmnn_stack_slda(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8,epochs = 1,batches = 1,K = 255,notebook = False,epoch_print = 100,epoch_store = 1,key = 0,store_jumps = False,error_type = 'mean'):
