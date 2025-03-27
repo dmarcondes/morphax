@@ -1229,7 +1229,7 @@ def train_dmnn_stack_slda(x,y,net,loss,xval = None,yval = None,sample = False,ne
             return jnp.max(jax.vmap(loss)(forward(x,params),y))
 
     #Training function
-    #@jax.jit
+    @jax.jit
     def update(params,x,y,key):
       params = step_slda(params,x,y,forward,lf,type,width,size,sample,neighbors,key)
       return params
