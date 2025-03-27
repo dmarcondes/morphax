@@ -1282,7 +1282,9 @@ def train_dmnn_stack_slda(x,y,net,loss,xval = None,yval = None,sample = False,ne
                     new_params = params.at[hood[0],hood[1],hood[2],hood[3],hood[4]].set(1 - params[hood[0],hood[1],hood[2],hood[3],hood[4]])
                     del params
                     params = new_params.copy()
-                    del hood, xb, yb, new_params
+                    del hood, new_params
+                    if batches > 1:
+                        del xb, yb
 
             #Compute loss and store at the end of epoch
             train_loss = lf(params,x,y)
