@@ -1256,18 +1256,22 @@ def train_dmnn_stack_slda(x,y,net,loss,xval = None,yval = None,sample = False,ne
         bar.title('Epoch: ' + str(0) + " Loss: " + str(jnp.round(min_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
         for e in range(epochs):
             #Permutate xy
-            per = jax.random.permutation(jax.random.PRNGKey(key[e,0]),jnp.arange(x.shape[2]))
-            x = x[:,per,:,:]
-            y = y[per,:,:]
+            if batches > 1:
+                per = jax.random.permutation(jax.random.PRNGKey(key[e,0]),jnp.arange(x.shape[2]))
+                x = x[:,per,:,:]
+                y = y[per,:,:]
             for b in range(batches):
-                if b < batches - 1:
-                    xb = jax.lax.dynamic_slice(x,(0,b*bsize,0,0),(x.shape[0],bsize,x.shape[2],x.shape[3]))
-                    yb = jax.lax.dynamic_slice(y,(b*bsize,0,0),(bsize,y.shape[1],y.shape[2]))
+                if batches > 1:
+                    if b < batches - 1:
+                        xb = jax.lax.dynamic_slice(x,(0,b*bsize,0,0),(x.shape[0],bsize,x.shape[2],x.shape[3]))
+                        yb = jax.lax.dynamic_slice(y,(b*bsize,0,0),(bsize,y.shape[1],y.shape[2]))
+                    else:
+                        xb = x[:,b*bsize:x.shape[1],:,:]
+                        yb = y[b*bsize:y.shape[0],:,:]
+                    #Search neighbors
+                    hood = update(params,xb,yb,key[e,1])
                 else:
-                    xb = x[:,b*bsize:x.shape[1],:,:]
-                    yb = y[b*bsize:y.shape[0],:,:]
-                #Search neighbors
-                hood = update(params,xb,yb,key[e,1])
+                    hood = update(params,x,y,key[e,1])
 
                 #Update
                 hood = hood[hood[:,-1] == jnp.min(hood[:,-1]),0:-1].astype(jnp.float32)
