@@ -775,7 +775,7 @@ def get_lim(h,key = 0):
     ch = jnp.where(h == 0,1,ch)
     ch = jnp.where((h == 2) | (h < 0),0,ch)
     ch = jnp.where((h != 0) & (h != 2) & (h >= 0),jax.random.choice(jax.random.PRNGKey(key),2,shape = (1,)),ch)
-    return ch.astype(jnp.float32)
+    return ch.astype(jnp.int32)
 
 #Visit a nighboor
 def visit_neighbor(h,params,x,y,lf):
@@ -907,12 +907,12 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8,
                 tmp_prob = tmp_prob/jnp.sum(tmp_prob)
                 tmp_random = jax.random.choice(jax.random.PRNGKey(key[k,0]),max_size ** 2,shape = (1,),p = tmp_prob)
                 k = k + 1
-                rc = jnp.array([jnp.floor(tmp_random/max_size),tmp_random % max_size]).reshape((1,2)).astype(jnp.float32)
+                rc = jnp.array([jnp.floor(tmp_random/max_size),tmp_random % max_size]).reshape((1,2)).astype(jnp.int32)
                 #Sample limit
                 lim = get_lim(jnp.sum(par_l[node,:,rc[0,0],rc[0,1]]).reshape((1,1)),key[k,0])
                 k = k + 1
                 #Neighbor
-                nei = jnp.append(jnp.append(jnp.append(l.reshape((1,1)),node,1),lim,1),rc,1).astype(jnp.float32)
+                nei = jnp.append(jnp.append(jnp.append(l.reshape((1,1)),node,1),lim,1),rc,1).astype(jnp.int32)
                 error_tmp = visit_neighbor(nei,params,x,y,lf)
                 if hood is None:
                     hood = nei
@@ -1088,7 +1088,7 @@ def train_dmnn_slda(x,y,net,loss,xval = None,yval = None,sample = False,neighbor
                 hood = update(params,xb,yb,key[e,1])
 
                 #Update
-                hood = hood[hood[:,-1] == jnp.min(hood[:,-1]),0:-1].astype(jnp.float32)
+                hood = hood[hood[:,-1] == jnp.min(hood[:,-1]),0:-1].astype(jnp.int32)
                 if hood.shape[0] > 0:
                     hood = hood[0,:]
                     if store_jumps:
@@ -1274,7 +1274,7 @@ def train_dmnn_stack_slda(x,y,net,loss,xval = None,yval = None,sample = False,ne
                     hood = update(params,x,y,key[e,1])
 
                 #Update
-                hood = hood[hood[:,-1] == jnp.min(hood[:,-1]),0:-1].astype(jnp.float32)
+                hood = hood[hood[:,-1] == jnp.min(hood[:,-1]),0:-1].astype(jnp.int32)
                 if hood.shape[0] > 0:
                     hood = hood[0,:]
                     if store_jumps:
