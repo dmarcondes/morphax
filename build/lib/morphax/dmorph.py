@@ -1044,19 +1044,11 @@ def train_dmnn_slda(x,y,net,loss,xval = None,yval = None,stack = False,sample = 
     """
     #Parameters
     params = net['params']
+    forward = net['forward']
     type = net['type']
     width = net['width']
     size = net['size']
     stacks = 1 + jnp.arange(K)
-
-    #Stack data
-
-        x = jax.vmap(lambda t: threshold(x,t))(stacks)
-        @jax.jit
-        def forward(params,x):
-            return jnp.sum(jax.vmap(lambda x: net['forward'](x,params))(x),0)
-    else:
-        forward = net['forward']
 
     #Key
     key = jax.random.split(jax.random.PRNGKey(key),epochs)
@@ -1066,6 +1058,7 @@ def train_dmnn_slda(x,y,net,loss,xval = None,yval = None,stack = False,sample = 
 
     #Loss function
     if stack:
+        x = jax.vmap(lambda t: threshold(x,t))(stacks)
         @jax.jit
         def pred(params,x):
             return jnp.sum(jax.vmap(lambda x: forward(x,params))(x),0)
