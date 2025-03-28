@@ -1053,7 +1053,7 @@ def train_dmnn_slda(x,y,net,loss,xval = None,yval = None,stack = False,sample = 
     #Stack data
     if stack:
         x = jax.vmap(lambda t: threshold(x,t))(stacks)
-        forward = jax.jit(jnp.sum(jax.vmap(lambda x: forward(x,params))(x),0))
+        forward = jax.jit(lambda x,params: jnp.sum(jax.vmap(lambda x: forward(x,params))(x),0))
 
     #Key
     key = jax.random.split(jax.random.PRNGKey(key),epochs)
