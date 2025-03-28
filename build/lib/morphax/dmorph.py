@@ -1109,7 +1109,7 @@ def train_dmnn_slda(x,y,net,loss,xval = None,yval = None,stack = False,sample = 
     jumps = jnp.array([])
 
     #Step epoch
-    @jax.jit
+    #@jax.jit
     def step_epoch(e,params,best_par,min_loss,jumps,x,y,xval,yval):
         if batches > 1:
             per = jax.random.permutation(jax.random.PRNGKey(key[e,0]),jnp.arange(x.shape[2]))
