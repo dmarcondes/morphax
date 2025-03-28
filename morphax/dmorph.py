@@ -961,174 +961,13 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8,
 
     return hood,error #jnp.append(hood,error.reshape((hood.shape[0],1)),1)
 
-#Training function DMNN
-def train_dmnn_slda(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8,epochs = 1,batches = 1,notebook = False,epoch_print = 100,epoch_store = 1,key = 0,store_jumps = False,error_type = 'mean'):
-    """
-    Stochastic Lattice Descent Algorithm to train Discrete Morphological Neural Networks.
-    ----------
-
-    Parameters
-    ----------
-    x,y : jax.numpy.array
-
-        Input and output images
-
-    net : dict
-
-        Dictionary returned by the function cdmnn
-
-    loss : function
-
-        Loss function
-
-    xval,yval : jax.numpy.array
-
-        Input and output validation images
-
-    sample : logical
-
-        Whether to sample neighbors
-
-    neighbors : int
-
-        Number of neighbors to sample
-
-    epochs : int
-
-        Number of bacthes
-
-    notebook : logical
-
-        Wheter the code is being run in a notebook. Has an effect on tracing the Algorithm
-
-    epoch_print : int
-
-        Number of epochs to print the partial result
-
-    epoch_store : int
-
-        Number of epochs to store partial results
-
-    key : int
-
-        Key for sampling
-
-    store_jumps : logical
-
-        Whether to store jumps
-
-    error_type : str
-
-        Type of error to consider: 'mean' of loss or 'max' of loss
-
-    Returns
-    -------
-    list of jax.numpy.array
-    """
-    #Parameters
-    params = net['params']
-    forward = net['forward']
-    type = net['type']
-    width = net['width']
-    size = net['size']
-    xy = jnp.append(x.reshape((1,x.shape[0],x.shape[1],x.shape[2])),y.reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
-
-    #Key
-    key = jax.random.split(jax.random.PRNGKey(key),epochs)
-
-    #Batch size
-    bsize = int(math.floor(x.shape[0]/batches))
-
-    #Loss function
-    if error_type == 'mean':
-        #@jax.jit
-        def lf(params,x,y):
-            return jnp.mean(jax.vmap(loss)(forward(x,params),y))
-    else:
-        #@jax.jit
-        def lf(params,x,y):
-            return jnp.max(jax.vmap(loss)(forward(x,params),y))
-
-    #Training function
-    #@jax.jit
-    def update(params,x,y,key):
-      params = step_slda(params,x,y,forward,lf,type,width,size,sample,neighbors,key)
-      return params
-
-    #Trace
-    best_par = params.copy()
-    min_loss = lf(params,x,y)
-    trace_time = [0]
-    trace_loss = [min_loss]
-    trace_epoch = [0]
-    if xval is not None:
-        min_val_loss = lf(params,xval,yval)
-        trace_val_loss = [min_val_loss]
-    else:
-        min_val_loss = jnp.inf
-        trace_val_loss = []
-    params_init = params.copy()
-    jumps = jnp.array([])
-
-    #Train
-    t0 = time.time()
-    with alive_bar(epochs) as bar:
-        bar.title('Epoch: ' + str(0) + " Loss: " + str(jnp.round(min_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
-        for e in range(epochs):
-            #Permutate xy
-            xy = jax.random.permutation(jax.random.PRNGKey(key[e,0]),xy,1)
-            for b in range(batches):
-                if b < batches - 1:
-                    xb = jax.lax.dynamic_slice(xy[0,:,:,:],(b*bsize,0,0),(bsize,x.shape[1],x.shape[2]))
-                    yb = jax.lax.dynamic_slice(xy[1,:,:,:],(b*bsize,0,0),(bsize,x.shape[1],x.shape[2]))
-                else:
-                    xb = xy[0,b*bsize:x.shape[0],:,:]
-                    yb = xy[1,b*bsize:y.shape[0],:,:]
-                #Search neighbors
-                hood = update(params,xb,yb,key[e,1])
-
-                #Update
-                hood = hood[hood[:,-1] == jnp.min(hood[:,-1]),0:-1].astype(jnp.int32)
-                if hood.shape[0] > 0:
-                    hood = hood[0,:]
-                    if store_jumps:
-                        jumps = jnp.append(jumps,hood,0)
-                    new_params = params.at[hood[0],hood[1],hood[2],hood[3],hood[4]].set(1 - params[hood[0],hood[1],hood[2],hood[3],hood[4]])
-                    del params
-                    params = new_params.copy()
-                    del hood, xb, yb, new_params
-
-            #Compute loss and store at the end of epoch
-            train_loss = lf(params,x,y)
-            if (e + 1) % epoch_store == 0:
-                trace_epoch = trace_epoch + [e + 1]
-                trace_time = trace_time + [time.time() - t0]
-                trace_loss = trace_loss + [train_loss]
-                if xval is not None:
-                    val_loss = lf(params,xval,yval)
-                    trace_val_loss = trace_val_loss + [val_loss]
-            #Update best
-            if train_loss < min_loss:
-                del best_par
-                min_loss = train_loss
-                best_par = params.copy()
-                if xval is not None:
-                    min_val_loss = lf(params,xval,yval)
-            bar.title('Epoch: ' + str(e) + " Time: " + str(jnp.round(time.time() - t0)) + " s Loss: " + str(jnp.round(train_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
-            if e % epoch_print == 0:
-                if notebook:
-                    print('Epoch: ' + str(e) + " Time: " + str(jnp.round(time.time() - t0)) + " s Loss: " + str(jnp.round(train_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
-            bar()
-
-    return {'best_par': best_par,'jumps': jumps,'trace_epoch': trace_epoch,'trace_time': trace_time,'trace_loss': trace_loss,'trace_val_loss': trace_val_loss,'epochs': epochs,'oper': lambda x: forward(x,best_par),'forward': forward}
-
 #Threshold gray scale image
 @jax.jit
 def threshold(X,t):
     return jnp.where(X >= t,1.0,0.0)
 
-#Training function DMNN for stack operators
-def train_dmnn_stack_slda(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8,epochs = 1,batches = 1,K = 255,notebook = False,epoch_print = 100,epoch_store = 1,key = 0,store_jumps = False,error_type = 'mean'):
+#Training function DMNN via SLDA
+def train_dmnn_slda(x,y,net,loss,xval = None,yval = None,stack = False,sample = False,neighbors = 8,epochs = 1,batches = 1,K = 255,notebook = False,epoch_print = 100,epoch_store = 1,key = 0,store_jumps = False,error_type = 'mean'):
     """
     Stochastic Lattice Descent Algorithm to train Discrete Morphological Neural Networks for stack operators.
     ----------
@@ -1151,6 +990,10 @@ def train_dmnn_stack_slda(x,y,net,loss,xval = None,yval = None,sample = False,ne
 
         Input and output validation images
 
+    stack : logical
+
+        Whether to train a stack operator
+
     sample : logical
 
         Whether to sample neighbors
@@ -1169,7 +1012,7 @@ def train_dmnn_stack_slda(x,y,net,loss,xval = None,yval = None,sample = False,ne
 
     K : int
 
-        Length of gray scale
+        Length of gray scale for stack operators
 
     notebook : logical
 
@@ -1208,7 +1051,9 @@ def train_dmnn_stack_slda(x,y,net,loss,xval = None,yval = None,sample = False,ne
     stacks = 1 + jnp.arange(K)
 
     #Stack data
-    x = jax.vmap(lambda t: threshold(x,t))(stacks)
+    if stack:
+        x = jax.vmap(lambda t: threshold(x,t))(stacks)
+        forward = jax.jit(jnp.sum(jax.vmap(lambda x: forward(x,params))(x),0))
 
     #Key
     key = jax.random.split(jax.random.PRNGKey(key),epochs)
@@ -1220,19 +1065,23 @@ def train_dmnn_stack_slda(x,y,net,loss,xval = None,yval = None,sample = False,ne
     if error_type == 'mean':
         @jax.jit
         def lf(params,x,y):
-            pred = jnp.sum(jax.vmap(lambda x: forward(x,params))(x),0)
-            return jnp.mean(jax.vmap(loss)(pred,y))
+            return jnp.mean(jax.vmap(loss)(forward(x,params),y))
     else:
         @jax.jit
         def lf(params,x,y):
-            pred = jnp.sum(jax.vmap(lambda x: forward(x,params))(x),0)
             return jnp.max(jax.vmap(loss)(forward(x,params),y))
 
     #Training function
-    #@jax.jit
-    def update(params,x,y,key):
-      params = step_slda(params,x,y,forward,lf,type,width,size,sample,neighbors,key)
-      return params
+    @jax.jit
+    def update(params,x,y,key,jumps):
+        hood,error = step_slda(params,x,y,forward,lf,type,width,size,sample,neighbors,key)
+        hood = hood[jnp.argsort(error),:]
+        error = error[jnp.argsort(error)]
+        train_loss = error[0]
+        if store_jumps:
+          jumps = jnp.append(jumps,hood,0)
+        new_params = params.at[hood[0],hood[1],hood[2],hood[3],hood[4]].set(1 - params[hood[0],hood[1],hood[2],hood[3],hood[4]])
+        return new_params,jumps,train_loss
 
     #Trace
     best_par = params.copy()
@@ -1250,44 +1099,44 @@ def train_dmnn_stack_slda(x,y,net,loss,xval = None,yval = None,sample = False,ne
     params_init = params.copy()
     jumps = jnp.array([])
 
+    #Step epoch
+    @jax.jit
+    def step_epoch(e,params,best_par,min_loss,jumps,x,y,xval,yval):
+        if batches > 1:
+            per = jax.random.permutation(jax.random.PRNGKey(key[e,0]),jnp.arange(x.shape[2]))
+            x = x[:,per,:,:]
+            y = y[per,:,:]
+        for b in range(batches):
+            if batches > 1:
+                if b < batches - 1:
+                    xb = jax.lax.dynamic_slice(x,(0,b*bsize,0,0),(x.shape[0],bsize,x.shape[2],x.shape[3]))
+                    yb = jax.lax.dynamic_slice(y,(b*bsize,0,0),(bsize,y.shape[1],y.shape[2]))
+                else:
+                    xb = x[:,b*bsize:x.shape[1],:,:]
+                    yb = y[b*bsize:y.shape[0],:,:]
+                #Search neighbors
+                params,jumps,train_loss = update(params,x,y,key[e,1],jumps)
+            else:
+                #Search neighbors
+                params,jumps,train_loss = update(params,x,y,key[e,1],jumps)
+        #Compute loss and store at the end of epoch
+        if batches > 1:
+            train_loss = lf(params,x,y)
+        #Update best
+        best_par = (train_loss < min_loss) * params + (train_loss >= min_loss) * best_par
+        min_loss = jnp.minimum(train_loss,min_loss)
+        if xval is not None:
+            min_val_loss = lf(best_par,xval,yval)
+        return params,best_par,min_loss,jumps,train_loss
+
     #Train
     t0 = time.time()
     with alive_bar(epochs) as bar:
         bar.title('Epoch: ' + str(0) + " Loss: " + str(jnp.round(min_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
         for e in range(epochs):
-            #Permutate xy
-            if batches > 1:
-                per = jax.random.permutation(jax.random.PRNGKey(key[e,0]),jnp.arange(x.shape[2]))
-                x = x[:,per,:,:]
-                y = y[per,:,:]
-            for b in range(batches):
-                if batches > 1:
-                    if b < batches - 1:
-                        xb = jax.lax.dynamic_slice(x,(0,b*bsize,0,0),(x.shape[0],bsize,x.shape[2],x.shape[3]))
-                        yb = jax.lax.dynamic_slice(y,(b*bsize,0,0),(bsize,y.shape[1],y.shape[2]))
-                    else:
-                        xb = x[:,b*bsize:x.shape[1],:,:]
-                        yb = y[b*bsize:y.shape[0],:,:]
-                    #Search neighbors
-                    hood = update(params,xb,yb,key[e,1])
-                else:
-                    hood = update(params,x,y,key[e,1])
-
-                #Update
-                hood = hood[hood[:,-1] == jnp.min(hood[:,-1]),0:-1].astype(jnp.int32)
-                if hood.shape[0] > 0:
-                    hood = hood[0,:]
-                    if store_jumps:
-                        jumps = jnp.append(jumps,hood,0)
-                    new_params = params.at[hood[0],hood[1],hood[2],hood[3],hood[4]].set(1 - params[hood[0],hood[1],hood[2],hood[3],hood[4]])
-                    del params
-                    params = new_params.copy()
-                    del hood, new_params
-                    if batches > 1:
-                        del xb, yb
-
-            #Compute loss and store at the end of epoch
-            train_loss = lf(params,x,y)
+            #Take step
+            params,best_par,min_loss,jumps,train_loss = step_epoch(key[e,1],params,best_par,min_loss,jumps,x,y,xval,yval)
+            #Store
             if (e + 1) % epoch_store == 0:
                 trace_epoch = trace_epoch + [e + 1]
                 trace_time = trace_time + [time.time() - t0]
@@ -1295,13 +1144,6 @@ def train_dmnn_stack_slda(x,y,net,loss,xval = None,yval = None,sample = False,ne
                 if xval is not None:
                     val_loss = lf(params,xval,yval)
                     trace_val_loss = trace_val_loss + [val_loss]
-            #Update best
-            if train_loss < min_loss:
-                del best_par
-                min_loss = train_loss
-                best_par = params.copy()
-                if xval is not None:
-                    min_val_loss = lf(params,xval,yval)
             bar.title('Epoch: ' + str(e) + " Time: " + str(jnp.round(time.time() - t0)) + " s Loss: " + str(jnp.round(train_loss,5)) + ' Best: ' + str(jnp.round(min_loss,5)) + ' Val: ' + str(jnp.round(min_val_loss,5)))
             if e % epoch_print == 0:
                 if notebook:
