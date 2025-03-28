@@ -959,7 +959,7 @@ def step_slda(params,x,y,forward,lf,type,width,size,sample = True,neighbors = 8,
     #Compute error for each point in the hood
     #res = jax.vmap(lambda h: visit_neighbor(h,params,x,y,lf))(hood).reshape((hood.shape[0],1))
 
-    return jnp.append(hood,error.reshape((hood.shape[0],1)),1)
+    return hood,error #jnp.append(hood,error.reshape((hood.shape[0],1)),1)
 
 #Training function DMNN
 def train_dmnn_slda(x,y,net,loss,xval = None,yval = None,sample = False,neighbors = 8,epochs = 1,batches = 1,notebook = False,epoch_print = 100,epoch_store = 1,key = 0,store_jumps = False,error_type = 'mean'):
