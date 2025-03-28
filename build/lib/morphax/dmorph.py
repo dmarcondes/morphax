@@ -1050,7 +1050,7 @@ def train_dmnn_slda(x,y,net,loss,xval = None,yval = None,stack = False,sample = 
     stacks = 1 + jnp.arange(K)
 
     #Stack data
-    if stack:
+
         x = jax.vmap(lambda t: threshold(x,t))(stacks)
         @jax.jit
         def forward(params,x):
@@ -1065,14 +1065,27 @@ def train_dmnn_slda(x,y,net,loss,xval = None,yval = None,stack = False,sample = 
     bsize = int(math.floor(x.shape[0]/batches))
 
     #Loss function
-    if error_type == 'mean':
+    if stack:
         @jax.jit
-        def lf(params,x,y):
-            return jnp.mean(jax.vmap(loss)(forward(x,params),y))
+        def pred(params,x):
+            return jnp.sum(jax.vmap(lambda x: forward(x,params))(x),0)
+        if error_type == 'mean':
+            @jax.jit
+            def lf(params,x,y):
+                return jnp.mean(jax.vmap(loss)(pred(params,x),y))
+        else:
+            @jax.jit
+            def lf(params,x,y):
+                return jnp.mmax(jax.vmap(loss)(pred(params,x),y))
     else:
-        @jax.jit
-        def lf(params,x,y):
-            return jnp.max(jax.vmap(loss)(forward(x,params),y))
+        if error_type == 'mean':
+            @jax.jit
+            def lf(params,x,y):
+                return jnp.mean(jax.vmap(loss)(forward(x,params),y))
+        else:
+            @jax.jit
+            def lf(params,x,y):
+                return jnp.max(jax.vmap(loss)(forward(x,params),y))
 
     #Training function
     @jax.jit
