@@ -1081,7 +1081,7 @@ def train_dmnn_slda(x,y,net,loss,xval = None,yval = None,stack = False,sample = 
                 return jnp.max(jax.vmap(loss)(forward(x,params),y))
 
     #Training function
-    @jax.jit
+    #@jax.jit
     def update(params,x,y,key,jumps):
         hood,error = step_slda(params,x,y,forward,lf,type,width,size,sample,neighbors,key)
         hood = hood[jnp.argsort(error),:]
