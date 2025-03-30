@@ -799,9 +799,10 @@ def train_dmnn_slda(x,y,net,loss,xval = None,yval = None,stack = False,neighbors
     bsize = int(math.floor(x.shape[0]/batches))
     #Loss function
     if stack:
-        x = np.apply_along_axis(lambda t: threshold(x,t),0,stacks.reshape((1,K)))
+        x = np.transpose(np.apply_along_axis(lambda t: threshold(x,t),0,stacks.reshape((1,K))),[3,0,1,2])
         def oper(params,x):
-            return np.sum(np.apply_along_axis(lambda x: forward(x,params),3,x),0)
+            f = forward(x.reshape((x.shape[0]*x.shape[1],x.shape[2],x.shape[3])),params).reshape(x.shape)
+            return np.sum(f,0)
         def lf(params,x,y):
             return loss(oper(params,x),y)
     else:
