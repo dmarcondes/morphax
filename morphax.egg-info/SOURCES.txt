@@ -3,7 +3,7 @@ setup.py
 morphax/__init__.py
 morphax/data.py
 morphax/dmorph.py
-morphax/dmorphCV.py
+morphax/dmorph_jax.py
 morphax/mnn.py
 morphax/morph.py
 morphax.egg-info/PKG-INFO
