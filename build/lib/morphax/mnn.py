@@ -729,7 +729,7 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,width_wop = None,activation = ja
                         forward_inner = lambda x,params: nn['forward'](x,params)
                         w_input = w[str(size[i])]
                         w_output = init_params[i][j,0,:,:].transpose().reshape((w_input.shape[0],1))
-                        params_lower = sgd(w_input,w_output,forward_inner,nn['params'],loss,sa,c,q,epochs,lr,b1,b2,eps,eps_root,key,notebook)
+                        params_lower = sgd(w_input,w_output,forward_inner,nn['params'],loss,epochs,x_val = None,y_val = None,sa = sa,c = c,q = q,lr = lr,b1 = b1,b2 = b2,eps = eps,eps_root = eps_root,key = key,notebook = notebook)
                         key = key + 1
                         #Upper
                         nn = fconNN([2] + width_str + [1],activation,key)
@@ -737,7 +737,7 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,width_wop = None,activation = ja
                         forward_inner = lambda x,params: nn['forward'](x,params)
                         w_input = w[str(size[i])]
                         w_output = init_params[i][j,1,:,:].transpose().reshape((w_input.shape[0],1))
-                        params_upper = sgd(w_input,w_output,forward_inner,nn['params'],loss,sa,c,q,epochs,lr,b1,b2,eps,eps_root,key,notebook)
+                        params_upper = sgd(w_input,w_output,forward_inner,nn['params'],loss,epochs,sa = sa,c = c,q = q,lr = lr,b1 = b1,b2 = b2,eps = eps,eps_root = eps_root,key = key,notebook = notebook)
                         key = key + 1
                         par_layer.append([params_lower,params_upper])
                     params.append(par_layer)
@@ -749,7 +749,7 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,width_wop = None,activation = ja
                         forward_inner = lambda x,params: nn['forward'](x,params)
                         w_input = w[str(size[i])]
                         w_output = init_params[i][j,:,:,:].transpose().reshape((w_input.shape[0],1))
-                        params_str = sgd(w_input,w_output,forward_inner,nn['params'],loss,sa,c,q,epochs,lr,b1,b2,eps,eps_root,key,notebook)
+                        params_str = sgd(w_input,w_output,forward_inner,nn['params'],loss,epochs,sa = sa,c = c,q = q,lr = lr,b1 = b1,b2 = b2,eps = eps,eps_root = eps_root,key = key,notebook = notebook)
                         key = key + 1
                         par_layer.append(params_str)
                     params.append(par_layer)
@@ -786,6 +786,9 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,width_wop = None,activation = ja
                     params.append(par_layer)
 
     #Compute structuring elements
+    nn_str = fconNN([2] + width_str + [1],activation,key[k,0])
+    k = k + 1
+    forward_inner = lambda x,params: nn_str['forward'](x,params)
     @jax.jit
     def compute_struct(params):
         #Compute for each layer
