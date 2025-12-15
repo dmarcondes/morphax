@@ -14,9 +14,8 @@ __docformat__ = "numpy"
 #Read and organize a data.frame
 def read_data_frame(file,sep = None,header = 'infer',sheet = 0):
     """
-    Read a data file and convert to JAX array.
+    Read a data file and convert to JAX numpy array.
     -------
-
     Parameters
     ----------
     file : str
@@ -37,9 +36,7 @@ def read_data_frame(file,sep = None,header = 'infer',sheet = 0):
 
     Returns
     -------
-
-    a JAX numpy array
-
+    jax.numpy.array
     """
 
     #Find out data extension
@@ -65,9 +62,8 @@ def read_data_frame(file,sep = None,header = 'infer',sheet = 0):
 #Read images into an array
 def image_to_jnp(files_path):
     """
-    Read an image file and convert to JAX array.
+    Read an image file and convert to JAX numpy array.
     -------
-
     Parameters
     ----------
     files_path : list of str
@@ -76,9 +72,7 @@ def image_to_jnp(files_path):
 
     Returns
     -------
-
-    a JAX numpy array
-
+    jax.numpy.array
     """
     dat = None
     for f in files_path:
@@ -97,18 +91,17 @@ def image_to_jnp(files_path):
 #Save images
 def save_images(images,files_path):
     """
-    Save images in a JAX array to file.
+    Save images in a JAX numpy array to file.
     -------
-
     Parameters
     ----------
-    images : JAX array
+    images : jax.numpy.array
 
     Array of images
 
     files_path : list of str
 
-        List with the paths of the images to write
+        List with the paths of the images to save
     """
     if len(files_path) > 1:
         for i in range(len(files_path)):
@@ -127,12 +120,11 @@ def save_images(images,files_path):
 #Print images
 def print_images(images):
     """
-    Print images in a JAX array.
+    Print images in a JAX numpy array.
     -------
-
     Parameters
     ----------
-    images : JAX array
+    images : jax.numpy.array
 
     Array of images
     """

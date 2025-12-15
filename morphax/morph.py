@@ -3,37 +3,13 @@ import jax
 import jax.numpy as jnp
 import math
 import sys
-from morphax import dmorph as dmnn
-
-#Approximate maximum
-#def max(x,h = 1/5):
-#    return h * jnp.log(jnp.sum(jnp.exp(x/h)))
-
-#def maximum(x,y,h = 1/50):
-#    if len(x.shape) == 2:
-#        x = x.reshape((1,x.shape[0],x.shape[1]))
-#        y = y.reshape((1,y.shape[0],y.shape[1]))
-#    return jax.vmap(jax.vmap(jax.vmap(lambda x,y: h * jnp.log(jnp.sum(jnp.exp(jnp.append(x,y)/h))))))(x,y)
-
-#def maximum_array_number(arr,x,h = 1/5):
-#    return h * jnp.log(jnp.exp(arr/h) + jnp.exp(x/h))
-
-#Approximate minimum
-#def min(x,h = 1/5):
-#    return max(x,-h)
-
-#def minimum(x,y,h = 1/5):
-#    return maximum(x,y,-h)
-
-#def minimum_array_number(arr,x,h = 1/5):
-#    return maximum_array_number(arr,x,-h)
+from morphax import dmorph_jax as dmnn
 
 #Structuring element from function
 def struct_function(k,d):
     """
     Structuring element from two-dimensional function.
     -------
-
     Parameters
     ----------
     k : function
@@ -46,24 +22,17 @@ def struct_function(k,d):
 
     Returns
     -------
-
     a JAX numpy array
-
     """
     w = jnp.array([[x1.tolist(),x2.tolist()] for x1 in jnp.linspace(-jnp.floor(d/2),jnp.floor(d/2),d) for x2 in jnp.linspace(jnp.floor(d/2),-jnp.floor(d/2),d)])
     k = jnp.array(k(w))
     return jnp.transpose(k.reshape((d,d)))
 
-#def struct_function_w(k,w,d):
-#    k = jnp.array(k(w))
-#    return jnp.transpose(k.reshape((d,d)))
-
-#Apply W-operator with characteristic function f at pixel (i,j)
+#Create function to apply W-operator with characteristic function f at pixel (i,j)
 def local_w_operator(x,f,l):
     """
     Define function for applying W-operator.
     -------
-
     Parameters
     ----------
     x : jax.numpy.array
@@ -80,9 +49,7 @@ def local_w_operator(x,f,l):
 
     Returns
     -------
-
     a function that receives an index and returns the local value of f at this index
-
     """
     def jit_w_operator(index):
         return f(jax.lax.dynamic_slice(x, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1)))
@@ -93,7 +60,6 @@ def w_operator_2D(x,index_x,f,d):
     """
     Apply a W-operator to 2D image.
     -------
-
     Parameters
     ----------
     x : jax.numpy.array
@@ -110,13 +76,11 @@ def w_operator_2D(x,index_x,f,d):
 
     d : int
 
-        Image dimension
+        Dimesion of window
 
     Returns
     -------
-
-    a JAX numpy array
-
+    jax.numpy.array
     """
     l = math.floor(d/2)
     jit_w_operator = local_w_operator(x,f,l)
@@ -127,7 +91,6 @@ def w_operator(x,index_x,f,d):
     """
     Apply a W-operator to a batch of images.
     -------
-
     Parameters
     ----------
     x : jax.numpy.array
@@ -144,13 +107,11 @@ def w_operator(x,index_x,f,d):
 
     d : int
 
-        Image dimension
+        Dimesion of window
 
     Returns
     -------
-
-    a JAX numpy array
-
+    jax.numpy.array
     """
     l = math.floor(d/2)
     x = jax.lax.pad(x,0.0,((0,0,0),(l,l,0),(l,l,0)))
@@ -162,7 +123,6 @@ def local_w_operator_nn(x,forward,params,l):
     """
     Define function for applying W-operator defined from a neural network.
     -------
-
     Parameters
     ----------
     x : jax.numpy.array
@@ -171,7 +131,7 @@ def local_w_operator_nn(x,forward,params,l):
 
     forward : function
 
-        The cforward function of a neural network
+        The forward function of a neural network
 
     params : jax.numpy.array
 
@@ -183,9 +143,7 @@ def local_w_operator_nn(x,forward,params,l):
 
     Returns
     -------
-
     a function that receives an index and returns the local value of the W-operator at this index
-
     """
     def jit_w_operator(index):
         return forward(jax.lax.dynamic_slice(x, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1)).reshape((1,(2*l + 1) ** 2)),params)
@@ -196,7 +154,6 @@ def w_operator_2D_nn(x,index_x,forward,params,d):
     """
     Apply W-operator defined from a neural network to 2D image.
     -------
-
     Parameters
     ----------
     x : jax.numpy.array
@@ -209,7 +166,7 @@ def w_operator_2D_nn(x,index_x,forward,params,d):
 
     forward : function
 
-        The cforward function of a neural network
+        The forward function of a neural network
 
     params : jax.numpy.array
 
@@ -217,13 +174,11 @@ def w_operator_2D_nn(x,index_x,forward,params,d):
 
     d : int
 
-        Image dimension
+        Dimesion of window
 
     Returns
     -------
-
-    a JAX numpy array
-
+    jax.numpy.array
     """
     l = math.floor(d/2)
     jit_w_operator = local_w_operator_nn(x,forward,params,l)
@@ -255,13 +210,11 @@ def w_operator_nn(x,index_x,forward,params,d):
 
     d : int
 
-        Image dimension
+        Dimesion of window
 
     Returns
     -------
-
-    a JAX numpy array
-
+    jax.numpy.array
     """
     l = math.floor(d/2)
     x = jax.lax.pad(x,0.0,((0,0,0),(l,l,0),(l,l,0)))
@@ -273,7 +226,6 @@ def local_erosion(f,k,l):
     """
     Define function for local erosion.
     -------
-
     Parameters
     ----------
     f : jax.numpy.array
@@ -290,9 +242,7 @@ def local_erosion(f,k,l):
 
     Returns
     -------
-
     a function that receives an index and returns the local erosion of f by k at this index
-
     """
     def jit_local_erosion(index):
         fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
@@ -305,7 +255,6 @@ def erosion_2D(f,index_f,k):
     """
     Erosion of 2D image.
     -------
-
     Parameters
     ----------
     f : jax.numpy.array
@@ -322,9 +271,7 @@ def erosion_2D(f,index_f,k):
 
     Returns
     -------
-
-    a JAX numpy array
-
+    jax.numpy.array
     """
     l = math.floor(k.shape[0]/2)
     jit_local_erosion = local_erosion(f,k,l)
@@ -336,7 +283,6 @@ def erosion(f,index_f,k):
     """
     Erosion of batches of images.
     -------
-
     Parameters
     ----------
     f : jax.numpy.array
@@ -353,9 +299,7 @@ def erosion(f,index_f,k):
 
     Returns
     -------
-
-    a JAX numpy array
-
+    jax.numpy.array
     """
     l = math.floor(k.shape[0]/2)
     f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
@@ -367,7 +311,6 @@ def local_dilation(f,kt,l):
     """
     Define function for local dilation.
     -------
-
     Parameters
     ----------
     f : jax.numpy.array
@@ -384,9 +327,7 @@ def local_dilation(f,kt,l):
 
     Returns
     -------
-
     a function that receives an index and returns the local dilation of f by k at this index
-
     """
     def jit_local_dilation(index):
         fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
@@ -399,7 +340,6 @@ def dilation_2D(f,index_f,kt):
     """
     Dilation of 2D image.
     -------
-
     Parameters
     ----------
     f : jax.numpy.array
@@ -416,9 +356,7 @@ def dilation_2D(f,index_f,kt):
 
     Returns
     -------
-
-    a JAX numpy array
-
+    jax.numpy.array
     """
     l = math.floor(kt.shape[0]/2)
     jit_local_dilation = local_dilation(f,kt,l)
@@ -430,7 +368,6 @@ def dilation(f,index_f,k):
     """
     Dilation of batches of images.
     -------
-
     Parameters
     ----------
     f : jax.numpy.array
@@ -447,9 +384,7 @@ def dilation(f,index_f,k):
 
     Returns
     -------
-
-    a JAX numpy array
-
+    jax.numpy.array
     """
     l = math.floor(k.shape[0]/2)
     f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
@@ -463,7 +398,6 @@ def opening(f,index_f,k):
     """
     Opening of batches of images.
     -------
-
     Parameters
     ----------
     f : jax.numpy.array
@@ -480,9 +414,7 @@ def opening(f,index_f,k):
 
     Returns
     -------
-
-    a JAX numpy array
-
+    jax.numpy.array
     """
     return dilation(erosion(f,index_f,k),index_f,k)
 
@@ -492,7 +424,6 @@ def closing(f,index_f,k):
     """
     Closing of batches of images.
     -------
-
     Parameters
     ----------
     f : jax.numpy.array
@@ -509,9 +440,7 @@ def closing(f,index_f,k):
 
     Returns
     -------
-
-    a JAX numpy array
-
+    jax.numpy.array
     """
     return erosion(dilation(f,index_f,k),index_f,k)
 
@@ -521,7 +450,6 @@ def asf(f,index_f,k):
     """
     Alternate-sequential filter applied to batches of images.
     -------
-
     Parameters
     ----------
     f : jax.numpy.array
@@ -538,9 +466,7 @@ def asf(f,index_f,k):
 
     Returns
     -------
-
-    a JAX numpy array
-
+    jax.numpy.array
     """
     return closing(opening(f,index_f,k),index_f,k)
 
@@ -550,7 +476,6 @@ def complement(f,m = 1):
     """
     Complement batches of images.
     -------
-
     Parameters
     ----------
     f : jax.numpy.array
@@ -563,45 +488,17 @@ def complement(f,m = 1):
 
     Returns
     -------
-
-    a JAX numpy array
-
+    jax.numpy.array
     """
     return m - f
 
-#Approximate supgen
-@jax.jit
-def actsupgen(x):
-    return jnp.where(x < 0,jax.nn.relu(x + 1),1.0)
-
-def local_supgen(f,k1,k2,l):
-    def jit_local_supgen(index):
-        fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
-        return actsupgen(jnp.min(jnp.minimum(fw - k1,k2 - fw)))
-    return jit_local_supgen
-
-@jax.jit
-def supgen_2D(f,index_f,k1,k2):
-    l = math.floor(k1.shape[0]/2)
-    jit_local_supgen = local_supgen(f,k1,k2,l)
-    return jnp.apply_along_axis(jit_local_supgen,1,l + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
-
-@jax.jit
-def ap_supgen(f,index_f,k1,k2):
-    l = math.floor(k1.shape[0]/2)
-    f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
-    k2 = k1 + k2 ** 2
-    k2 = jnp.where(k2 > 0,0,k2)
-    sg = jax.vmap(lambda f: supgen_2D(f,index_f,k1 + 1,k2 + 1),in_axes = (0),out_axes = 0)(f)
-    return sg
-
+############NEED REVIEW##############
 #Sup-generating with interval [k1,k2]
 @jax.jit
 def supgen(f,index_f,k1,k2,m = 1):
     """
     Sup-generating operator applied to batches of images.
     -------
-
     Parameters
     ----------
     f : jax.numpy.array
@@ -747,6 +644,33 @@ def operator(type):
         return 1
     return jax.jit(oper)
 
+#Approximate supgen
+#@jax.jit
+#def actsupgen(x):
+#    return jnp.where(x < 0,jax.nn.relu(x + 1),1.0)
+
+#def local_supgen(f,k1,k2,l):
+#    def jit_local_supgen(index):
+#        fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
+#        return actsupgen(jnp.min(jnp.minimum(fw - k1,k2 - fw)))
+#    return jit_local_supgen
+
+#@jax.jit
+#def supgen_2D(f,index_f,k1,k2):
+#    l = math.floor(k1.shape[0]/2)
+#    jit_local_supgen = local_supgen(f,k1,k2,l)
+#    return jnp.apply_along_axis(jit_local_supgen,1,l + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
+
+#@jax.jit
+#def ap_supgen(f,index_f,k1,k2):
+#    l = math.floor(k1.shape[0]/2)
+#    f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
+#    k2 = k1 + k2 ** 2
+#    k2 = jnp.where(k2 > 0,0,k2)
+#    sg = jax.vmap(lambda f: supgen_2D(f,index_f,k1 + 1,k2 + 1),in_axes = (0),out_axes = 0)(f)
+#    return sg
+
+
 #Structuring element of the approximate identity operator in a sample
 #def struct_lower(x,d):
 #    #Function to apply to each index
@@ -774,3 +698,30 @@ def operator(type):
 #    k = k.reshape((k.shape[0]*k.shape[1]*k.shape[2],d,d))
 #    k = jnp.apply_along_axis(lambda k: jnp.max(k),0,k)
 #    return k
+
+#Approximate maximum
+#def max(x,h = 1/5):
+#    return h * jnp.log(jnp.sum(jnp.exp(x/h)))
+
+#def maximum(x,y,h = 1/50):
+#    if len(x.shape) == 2:
+#        x = x.reshape((1,x.shape[0],x.shape[1]))
+#        y = y.reshape((1,y.shape[0],y.shape[1]))
+#    return jax.vmap(jax.vmap(jax.vmap(lambda x,y: h * jnp.log(jnp.sum(jnp.exp(jnp.append(x,y)/h))))))(x,y)
+
+#def maximum_array_number(arr,x,h = 1/5):
+#    return h * jnp.log(jnp.exp(arr/h) + jnp.exp(x/h))
+
+#Approximate minimum
+#def min(x,h = 1/5):
+#    return max(x,-h)
+
+#def minimum(x,y,h = 1/5):
+#    return maximum(x,y,-h)
+
+#def minimum_array_number(arr,x,h = 1/5):
+#    return maximum_array_number(arr,x,-h)
+
+#def struct_function_w(k,w,d):
+#    k = jnp.array(k(w))
+#    return jnp.transpose(k.reshape((d,d)))

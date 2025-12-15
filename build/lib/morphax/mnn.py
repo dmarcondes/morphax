@@ -10,11 +10,28 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 from morphax import morph as mp
-from morphax import dmorph as dmp
+from morphax import dmorph_jax as dmp
 import sys
 import itertools
 
 __docformat__ = "numpy"
+
+#Create an index array for an array
+def index_array(shape):
+    """
+    Create a 2D JAX array with the indexes of an array with given 2D shape.
+    -------
+    Parameters
+    ----------
+    shape : list
+
+        List with shape of 2D array
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    return jnp.array([[x,y] for x in range(shape[0]) for y in range(shape[1])])
 
 #MSE
 @jax.jit
@@ -22,7 +39,6 @@ def MSE(pred,true):
     """
     Mean square error
     ----------
-
     Parameters
     ----------
     pred : jax.numpy.array
@@ -45,7 +61,6 @@ def MSE_SA(pred,true,wheight,c = 100,q = 2):
     """
     Selft-adaptative mean square error
     ----------
-
     Parameters
     ----------
     pred : jax.numpy.array
@@ -76,7 +91,6 @@ def L2error(pred,true):
     """
     L2 error
     ----------
-
     Parameters
     ----------
     pred : jax.numpy.array
@@ -99,7 +113,6 @@ def CE(pred,true):
     """
     Cross entropy error
     ----------
-
     Parameters
     ----------
     pred : jax.numpy.array
@@ -122,7 +135,6 @@ def CE_SA(pred,true,wheight,c = 100,q = 2):
     """
     Self-adaptative cross entropy error
     ----------
-
     Parameters
     ----------
     pred : jax.numpy.array
@@ -143,7 +155,7 @@ def CE_SA(pred,true,wheight,c = 100,q = 2):
 
     Returns
     -------
-    delf-adaptative cross-entropy error
+    self-adaptative cross-entropy error
     """
     return jnp.mean(c * (wheight ** q) * (- true * jnp.log(pred + 1e-5) - (1 - true) * jnp.log(1 - pred + 1e-5)))
 
@@ -153,7 +165,6 @@ def IoU(pred,true):
     """
     Intersection over union error
     ----------
-
     Parameters
     ----------
     pred : jax.numpy.array
@@ -176,7 +187,6 @@ def IoU_SA(pred,true,wheight,c = 100,q = 2):
     """
     Selft-adaptative intersection over union error
     ----------
-
     Parameters
     ----------
     pred : jax.numpy.array
@@ -201,34 +211,11 @@ def IoU_SA(pred,true,wheight,c = 100,q = 2):
     """
     return 1 - (jnp.sum(c * (wheight ** q) * 2 * true * pred) + 1)/(jnp.sum(c * (wheight ** q) * (true + pred + 1)))
 
-#Activation
-def activate(x,b = 5):
-    """
-    Activation function for structuring elements
-    ----------
-
-    Parameters
-    ----------
-    x : float
-
-        Input
-
-    b : float
-
-        Approximating constant
-
-    Returns
-    -------
-    outuput of activation function
-    """
-    return jax.nn.sigmoid(2 * b * x - b) - 1
-
 #Simple fully connected architecture. Return params and the function for the forward pass
-def fconNN(width,activation = jax.nn.tanh,key = 0):
+def fconNN(width,activation = jax.nn.relu,key = 0):
     """
     Initialize a Fully Connected Neural Network.
     ----------
-
     Parameters
     ----------
     width : list of int
@@ -268,11 +255,10 @@ def fconNN(width,activation = jax.nn.tanh,key = 0):
     return {'params': params,'forward': forward,'width': width}
 
 #Stochastic gradient descent
-def sgd(x,y,forward,params,loss,x_val = None,y_val = None,sa = False,c = 100,q = 2,epochs = 1,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 1000):
+def sgd(x,y,forward,params,loss,epochs = 100,x_val = None,y_val = None,sa = False,c = 100,q = 2,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 1000):
     """
     Stochastic gradient descent algorithm
     ----------
-
     Parameters
     ----------
     x,y : jax.numpy.array
@@ -287,13 +273,17 @@ def sgd(x,y,forward,params,loss,x_val = None,y_val = None,sa = False,c = 100,q =
 
         Initial parameters
 
-    x_val,y_val : jax.numpy.array
-
-        Validation data
-
     loss : function
 
         loss function
+
+    epochs : int
+
+        Number of training epochs
+
+    x_val,y_val : jax.numpy.array
+
+        Validation data
 
     sa : logical
 
@@ -302,10 +292,6 @@ def sgd(x,y,forward,params,loss,x_val = None,y_val = None,sa = False,c = 100,q =
     c,q : float
 
         Hyperparameters of self-adaptative weights
-
-    epochs : int
-
-        Number of training epochs
 
     batches : int
 
@@ -401,7 +387,6 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0,epochs = 1000,train = Fa
     """
     Initialize a Fully Connected Neural Network to represent the characteristic function of a W-operator.
     ----------
-
     Parameters
     ----------
     width : list of int
@@ -450,11 +435,10 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0,epochs = 1000,train = Fa
     return {'params': params,'forward': forward,'width': width}
 
 #Apply a morphological layer
-def apply_morph_layer(x,type,params,index_x,forward_wop = None,d = None):
+def apply_morph_layer(x,type,params,index_x,forward_wop = None,d = None,activate = lambda x: x):
     """
     Apply a morphological layer.
     ----------
-
     Parameters
     ----------
     x : jax.numpy.array
@@ -481,6 +465,10 @@ def apply_morph_layer(x,type,params,index_x,forward_wop = None,d = None):
 
         Dimension of the window
 
+    activate : function
+
+        Activation function for operator parameters
+
     Returns
     -------
     jax.numpy.array with output of layer
@@ -499,11 +487,10 @@ def apply_morph_layer(x,type,params,index_x,forward_wop = None,d = None):
     return fx
 
 #Canonical Morphological NN
-def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = None,activation = jax.nn.sigmoid):
+def cmnn(type,width,size,shape_x,sample = False,mean = 0.5,sd = 0.1,key = 0,width_wop = None,activation = jax.nn.relu,activate = lambda x: x):
     """
-    Initialize a Discrete Morphological Neural Network as the identity operator.
+    Initialize a Morphological Neural Network as the identity operator.
     ----------
-
     Parameters
     ----------
     type : list of str
@@ -526,9 +513,9 @@ def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = Non
 
         Whether to sample initial parameters
 
-    p1 : float
+    mean,sd : float
 
-        Expected proportion of ones in sampled parameters
+        Mean and standard deviation of Gaussian distribution to sample parameters from
 
     key : int
 
@@ -542,6 +529,10 @@ def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = Non
 
         Activation function for W-operator neural network
 
+    activate : function
+
+        Activation function for operator parameters
+
     Returns
     -------
     dictionary with the initial parameters, forward function, width, size, type and forward funtion of the W-operator
@@ -551,7 +542,7 @@ def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = Non
     forward_wop = None
 
     #Index window
-    index_x = dmp.index_array(shape_x)
+    index_x = index_array(shape_x)
 
     #Initialize parameters
     params = list()
@@ -580,13 +571,9 @@ def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = Non
                             interval = jnp.append(s,ul,1)
                             p = jnp.append(p,interval,0)
                 else:
-                    ll = np.zeros((1,1,size[i],size[i]),dtype = int)
-                    ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 1
-                    ll = jnp.array(ll)
                     for j in range(width[i]):
-                        s = jax.random.choice(jax.random.PRNGKey(key[k,0,0]),2,p = jnp.array([1 - p1,p1]),shape = (1,1,size[i],size[i]))
+                        s = mean + sd*jax.random.normal(jax.random.PRNGKey(key[k,0,0]),shape = (1,1,size[i],size[i]))
                         k = k + 1
-                        s = jnp.maximum(ll,s)
                         if j == 0:
                             p = jnp.array(s)
                         else:
@@ -626,18 +613,17 @@ def cmnn(type,width,size,shape_x,sample = False,p1 = 0.1,key = 0,width_wop = Non
                 x = 1 - x
             else:
                 #Apply other layer
-                x = apply_morph_layer(x[0,:,:,:],type[i],params[i],index_x,forward_wop,size[i])
+                x = apply_morph_layer(x[0,:,:,:],type[i],params[i],index_x,forward_wop,size[i],activate)
         return x[0,:,:,:]
 
     #Return initial parameters and forward function
     return {'params': params,'forward': forward,'forward_wop': forward_wop,'type': type,'width': width,'size': size}
 
-#Canonical Morphological NN with iterated NN
-def cmnn_iter(type,width,width_str,size,shape_x,width_wop = None,activation = jax.nn.sigmoid,identity = True,sample = False,p1 = 0.1,key = 0,loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 5000,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False,epochs_print = 500):
+#Canonical Morphological NN with FCNN representing strucring elements
+def cmnn_fcnn(type,width,width_str,size,shape_x,width_wop = None,activation = jax.nn.relu,identity = True,key = 0,loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 5000,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False,epochs_print = 500,activate = lambda x: x):
     """
     Initialize a Morphological Neural Network with FCNN representing the structuring elements.
     ----------
-
     Parameters
     ----------
     type : list of str
@@ -648,7 +634,7 @@ def cmnn_iter(type,width,width_str,size,shape_x,width_wop = None,activation = ja
 
         List with the width of each layer
 
-    width : list of int
+    width_str : list of int
 
         List with the width of each layer of the FCNN for structuring elements
 
@@ -666,19 +652,11 @@ def cmnn_iter(type,width,width_str,size,shape_x,width_wop = None,activation = ja
 
     activation : function
 
-        Activation function for W-operator neural network
+        Activation function for fully connected neural network
 
     identity : logical
 
-        Whether to initiate the parameters so the operator is a random perturbation of the identity operator
-
-    sample : logical
-
-        Whether to sample initial parameters
-
-    p1 : float
-
-        Expected proportion of ones in sampled parameters
+        Whether to initiate the parameters so the operator is close to the identity operator
 
     key : int
 
@@ -686,7 +664,7 @@ def cmnn_iter(type,width,width_str,size,shape_x,width_wop = None,activation = ja
 
     loss : function
 
-        loss function
+        Loss function to pre-train FCNN to approximate the identity operator
 
     sa : logical
 
@@ -698,19 +676,11 @@ def cmnn_iter(type,width,width_str,size,shape_x,width_wop = None,activation = ja
 
     epochs : int
 
-        Number of training epochs
-
-    batches : int
-
-        Number of batches
+        Number of training epochs to pre-train FCNN to approximate the identity operator
 
     lr,b1,b2,eps,eps_root: float
 
         Hyperparameters of the Adam algorithm. Default lr = 0.001, b1 = 0.9, b2 = 0.999, eps = 1e-08, eps_root = 0.0
-
-    key : int
-
-        Seed for parameters initialization. Default 0
 
     notebook : logical
 
@@ -720,21 +690,25 @@ def cmnn_iter(type,width,width_str,size,shape_x,width_wop = None,activation = ja
 
         Number of epochs to print training error
 
+    activate : function
+
+        Activation function for operator parameters
+
     Returns
     -------
-    dictionary with the initial parameters, forward function, function to comput structuring elements, width, size, type, forward funtion of the W-operator and forward function of the inner FCNN
+    dictionary with the initial parameters, forward function, function to comput structuring elements, width, size, type, forward funtion of the W-operator and forward function of the FCNN
     """
     #Index window
-    index_x = dmp.index_array(shape_x)
+    index_x = index_array(shape_x)
 
-    #Create w to apply str NN
+    #Create w to apply structuring FCNN
     unique_size = set(size)
     w = {}
     for d in unique_size:
         w[str(d)] = jnp.array([[x1.tolist(),x2.tolist()] for x1 in jnp.linspace(-jnp.floor(d/2),jnp.floor(d/2),d) for x2 in jnp.linspace(jnp.floor(d/2),-jnp.floor(d/2),d)])
 
     #Init params
-    init_net = cmnn(type,width,size,shape_x,sample = sample,p1 = p1,key = key,width_wop = width_wop,activation = activation)
+    init_net = cmnn(type,width,size,shape_x,sample = False,width_wop = width_wop,activation = activation,activate = lambda x: x) #Initialise as identity
     init_params = init_net['params']
     forward_wop = init_net['forward_wop']
 
@@ -750,26 +724,32 @@ def cmnn_iter(type,width,width_str,size,shape_x,width_wop = None,activation = ja
                     for j in range(width[i]):
                         #Lower
                         nn = fconNN([2] + width_str + [1],activation,key)
-                        forward_inner = lambda x,params: jax.nn.sigmoid(nn['forward'](x,params))
+                        key = key + 1
+                        forward_inner = lambda x,params: nn['forward'](x,params)
                         w_input = w[str(size[i])]
                         w_output = init_params[i][j,0,:,:].transpose().reshape((w_input.shape[0],1))
-                        params_lower = sgd(w_input,w_output,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
+                        params_lower = sgd(w_input,w_output,forward_inner,nn['params'],loss,sa,c,q,epochs,lr,b1,b2,eps,eps_root,key,notebook)
+                        key = key + 1
                         #Upper
                         nn = fconNN([2] + width_str + [1],activation,key)
-                        forward_inner = lambda x,params: jax.nn.sigmoid(nn['forward'](x,params))
+                        key = key + 1
+                        forward_inner = lambda x,params: nn['forward'](x,params)
                         w_input = w[str(size[i])]
                         w_output = init_params[i][j,1,:,:].transpose().reshape((w_input.shape[0],1))
-                        params_upper = sgd(w_input,w_output,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
+                        params_upper = sgd(w_input,w_output,forward_inner,nn['params'],loss,sa,c,q,epochs,lr,b1,b2,eps,eps_root,key,notebook)
+                        key = key + 1
                         par_layer.append([params_lower,params_upper])
                     params.append(par_layer)
                 else:
                     par_layer = list()
                     for j in range(width[i]):
                         nn = fconNN([2] + width_str + [1],activation,key)
-                        forward_inner = lambda x,params: jax.nn.sigmoid(nn['forward'](x,params))
+                        key = key + 1
+                        forward_inner = lambda x,params: nn['forward'](x,params)
                         w_input = w[str(size[i])]
                         w_output = init_params[i][j,:,:,:].transpose().reshape((w_input.shape[0],1))
-                        params_str = sgd(w_input,w_output,forward_inner,nn['params'],loss,sa,c,q,epochs,batches,lr,b1,b2,eps,eps_root,key,notebook)
+                        params_str = sgd(w_input,w_output,forward_inner,nn['params'],loss,sa,c,q,epochs,lr,b1,b2,eps,eps_root,key,notebook)
+                        key = key + 1
                         par_layer.append(params_str)
                     params.append(par_layer)
     else:
@@ -785,12 +765,12 @@ def cmnn_iter(type,width,width_str,size,shape_x,width_wop = None,activation = ja
                         #Lower
                         nn_lower = fconNN([2] + width_str + [1],activation,key[k,0])
                         k = k + 1
-                        forward_inner = lambda x,params: jax.nn.sigmoid(nn_lower['forward'](x,params))
+                        forward_inner = lambda x,params: nn_lower['forward'](x,params)
                         params_lower = nn_lower['params']
                         #Upper
                         nn_upper = fconNN([2] + width_str + [1],activation,key[k,0])
                         k = k + 1
-                        forward_inner = lambda x,params: jax.nn.sigmoid(nn_upper['forward'](x,params))
+                        forward_inner = lambda x,params: nn_upper['forward'](x,params)
                         params_upper = nn_upper['params']
                         par_layer.append([params_lower,params_upper])
                     params.append(par_layer)
@@ -799,8 +779,7 @@ def cmnn_iter(type,width,width_str,size,shape_x,width_wop = None,activation = ja
                     for j in range(width[i]):
                         nn_str = fconNN([2] + width_str + [1],activation,key[k,0])
                         k = k + 1
-                        forward_inner = lambda x,params: jax.nn.sigmoid(nn_str['forward'](x,params))
-                        params_str = nn_lower['params']
+                        forward_inner = lambda x,params: nn_str['forward'](x,params)
                         params_str = nn_str['params']
                         par_layer.append(params_str)
                     params.append(par_layer)
@@ -842,7 +821,7 @@ def cmnn_iter(type,width,width_str,size,shape_x,width_wop = None,activation = ja
             elif type[i] == 'complement':
                 x = 1 - x
             else:
-                x = apply_morph_layer(x[0,:,:,:],type[i],params_array[i],index_x,forward_wop,size[i])
+                x = apply_morph_layer(x[0,:,:,:],type[i],params_array[i],index_x,forward_wop,size[i],activate)
         return x[0,:,:,:]
 
     #Return initial parameters and forward function

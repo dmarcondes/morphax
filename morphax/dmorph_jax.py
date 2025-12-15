@@ -1,4 +1,4 @@
-#Discrete morphology module
+#Discrete morphology module in JAX
 import jax
 import jax.numpy as jnp
 import math
