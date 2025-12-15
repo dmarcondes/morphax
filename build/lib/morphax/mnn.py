@@ -610,7 +610,7 @@ def cmnn(type,width,size,shape_x,sample = False,mean = 0.5,sd = 0.1,key = 0,widt
                 x = 1 - x
             else:
                 #Apply other layer
-                x = apply_morph_layer(x[0,:,:,:],type[i],params[i],index_x,forward_wop,size[i],activate)
+                x = apply_morph_layer(x[0,:,:,:],type[i],params[i],index_x,forward_wop,activate)
         return x[0,:,:,:]
 
     #Return initial parameters and forward function
@@ -812,7 +812,7 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,width_wop = None,activation = ja
     #@jax.jit
     def forward(x,params):
         params_array = compute_struct(params)
-        print(len(params_array))
+        print(params_array[0].shape)
         print(params_array)
         x = x.reshape((1,x.shape[0],x.shape[1],x.shape[2]))
         for i in range(len(type)):
@@ -824,7 +824,7 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,width_wop = None,activation = ja
             elif type[i] == 'complement':
                 x = 1 - x
             else:
-                x = apply_morph_layer(x[0,:,:,:],type[i],params_array[i],index_x,forward_wop,size[i],activate)
+                x = apply_morph_layer(x[0,:,:,:],type[i],params_array[i],index_x,forward_wop,activate)
         return x[0,:,:,:]
 
     #Return initial parameters and forward function
