@@ -435,7 +435,7 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0,epochs = 1000,train = Fa
     return {'params': params,'forward': forward,'width': width}
 
 #Apply a morphological layer
-def apply_morph_layer(x,type,params,index_x,forward_wop = None,d = None,activate = lambda x: x):
+def apply_morph_layer(x,type,params,index_x,forward_wop = None,activate = lambda x: x):
     """
     Apply a morphological layer.
     ----------
@@ -460,10 +460,6 @@ def apply_morph_layer(x,type,params,index_x,forward_wop = None,d = None,activate
     forward_wop : function
 
         Forward function of the W-operator
-
-    d : int
-
-        Dimension of the window
 
     activate : function
 
@@ -813,9 +809,11 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,width_wop = None,activation = ja
         return struct
 
     #Forward pass
-    @jax.jit
+    #@jax.jit
     def forward(x,params):
         params_array = compute_struct(params)
+        print(params_array.shape)
+        print(params_array)
         x = x.reshape((1,x.shape[0],x.shape[1],x.shape[2]))
         for i in range(len(type)):
             #Apply sup and inf

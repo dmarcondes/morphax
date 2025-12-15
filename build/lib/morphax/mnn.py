@@ -435,7 +435,7 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0,epochs = 1000,train = Fa
     return {'params': params,'forward': forward,'width': width}
 
 #Apply a morphological layer
-def apply_morph_layer(x,type,params,index_x,forward_wop = None,d = None,activate = lambda x: x):
+def apply_morph_layer(x,type,params,index_x,forward_wop = None,activate = lambda x: x):
     """
     Apply a morphological layer.
     ----------
@@ -460,10 +460,6 @@ def apply_morph_layer(x,type,params,index_x,forward_wop = None,d = None,activate
     forward_wop : function
 
         Forward function of the W-operator
-
-    d : int
-
-        Dimension of the window
 
     activate : function
 
@@ -515,7 +511,7 @@ def cmnn(type,width,size,shape_x,sample = False,mean = 0.5,sd = 0.1,key = 0,widt
 
     mean,sd : float
 
-        Mean and standard deviation of Gaussian distribution to sample parameters from
+        Mean and standard deviation of Gaussian distribution to sample parameters from and to perturbed the identity operator
 
     key : int
 
@@ -621,7 +617,7 @@ def cmnn(type,width,size,shape_x,sample = False,mean = 0.5,sd = 0.1,key = 0,widt
     return {'params': params,'forward': forward,'forward_wop': forward_wop,'type': type,'width': width,'size': size}
 
 #Canonical Morphological NN with FCNN representing strucring elements
-def cmnn_fcnn(type,width,width_str,size,shape_x,width_wop = None,activation = jax.nn.relu,identity = True,key = 0,loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 5000,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False,epochs_print = 500,activate = lambda x: x):
+def cmnn_fcnn(type,width,width_str,size,shape_x,width_wop = None,activation = jax.nn.relu,identity = True,mean = 0,sd = 0,key = 0,loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 5000,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False,epochs_print = 500,activate = lambda x: x):
     """
     Initialize a Morphological Neural Network with FCNN representing the structuring elements.
     ----------
@@ -658,6 +654,10 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,width_wop = None,activation = ja
     identity : logical
 
         Whether to initiate the parameters so the operator is close to the identity operator
+
+    mean,sd : float
+
+        Mean and standard deviation of Gaussian distribution to sample parameters from and to perturbed the identity operator
 
     key : int
 
@@ -709,7 +709,7 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,width_wop = None,activation = ja
         w[str(d)] = jnp.array([[x1.tolist(),x2.tolist()] for x1 in jnp.linspace(-jnp.floor(d/2),jnp.floor(d/2),d) for x2 in jnp.linspace(jnp.floor(d/2),-jnp.floor(d/2),d)])
 
     #Init params
-    init_net = cmnn(type,width,size,shape_x,sample = False,width_wop = width_wop,activation = activation,activate = lambda x: x) #Initialise as identity
+    init_net = cmnn(type,width,size,shape_x,sample = False,mean = mean,sd = sd,width_wop = width_wop,activation = activation,activate = lambda x: x) #Initialise as identity
     init_params = init_net['params']
     forward_wop = init_net['forward_wop']
 
@@ -809,9 +809,11 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,width_wop = None,activation = ja
         return struct
 
     #Forward pass
-    @jax.jit
+    #@jax.jit
     def forward(x,params):
         params_array = compute_struct(params)
+        print(params_array.shape)
+        print(params_array)
         x = x.reshape((1,x.shape[0],x.shape[1],x.shape[2]))
         for i in range(len(type)):
             #Apply sup and inf
