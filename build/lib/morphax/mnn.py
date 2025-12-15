@@ -815,8 +815,6 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,width_wop = None,activation = ja
     #@jax.jit
     def forward(x,params):
         params_array = compute_struct(params)
-        print(params_array[0].shape)
-        print(params_array)
         x = x.reshape((1,x.shape[0],x.shape[1],x.shape[2]))
         for i in range(len(type)):
             #Apply sup and inf
