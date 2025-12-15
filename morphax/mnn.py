@@ -578,6 +578,7 @@ def cmnn(type,width,size,shape_x,sample = False,mean = 0.5,sd = 0.1,key = 0,widt
                             p = jnp.array(s)
                         else:
                             p = jnp.append(p,s,0)
+                params.append(p.astype(jnp.float32))
             else:
                 if type[i] == 'supgen' or type[i] == 'infgen':
                     ll = np.zeros((1,1,size[i],size[i]),dtype = int)
@@ -596,8 +597,8 @@ def cmnn(type,width,size,shape_x,sample = False,mean = 0.5,sd = 0.1,key = 0,widt
                     for j in range(width[i] - 1):
                         interval = ll
                         p = jnp.append(p,interval,0)
-            params.append(p.astype(jnp.float32) + mean + sd*jax.random.normal(key[k,0],p.shape,jnp.float32))
-            k = k + 1
+                params.append(p.astype(jnp.float32) + mean + sd*jax.random.normal(key[k,0],p.shape,jnp.float32))
+                k = k + 1
 
     #Forward pass
     @jax.jit
