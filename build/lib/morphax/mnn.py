@@ -701,6 +701,7 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,width_wop = None,activation = ja
     """
     #Index window
     index_x = index_array(shape_x)
+    okey = key
 
     #Create w to apply structuring FCNN
     unique_size = set(size)
@@ -786,8 +787,7 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,width_wop = None,activation = ja
                     params.append(par_layer)
 
     #Compute structuring elements
-    nn_str = fconNN([2] + width_str + [1],activation,key[k,0])
-    k = k + 1
+    nn_str = fconNN([2] + width_str + [1],activation,okey)
     forward_inner = lambda x,params: nn_str['forward'](x,params)
     @jax.jit
     def compute_struct(params):
