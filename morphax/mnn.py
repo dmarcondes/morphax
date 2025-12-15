@@ -589,8 +589,8 @@ def cmnn(type,width,size,shape_x,sample = False,mean = 0.5,sd = 0.1,key = 0,widt
                         interval = jnp.append(ll,ul,1)
                         p = jnp.append(p,interval,0)
                 else:
-                    ll = np.zeros((1,1,size[i],size[i]),dtype = int)
-                    ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 1
+                    ll = np.zeros((1,1,size[i],size[i]),dtype = int) - 1.0
+                    ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 0
                     ll = jnp.array(ll)
                     p = ll
                     for j in range(width[i] - 1):
