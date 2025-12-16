@@ -353,6 +353,7 @@ def sgd(x,y,forward,params,loss,epochs = 100,x_val = None,y_val = None,sa = Fals
         @jax.jit
         def lf(params,x,y):
             return jnp.mean(jax.vmap(loss,in_axes = (0,0))(forward(x,params),y))
+        lf_val = lf
 
     #Optmizer NN
     optimizer = optax.adam(lr,b1,b2,eps,eps_root)
