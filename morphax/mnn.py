@@ -807,7 +807,7 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,width_wop = None,activation = ja
             else:
                 par = forward_inner(w[str(size[i])],params[i][0]).reshape((size[i],size[i])).transpose().reshape((1,1,size[i],size[i]))
                 for j in range(width[i] - 1):
-                    par = jnp.append(par,forward_inner(w[str(size[i])],params[i][j + 1]).reshape((size[i],size[i])).transpose().reshape((1,size[i],size[i])),0)
+                    par = jnp.append(par,forward_inner(w[str(size[i])],params[i][j + 1]).reshape((size[i],size[i])).transpose().reshape((1,1,size[i],size[i])),0)
                 struct.append(par)
         return struct
 
