@@ -617,7 +617,7 @@ def cmnn(type,width,size,shape_x,sample = False,mean = 0.5,sd = 0.1,key = 0,widt
     return {'params': params,'forward': forward,'forward_wop': forward_wop,'type': type,'width': width,'size': size}
 
 #Canonical Morphological NN with FCNN representing strucring elements
-def cmnn_fcnn(type,width,width_str,size,shape_x,width_wop = None,activation = jax.nn.relu,identity = True,mean = 0,sd = 0,key = 0,loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 5000,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False,epochs_print = 500,activate = lambda x: x):
+def cmnn_fcnn(type,width,width_str,size,shape_x,width_wop = None,activation = jax.nn.relu,sample = True,mean = 0,sd = 0,key = 0,loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 5000,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False,epochs_print = 500,activate = lambda x: x):
     """
     Initialize a Morphological Neural Network with FCNN representing the structuring elements.
     ----------
@@ -651,9 +651,9 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,width_wop = None,activation = ja
 
         Activation function for fully connected neural network
 
-    identity : logical
+    sample : logical
 
-        Whether to initiate the parameters so the operator is close to the identity operator
+        Whether to sample initial parameters or pre-train the FCNN so the operator is close to the identity operator
 
     mean,sd : float
 
@@ -710,81 +710,49 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,width_wop = None,activation = ja
         w[str(d)] = jnp.array([[x1.tolist(),x2.tolist()] for x1 in jnp.linspace(-jnp.floor(d/2),jnp.floor(d/2),d) for x2 in jnp.linspace(jnp.floor(d/2),-jnp.floor(d/2),d)])
 
     #Init params
-    init_net = cmnn(type,width,size,shape_x,sample = False,mean = mean,sd = sd,width_wop = width_wop,activation = activation,activate = lambda x: x) #Initialise as identity
+    init_net = cmnn(type,width,size,shape_x,sample = sample,mean = mean,sd = sd,width_wop = width_wop,activation = activation,activate = lambda x: x) #Initialise as identity
     init_params = init_net['params']
     forward_wop = init_net['forward_wop']
 
     #Initialize parameters NN
     params = list()
-    if identity:
-        for i in range(len(width)):
-            if type[i] in ['sup','inf','complement','wop']:
-                params.append(init_params[i])
+    for i in range(len(width)):
+        if type[i] in ['sup','inf','complement','wop']:
+            params.append(init_params[i])
+        else:
+            if type[i] in ['supgen','infgen']:
+                par_layer = list()
+                for j in range(width[i]):
+                    #Lower
+                    nn = fconNN([2] + width_str + [1],activation,key)
+                    key = key + 1
+                    forward_inner = lambda x,params: nn['forward'](x,params)
+                    w_input = w[str(size[i])]
+                    w_output = init_params[i][j,0,:,:].transpose().reshape((w_input.shape[0],1))
+                    params_lower = sgd(w_input,w_output,forward_inner,nn['params'],loss,epochs,x_val = None,y_val = None,sa = sa,c = c,q = q,lr = lr,b1 = b1,b2 = b2,eps = eps,eps_root = eps_root,key = key,notebook = notebook)
+                    key = key + 1
+                    #Upper
+                    nn = fconNN([2] + width_str + [1],activation,key)
+                    key = key + 1
+                    forward_inner = lambda x,params: nn['forward'](x,params)
+                    w_input = w[str(size[i])]
+                    w_output = init_params[i][j,1,:,:].transpose().reshape((w_input.shape[0],1))
+                    params_upper = sgd(w_input,w_output,forward_inner,nn['params'],loss,epochs,sa = sa,c = c,q = q,lr = lr,b1 = b1,b2 = b2,eps = eps,eps_root = eps_root,key = key,notebook = notebook)
+                    key = key + 1
+                    par_layer.append([params_lower,params_upper])
+                params.append(par_layer)
             else:
-                if type[i] in ['supgen','infgen']:
-                    par_layer = list()
-                    for j in range(width[i]):
-                        #Lower
-                        nn = fconNN([2] + width_str + [1],activation,key)
-                        key = key + 1
-                        forward_inner = lambda x,params: nn['forward'](x,params)
-                        w_input = w[str(size[i])]
-                        w_output = init_params[i][j,0,:,:].transpose().reshape((w_input.shape[0],1))
-                        params_lower = sgd(w_input,w_output,forward_inner,nn['params'],loss,epochs,x_val = None,y_val = None,sa = sa,c = c,q = q,lr = lr,b1 = b1,b2 = b2,eps = eps,eps_root = eps_root,key = key,notebook = notebook)
-                        key = key + 1
-                        #Upper
-                        nn = fconNN([2] + width_str + [1],activation,key)
-                        key = key + 1
-                        forward_inner = lambda x,params: nn['forward'](x,params)
-                        w_input = w[str(size[i])]
-                        w_output = init_params[i][j,1,:,:].transpose().reshape((w_input.shape[0],1))
-                        params_upper = sgd(w_input,w_output,forward_inner,nn['params'],loss,epochs,sa = sa,c = c,q = q,lr = lr,b1 = b1,b2 = b2,eps = eps,eps_root = eps_root,key = key,notebook = notebook)
-                        key = key + 1
-                        par_layer.append([params_lower,params_upper])
-                    params.append(par_layer)
-                else:
-                    par_layer = list()
-                    for j in range(width[i]):
-                        nn = fconNN([2] + width_str + [1],activation,key)
-                        key = key + 1
-                        forward_inner = lambda x,params: nn['forward'](x,params)
-                        w_input = w[str(size[i])]
-                        w_output = init_params[i][j,:,:,:].transpose().reshape((w_input.shape[0],1))
-                        params_str = sgd(w_input,w_output,forward_inner,nn['params'],loss,epochs,sa = sa,c = c,q = q,lr = lr,b1 = b1,b2 = b2,eps = eps,eps_root = eps_root,key = key,notebook = notebook)
-                        key = key + 1
-                        par_layer.append(params_str)
-                    params.append(par_layer)
-    else:
-        key = jax.random.split(jax.random.PRNGKey(key),(2*len(width)*max(width)))
-        k = 1
-        for i in range(len(width)):
-            if type[i] in ['sup','inf','complement','wop']:
-                params.append(init_params[i])
-            else:
-                if type[i] in ['supgen','infgen']:
-                    par_layer = list()
-                    for j in range(width[i]):
-                        #Lower
-                        nn_lower = fconNN([2] + width_str + [1],activation,key[k,0])
-                        k = k + 1
-                        forward_inner = lambda x,params: nn_lower['forward'](x,params)
-                        params_lower = nn_lower['params']
-                        #Upper
-                        nn_upper = fconNN([2] + width_str + [1],activation,key[k,0])
-                        k = k + 1
-                        forward_inner = lambda x,params: nn_upper['forward'](x,params)
-                        params_upper = nn_upper['params']
-                        par_layer.append([params_lower,params_upper])
-                    params.append(par_layer)
-                else:
-                    par_layer = list()
-                    for j in range(width[i]):
-                        nn_str = fconNN([2] + width_str + [1],activation,key[k,0])
-                        k = k + 1
-                        forward_inner = lambda x,params: nn_str['forward'](x,params)
-                        params_str = nn_str['params']
-                        par_layer.append(params_str)
-                    params.append(par_layer)
+                par_layer = list()
+                for j in range(width[i]):
+                    nn = fconNN([2] + width_str + [1],activation,key)
+                    key = key + 1
+                    forward_inner = lambda x,params: nn['forward'](x,params)
+                    w_input = w[str(size[i])]
+                    w_output = init_params[i][j,:,:,:].transpose().reshape((w_input.shape[0],1))
+                    params_str = sgd(w_input,w_output,forward_inner,nn['params'],loss,epochs,sa = sa,c = c,q = q,lr = lr,b1 = b1,b2 = b2,eps = eps,eps_root = eps_root,key = key,notebook = notebook)
+                    key = key + 1
+                    par_layer.append(params_str)
+                params.append(par_layer)
 
     #Compute structuring elements
     nn_str = fconNN([2] + width_str + [1],activation,okey)
