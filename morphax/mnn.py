@@ -255,7 +255,7 @@ def fconNN(width,activation = jax.nn.relu,key = 0):
     return {'params': params,'forward': forward,'width': width}
 
 #Stochastic gradient descent
-def sgd(x,y,forward,params,loss,epochs = 100,x_val = None,y_val = None,sa = False,c = 100,q = 2,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 1000):
+def sgd(x,y,forward,params,loss,epochs = 100,x_val = None,y_val = None,sa = False,c = 100,q = 2,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 1000,trace = False,epochs_trace = 100,trace_file = 'trace.csv'):
     """
     Stochastic gradient descent algorithm
     ----------
@@ -313,6 +313,18 @@ def sgd(x,y,forward,params,loss,epochs = 100,x_val = None,y_val = None,sa = Fals
 
         Number of epochs to print training error
 
+    trace : logical
+
+        Whether to trace the algorithm
+
+    epochs_trace : int
+
+        Number of epochs to store trace of algorithm after
+
+    trace_file : str
+
+        File name to save the trace of the algorithm
+
     Returns
     -------
     list of parameters
@@ -323,12 +335,19 @@ def sgd(x,y,forward,params,loss,epochs = 100,x_val = None,y_val = None,sa = Fals
     #Batch size
     bsize = int(math.floor(x.shape[0]/batches))
 
+    #Trace
+    if trace:
+        tab_trace = {'epoch': [],'time': [],'loss': [],'val_loss': []}
+
     #Self-adaptative
     if sa:
         params.append({'w': jnp.zeros((y.shape)) + (1/c) ** (1/q)})
         @jax.jit
         def lf(params,x,y):
             return jnp.mean(jax.vmap(lambda true,pred,weight: loss(true,pred,weight,c,q),in_axes = (0,0,0))(forward(x,params[:-1]),y,params[-1]['w']))
+        @jax.jit
+        def lf_val(params,x,y):
+            return jnp.mean(jax.vmap(lambda true,pred: loss(true,pred,1.0,1.0,1.0),in_axes = (0,0,0))(forward(x,params[:-1]),y))
     else:
         #Loss function
         @jax.jit
@@ -368,14 +387,35 @@ def sgd(x,y,forward,params,loss,epochs = 100,x_val = None,y_val = None,sa = Fals
                     opt_state,params = update(opt_state,params,xb,yb)
             else:
                 opt_state,params = update(opt_state,params,x,y)
-            l = str(jnp.round(lf(params,x,y),10))
-            if x_val is not None:
-                l = l + ' Val loss: ' + str(jnp.round(lf(params,x_val,y_val),10))
-            if(e % epoch_print == 0 and notebook):
-                print('Epoch: ' + str(e) + ' Time: ' + str(jnp.round(time.time() - t0,2)) + ' s Loss: ' + l)
-            if not notebook:
-                bar.title("Loss: " + l)
-                bar()
+            if (e % epoch_print == 0 or e % epoch_trace == 0):
+                l = str(jnp.round(lf(params,x,y),10))
+                if x_val is not None:
+                    vl = lf_val(params,x_val,y_val)
+                    l = l + ' Val loss: ' + str(jnp.round(vl,10))
+                if notebook and e % epoch_print == 0:
+                    print('Epoch: ' + str(e) + ' Time: ' + str(jnp.round(time.time() - t0,2)) + ' s Loss: ' + l)
+                if not notebook and e % epoch_print == 0:
+                    bar.title("Loss: " + l)
+                    bar()
+                if (trace and e % epoch_trace == 0):
+                    tab_trace['epoch'] = tab_trace['epoch'] + [e]
+                    tab_trace['time'] = tab_trace['time'] + [time.time() - t0]
+                    tab_trace['loss'] = tab_trace['loss'] + [l]
+                    if x_val is not None:
+                        tab_trace['val_loss'] = tab_trace['val_loss'] + [vl]
+                    else:
+                        tab_trace['val_loss'] = tab_trace['val_loss'] + [-1]
+
+    if (trace and e % epoch_trace != 0):
+        tab_trace['epoch'] = tab_trace['epoch'] + [e]
+        tab_trace['time'] = tab_trace['time'] + [time.time() - t0]
+        tab_trace['loss'] = tab_trace['loss'] + [l]
+        if x_val is not None:
+            tab_trace['val_loss'] = tab_trace['val_loss'] + [vl]
+        else:
+            tab_trace['val_loss'] = tab_trace['val_loss'] + [-1]
+        tab_trace = pd.DataFrame(tab_trace)
+        tab_trace.to_csv(trace_file)
 
     if sa:
         del params[-1]
