@@ -347,7 +347,7 @@ def sgd(x,y,forward,params,loss,epochs = 100,x_val = None,y_val = None,sa = Fals
             return jnp.mean(jax.vmap(lambda true,pred,weight: loss(true,pred,weight,c,q),in_axes = (0,0,0))(forward(x,params[:-1]),y,params[-1]['w']))
         @jax.jit
         def lf_val(params,x,y):
-            return jnp.mean(jax.vmap(lambda true,pred: loss(true,pred,1.0,1.0,1.0),in_axes = (0,0,0))(forward(x,params[:-1]),y))
+            return jnp.mean(jax.vmap(lambda true,pred: loss(true,pred,1.0,1.0,1.0),in_axes = (0,0))(forward(x,params[:-1]),y))
     else:
         #Loss function
         @jax.jit
