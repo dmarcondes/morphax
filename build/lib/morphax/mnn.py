@@ -387,6 +387,8 @@ def sgd(x,y,forward,params,loss,epochs = 100,x_val = None,y_val = None,sa = Fals
                     opt_state,params = update(opt_state,params,xb,yb)
             else:
                 opt_state,params = update(opt_state,params,x,y)
+            if not notebook:
+                bar()
             if (e % epoch_print == 0 or e % epoch_trace == 0):
                 l = str(jnp.round(lf(params,x,y),10))
                 if x_val is not None:
@@ -396,7 +398,6 @@ def sgd(x,y,forward,params,loss,epochs = 100,x_val = None,y_val = None,sa = Fals
                     print('Epoch: ' + str(e) + ' Time: ' + str(jnp.round(time.time() - t0,2)) + ' s Loss: ' + l)
                 if not notebook and e % epoch_print == 0:
                     bar.title("Loss: " + l)
-                    bar()
                 if (trace and e % epoch_trace == 0):
                     tab_trace['epoch'] = tab_trace['epoch'] + [e]
                     tab_trace['time'] = tab_trace['time'] + [time.time() - t0]
