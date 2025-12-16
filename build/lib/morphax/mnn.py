@@ -255,7 +255,7 @@ def fconNN(width,activation = jax.nn.relu,key = 0):
     return {'params': params,'forward': forward,'width': width}
 
 #Stochastic gradient descent
-def sgd(x,y,forward,params,loss,epochs = 100,x_val = None,y_val = None,sa = False,c = 100,q = 2,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 1000,trace = False,epochs_trace = 100,trace_file = 'trace.csv'):
+def sgd(x,y,forward,params,loss,epochs = 100,x_val = None,y_val = None,sa = False,c = 100,q = 2,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 1000,trace = False,epoch_trace = 100,trace_file = 'trace.csv'):
     """
     Stochastic gradient descent algorithm
     ----------
@@ -317,7 +317,7 @@ def sgd(x,y,forward,params,loss,epochs = 100,x_val = None,y_val = None,sa = Fals
 
         Whether to trace the algorithm
 
-    epochs_trace : int
+    epoch_trace : int
 
         Number of epochs to store trace of algorithm after
 
