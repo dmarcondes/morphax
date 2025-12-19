@@ -255,7 +255,7 @@ def fconNN(width,activation = jax.nn.relu,key = 0):
     return {'params': params,'forward': forward,'width': width}
 
 #Stochastic gradient descent
-def sgd(x,y,forward,params,loss,epochs = 100,x_val = None,y_val = None,sa = False,c = 100,q = 2,batches = 1,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 1000,trace = False,epoch_trace = 100,trace_file = 'trace.csv'):
+def sgd(x,y,forward,params,loss,epochs = 100,x_val = None,y_val = None,sa = False,c = 100,q = 2,batches = 1,exp_decay = 0,decay_rate = 0.9,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,key = 0,notebook = False,epoch_print = 1000,trace = False,epoch_trace = 100,trace_file = 'trace.csv'):
     """
     Stochastic gradient descent algorithm
     ----------
@@ -296,6 +296,14 @@ def sgd(x,y,forward,params,loss,epochs = 100,x_val = None,y_val = None,sa = Fals
     batches : int
 
         Number of batches
+
+    exp_decay : int
+
+        Number of epochs for exponential decay. Set to 0 for no exponential decay (default)
+
+    decay_rate : float
+
+        Rate of exponential decay. Default 0.9
 
     lr,b1,b2,eps,eps_root: float
 
@@ -356,6 +364,8 @@ def sgd(x,y,forward,params,loss,epochs = 100,x_val = None,y_val = None,sa = Fals
         lf_val = lf
 
     #Optmizer NN
+    if exp_decay != 0:
+        lr = optax.exponential_decay(lr,exp_decay,decay_rate)
     optimizer = optax.adam(lr,b1,b2,eps,eps_root)
     opt_state = optimizer.init(params)
 
