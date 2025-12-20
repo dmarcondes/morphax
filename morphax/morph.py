@@ -221,6 +221,26 @@ def w_operator_nn(x,index_x,forward,params,d):
     wop = jax.vmap(lambda x: w_operator_2D_nn(x,index_x,forward,params,d),in_axes = (0),out_axes = 0)(x)
     return wop
 
+def truncate(f,m,M):
+    """
+    Truncate an image to the interval [m,M]
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        An image
+
+    m,M : float
+
+        Minimum and maximum value of the interval to truncate
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    return jnp.maximum(jnp.minimum(f,m),M)
+
 #Local erosion of f by k for pixel (i,j)
 def local_erosion(f,k,l):
     """
@@ -246,7 +266,7 @@ def local_erosion(f,k,l):
     """
     def jit_local_erosion(index):
         fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
-        return jnp.minimum(jnp.maximum(jnp.min(fw - k),0.0),1.0)
+        return jnp.min(fw - k)
     return jit_local_erosion
 
 #Erosion of f by k
@@ -331,7 +351,7 @@ def local_dilation(f,kt,l):
     """
     def jit_local_dilation(index):
         fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
-        return jnp.minimum(jnp.maximum(jnp.max(fw + kt),0.0),1.0)
+        return jnp.max(fw + kt)
     return jit_local_dilation
 
 #Dilation of f by k assuming k already transposed
