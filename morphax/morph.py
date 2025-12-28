@@ -5,6 +5,27 @@ import math
 import sys
 from morphax import dmorph_jax as dmnn
 
+#Smooth max/min
+def smoothExt(x,alpha):
+    """
+    Smooth minimum (alpha < 0) and maximum (alpha > 0)
+    -------
+    Parameters
+    ----------
+    x : jax.numpy.array
+
+        Array to take the smooth minimum or maximum
+
+    alpha : float
+
+        Smoothing parameter
+
+    Returns
+    -------
+    float
+    """
+    return jnp.sum(x * jnp.exp(alpha * x))/jnp.sum(jnp.exp(alpha * x))
+
 #Structuring element from function
 def struct_function(k,d):
     """
@@ -326,6 +347,103 @@ def erosion(f,index_f,k):
     eb = jax.vmap(lambda f: erosion_2D(f,index_f,k),in_axes = (0),out_axes = 0)(f)
     return eb
 
+#Local erosion of f by k for pixel (i,j)
+def Slocal_erosion(f,k,l,alpha = 5):
+    """
+    Define function for smooth local erosion.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        An image
+
+    k : jax.numpy.array
+
+        A structuring element
+
+    l : int
+
+        Length of structruring element. If k has shape d x d, then l is the greatest integer such that l <= d/2
+
+    alpha : float
+
+        Smoothing parameter
+
+    Returns
+    -------
+    a function that receives an index and returns the smooth local erosion of f by k at this index
+    """
+    def jit_local_erosion(index):
+        fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
+        return smoothExt(fw - k,(-1)*alpha)
+    return jit_local_erosion
+
+#Erosion of f by k
+@jax.jit
+def Serosion_2D(f,index_f,k,alpha = 5):
+    """
+    Smooth erosion of 2D image.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A padded image
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    k : jax.numpy.array
+
+        Structuring element
+
+    alpha : float
+
+        Smoothing parameter
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    l = math.floor(k.shape[0]/2)
+    jit_local_erosion = Slocal_erosion(f,k,l,alpha)
+    return jnp.apply_along_axis(jit_local_erosion,1,l + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
+
+#Erosion in batches
+@jax.jit
+def Serosion(f,index_f,k,alpha = 5):
+    """
+    Smooth erosion of batches of images.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A 3D array with the images
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    k : jax.numpy.array
+
+        Structuring element
+
+    alpha : float
+
+        Smoothing parameter
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    l = math.floor(k.shape[0]/2)
+    f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
+    eb = jax.vmap(lambda f: Serosion_2D(f,index_f,k,alpha),in_axes = (0),out_axes = 0)(f)
+    return eb
+
 #Local dilation of f by k for pixel (i,j) assuming k already transposed
 def local_dilation(f,kt,l):
     """
@@ -412,6 +530,104 @@ def dilation(f,index_f,k):
     db = jax.vmap(lambda f: dilation_2D(f,index_f,k),in_axes = (0),out_axes = 0)(f)
     return db
 
+#Local dilation of f by k for pixel (i,j) assuming k already transposed
+def Slocal_dilation(f,kt,l,alpha = 5):
+    """
+    Define function for smooth local dilation.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        An image
+
+    kt : jax.numpy.array
+
+        The transpose of the structuring element
+
+    l : int
+
+        Length of structruring element. If k has shape d x d, then l is the greatest integer such that l <= d/2
+
+    alpha : float
+
+        Smoothing parameter
+
+    Returns
+    -------
+    a function that receives an index and returns the smooth local dilation of f by k at this index
+    """
+    def jit_local_dilation(index):
+        fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
+        return smoothExt(fw + kt,alpha)
+    return jit_local_dilation
+
+#Dilation of f by k assuming k already transposed
+@jax.jit
+def Sdilation_2D(f,index_f,kt,alpha = 5):
+    """
+    Smoothing dilation of 2D image.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A padded image
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    kt : jax.numpy.array
+
+        The transpose of the structuring element
+
+    alpha : float
+
+        Smoothing parameter
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    l = math.floor(kt.shape[0]/2)
+    jit_local_dilation = Slocal_dilation(f,kt,l,alpha)
+    return jnp.apply_along_axis(jit_local_dilation,1,l + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
+
+#Dilation in batches
+@jax.jit
+def Sdilation(f,index_f,k,alpha = 5):
+    """
+    Smoothing dilation of batches of images.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A 3D array with the images
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    k : jax.numpy.array
+
+        Structuring element
+
+    alpha : float
+
+        Smoothing parameter
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    l = math.floor(k.shape[0]/2)
+    f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
+    k = dmnn.transpose_se(k)
+    db = jax.vmap(lambda f: Sdilation_2D(f,index_f,k,alpha),in_axes = (0),out_axes = 0)(f)
+    return db
+
 #Opening of f by k
 @jax.jit
 def opening(f,index_f,k):
@@ -437,6 +653,36 @@ def opening(f,index_f,k):
     jax.numpy.array
     """
     return dilation(erosion(f,index_f,k),index_f,k)
+
+#Opening of f by k
+@jax.jit
+def Sopening(f,index_f,k,alpha = 5):
+    """
+    Smooth opening of batches of images.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A 3D array with the images
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    k : jax.numpy.array
+
+        Structuring element
+
+    alpha : float
+
+        Smoothing parameter
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    return Sdilation(Serosion(f,index_f,k,alpha),index_f,k,alpha)
 
 #Colosing of f by k
 @jax.jit
@@ -464,6 +710,36 @@ def closing(f,index_f,k):
     """
     return erosion(dilation(f,index_f,k),index_f,k)
 
+#Colosing of f by k
+@jax.jit
+def Sclosing(f,index_f,k,alpha = 5):
+    """
+    Smooth closing of batches of images.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A 3D array with the images
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    k : jax.numpy.array
+
+        Structuring element
+
+    alpha : float
+
+        Smoothing parameter
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    return Serosion(Sdilation(f,index_f,k,alpha),index_f,k,alpha)
+
 #Alternate-sequential filter of f by k
 @jax.jit
 def asf(f,index_f,k):
@@ -489,6 +765,36 @@ def asf(f,index_f,k):
     jax.numpy.array
     """
     return closing(opening(f,index_f,k),index_f,k)
+
+#Alternate-sequential filter of f by k
+@jax.jit
+def Sasf(f,index_f,k,alpha = 5):
+    """
+    Smooth alternate-sequential filter applied to batches of images.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A 3D array with the images
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    k : jax.numpy.array
+
+        Structuring element
+
+    alpha : float
+
+        Smoothing parameter
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    return Sclosing(Sopening(f,index_f,k,alpha),index_f,k,alpha)
 
 #Complement
 @jax.jit
@@ -628,7 +934,7 @@ def inf(f):
 vmap_inf = lambda f: jax.jit(jax.vmap(lambda f: inf(f),in_axes = (1),out_axes = 1))(f)
 
 #Return operator by name
-def operator(type):
+def operator(type,smooth = False,alpha = 5):
     """
     Get a morphological operator by name.
     -------
@@ -639,29 +945,52 @@ def operator(type):
 
         Name of operator
 
+    smooth : logical
+
+        Whether to consider smooth operators
+
+    alpha : float
+
+        Smoothing parameter
+
     Returns
     -------
 
     a function that applies a morphological operator
 
     """
-    if type == 'erosion':
-        oper = lambda x,index_x,k: erosion(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
-    elif type == 'dilation':
-        oper = lambda x,index_x,k: dilation(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
-    elif type == 'opening':
-        oper = lambda x,index_x,k: opening(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
-    elif type == 'closing':
-        oper = lambda x,index_x,k: closing(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
-    elif type == 'asf':
-        oper = lambda x,index_x,k: asf(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
-    elif type == 'supgen':
-        oper = lambda x,index_x,k: ap_supgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])))
-    elif type == 'infgen':
-        oper = lambda x,index_x,k: infgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])))
+    if not smooth:
+        if type == 'erosion':
+            oper = lambda x,index_x,k: erosion(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
+        elif type == 'dilation':
+            oper = lambda x,index_x,k: dilation(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
+        elif type == 'opening':
+            oper = lambda x,index_x,k: opening(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
+        elif type == 'closing':
+            oper = lambda x,index_x,k: closing(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
+        elif type == 'asf':
+            oper = lambda x,index_x,k: asf(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
+        elif type == 'supgen':
+            oper = lambda x,index_x,k: supgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])))
+        elif type == 'infgen':
+            oper = lambda x,index_x,k: infgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])))
+        else:
+            print('Type of layer ' + type + 'is wrong!')
+            return 1
     else:
-        print('Type of layer ' + type + 'is wrong!')
-        return 1
+        if type == 'erosion':
+            oper = lambda x,index_x,k: Serosion(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
+        elif type == 'dilation':
+            oper = lambda x,index_x,k: Sdilation(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
+        elif type == 'opening':
+            oper = lambda x,index_x,k: Sopening(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
+        elif type == 'closing':
+            oper = lambda x,index_x,k: Sclosing(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
+        elif type == 'asf':
+            oper = lambda x,index_x,k: Sasf(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
+        else:
+            print('Type of layer ' + type + 'is wrong!')
+            return 1
     return jax.jit(oper)
 
 #Approximate supgen
