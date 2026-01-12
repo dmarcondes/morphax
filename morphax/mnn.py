@@ -488,7 +488,7 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0,epochs = 1000,train = Fa
     return {'params': params,'forward': forward,'width': width}
 
 #Apply a morphological layer
-def apply_morph_layer(x,type,params,index_x,forward_wop = None,activate = lambda x: x,smooth = False,alpha = 5):
+def apply_morph_layer(x,type,params,index_x,forward_wop = None,activate = lambda x: x,smooth = False,alpha = 5,l = None):
     """
     Apply a morphological layer.
     ----------
@@ -526,6 +526,10 @@ def apply_morph_layer(x,type,params,index_x,forward_wop = None,activate = lambda
 
         Smoothing parameter
 
+    l : int
+
+        Length of structruring element. If k has shape d x d, then l is the greatest integer such that l <= d/2. Necessary for applying W-operator
+
     Returns
     -------
     jax.numpy.array with output of layer
@@ -540,7 +544,7 @@ def apply_morph_layer(x,type,params,index_x,forward_wop = None,activate = lambda
             else:
                 fx = jnp.append(fx,oper(x,index_x,activate(params[i,:,:,:])).reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
     else:
-        fx = mp.w_operator_nn(x,index_x,forward_wop,params,d).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+        fx = mp.w_operator_nn(x,index_x,forward_wop,params,l).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
     return fx
 
 #Canonical Morphological NN
@@ -679,7 +683,7 @@ def cmnn(type,width,size,shape_x,sample = False,mean = 0.5,sd = 0.1,key = 0,widt
                 x = 1 - x
             else:
                 #Apply other layer
-                x = apply_morph_layer(x[0,:,:,:],type[i],params[i],index_x,forward_wop,activate,smooth,alpha)
+                x = apply_morph_layer(x[0,:,:,:],type[i],params[i],index_x,forward_wop,activate,smooth,alpha,jnp.floor(size[i]/2))
         return x[0,:,:,:]
 
     #Return initial parameters and forward function
@@ -883,7 +887,7 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,initialize = False,width_wop = N
             elif type[i] == 'complement':
                 x = 1 - x
             else:
-                x = apply_morph_layer(x[0,:,:,:],type[i],params_array[i],index_x,forward_wop,activate,alpha)
+                x = apply_morph_layer(x[0,:,:,:],type[i],params_array[i],index_x,forward_wop,activate,alpha,jnp.floor(size[i]/2))
         return x[0,:,:,:]
 
     #Return initial parameters and forward function
