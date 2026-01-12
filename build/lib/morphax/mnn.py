@@ -856,10 +856,10 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,initialize = False,width_wop = N
                 struct.append(params[i])
             elif type[i] in ['infgen','supgen']:
                 par = forward_inner(w[str(size[i])],params[i][0][0]).reshape((size[i],size[i])).transpose().reshape((1,size[i],size[i]))
-                par = jnp.append(par,forward_inner(w[str(size[i])],params[i][0][1]).reshape((size[i],size[i])).transpose().reshape((1,size[i],size[i])),0).reshape((1,2,size[i],size[i]))
+                par = jnp.append(par,par + jax.nn.relu(forward_inner(w[str(size[i])],params[i][0][1])).reshape((size[i],size[i])).transpose().reshape((1,size[i],size[i])),0).reshape((1,2,size[i],size[i]))
                 for j in range(width[i] - 1):
                     tmp = forward_inner(w[str(size[i])],params[i][j + 1][0]).reshape((size[i],size[i])).transpose().reshape((1,size[i],size[i]))
-                    tmp = jnp.append(tmp,forward_inner(w[str(size[i])],params[i][j + 1][1]).reshape((size[i],size[i])).transpose().reshape((1,size[i],size[i])),0).reshape((1,2,size[i],size[i]))
+                    tmp = jnp.append(tmp,tmp + jax.nn.relu(forward_inner(w[str(size[i])],params[i][j + 1][1])).reshape((size[i],size[i])).transpose().reshape((1,size[i],size[i])),0).reshape((1,2,size[i],size[i]))
                     par = jnp.append(par,tmp,0)
                 struct.append(par)
             else:
