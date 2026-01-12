@@ -1264,7 +1264,7 @@ def infgen(f,index_f,k1,k2):
     -------
     jax.numpy.array
     """
-    return jnp.maximum(anti_erosion(f,index_f,dmm.transpose_se(k1)),dilation(f,index_f,(-1)*dmm.transpose_se(k2)))
+    return jnp.maximum(anti_erosion(f,index_f,dmnn.transpose_se(k1)),dilation(f,index_f,(-1)*dmnn.transpose_se(k2)))
 
 #Smooth inf-generating with interval [k1,k2]
 def Sinfgen(f,index_f,k1,k2):
