@@ -883,7 +883,7 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,initialize = False,width_wop = N
             elif type[i] == 'complement':
                 x = 1 - x
             else:
-                x = apply_morph_layer(x[0,:,:,:],type[i],params_array[i],index_x,forward_wop,activate,smooth,alpha)
+                x = apply_morph_layer(x[0,:,:,:],type[i],params_array[i],index_x,forward_wop,activate,alpha)
         return x[0,:,:,:]
 
     #Return initial parameters and forward function

@@ -347,7 +347,7 @@ def erosion(f,index_f,k):
     eb = jax.vmap(lambda f: erosion_2D(f,index_f,k),in_axes = (0),out_axes = 0)(f)
     return eb
 
-#Local erosion of f by k for pixel (i,j)
+#Smooth local erosion of f by k for pixel (i,j)
 def Slocal_erosion(f,k,l,alpha = 5):
     """
     Define function for smooth local erosion.
@@ -379,7 +379,7 @@ def Slocal_erosion(f,k,l,alpha = 5):
         return smoothExt(fw - k,(-1)*alpha)
     return jit_local_erosion
 
-#Erosion of f by k
+#Smooth erosion of f by k
 @jax.jit
 def Serosion_2D(f,index_f,k,alpha = 5):
     """
@@ -411,7 +411,7 @@ def Serosion_2D(f,index_f,k,alpha = 5):
     jit_local_erosion = Slocal_erosion(f,k,l,alpha)
     return jnp.apply_along_axis(jit_local_erosion,1,l + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
 
-#Erosion in batches
+#Smooth erosion in batches
 @jax.jit
 def Serosion(f,index_f,k,alpha = 5):
     """
@@ -443,6 +443,188 @@ def Serosion(f,index_f,k,alpha = 5):
     f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
     eb = jax.vmap(lambda f: Serosion_2D(f,index_f,k,alpha),in_axes = (0),out_axes = 0)(f)
     return eb
+
+#Local anti-dilation of f by k for pixel (i,j)
+def local_anti_dilation(f,k,l):
+    """
+    Define function for local anti-dilation.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        An image
+
+    k : jax.numpy.array
+
+        A structuring element
+
+    l : int
+
+        Length of structruring element. If k has shape d x d, then l is the greatest integer such that l <= d/2
+
+    Returns
+    -------
+    a function that receives an index and returns the local anti-dilation of f by k at this index
+    """
+    def jit_local_anti_dilation(index):
+        fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
+        return jnp.min(k - fw)
+    return jit_local_anti_dilation
+
+#Anti-dilation of f by k
+@jax.jit
+def anti_dilation_2D(f,index_f,k):
+    """
+    Anti-dilation of 2D image.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A padded image
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    k : jax.numpy.array
+
+        Structuring element
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    l = math.floor(k.shape[0]/2)
+    jit_local_anti_dilation = local_anti_dilation(f,k,l)
+    return jnp.apply_along_axis(jit_local_anti_dilation,1,l + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
+
+#Anti-dilation in batches
+@jax.jit
+def anti_dilation(f,index_f,k):
+    """
+    Anti-dilation of batches of images.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A 3D array with the images
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    k : jax.numpy.array
+
+        Structuring element
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    l = math.floor(k.shape[0]/2)
+    f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
+    ad = jax.vmap(lambda f: anti_dilation_2D(f,index_f,k),in_axes = (0),out_axes = 0)(f)
+    return ad
+
+#Local smoth anti-dilation of f by k for pixel (i,j)
+def Slocal_anti_dilation(f,k,l,alpha = 5):
+    """
+    Define function for smooth local anti_dilation.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        An image
+
+    k : jax.numpy.array
+
+        A structuring element
+
+    l : int
+
+        Length of structruring element. If k has shape d x d, then l is the greatest integer such that l <= d/2
+
+    alpha : float
+
+        Smoothing parameter
+
+    Returns
+    -------
+    a function that receives an index and returns the smooth local anti-dilation of f by k at this index
+    """
+    def jit_local_anti_dilation(index):
+        fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
+        return smoothExt(k - fw,(-1)*alpha)
+    return jit_local_anti_dilation
+
+#Smooth anti-dilation of f by k
+@jax.jit
+def Santi_dilation_2D(f,index_f,k,alpha = 5):
+    """
+    Smooth anti-dilation of 2D image.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A padded image
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    k : jax.numpy.array
+
+        Structuring element
+
+    alpha : float
+
+        Smoothing parameter
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    l = math.floor(k.shape[0]/2)
+    jit_local_anti_dilation = Slocal_anti_dilation(f,k,l,alpha)
+    return jnp.apply_along_axis(jit_local_anti_dilation,1,l + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
+
+#Smooth anti-dilation in batches
+@jax.jit
+def Santi_dilation(f,index_f,k,alpha = 5):
+    """
+    Smooth anti-dilation of batches of images.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A 3D array with the images
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    k : jax.numpy.array
+
+        Structuring element
+
+    alpha : float
+
+        Smoothing parameter
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    l = math.floor(k.shape[0]/2)
+    f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
+    ad = jax.vmap(lambda f: Santi_dilation_2D(f,index_f,k,alpha),in_axes = (0),out_axes = 0)(f)
+    return ad
 
 #Local dilation of f by k for pixel (i,j) assuming k already transposed
 def local_dilation(f,kt,l):
@@ -530,7 +712,7 @@ def dilation(f,index_f,k):
     db = jax.vmap(lambda f: dilation_2D(f,index_f,k),in_axes = (0),out_axes = 0)(f)
     return db
 
-#Local dilation of f by k for pixel (i,j) assuming k already transposed
+#Local smooth dilation of f by k for pixel (i,j) assuming k already transposed
 def Slocal_dilation(f,kt,l,alpha = 5):
     """
     Define function for smooth local dilation.
@@ -562,7 +744,7 @@ def Slocal_dilation(f,kt,l,alpha = 5):
         return smoothExt(fw + kt,alpha)
     return jit_local_dilation
 
-#Dilation of f by k assuming k already transposed
+#Smooth dilation of f by k assuming k already transposed
 @jax.jit
 def Sdilation_2D(f,index_f,kt,alpha = 5):
     """
@@ -594,7 +776,7 @@ def Sdilation_2D(f,index_f,kt,alpha = 5):
     jit_local_dilation = Slocal_dilation(f,kt,l,alpha)
     return jnp.apply_along_axis(jit_local_dilation,1,l + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
 
-#Dilation in batches
+#Smooth dilation in batches
 @jax.jit
 def Sdilation(f,index_f,k,alpha = 5):
     """
@@ -627,6 +809,191 @@ def Sdilation(f,index_f,k,alpha = 5):
     k = dmnn.transpose_se(k)
     db = jax.vmap(lambda f: Sdilation_2D(f,index_f,k,alpha),in_axes = (0),out_axes = 0)(f)
     return db
+
+#Local anti-erosion of f by k for pixel (i,j) assuming k already transposed
+def local_anti_erosion(f,kt,l):
+    """
+    Define function for local anti-erosion.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        An image
+
+    kt : jax.numpy.array
+
+        The transpose of the structuring element
+
+    l : int
+
+        Length of structruring element. If k has shape d x d, then l is the greatest integer such that l <= d/2
+
+    Returns
+    -------
+    a function that receives an index and returns the local anti-erosion of f by k at this index
+    """
+    def jit_local_anti_erosion(index):
+        fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
+        return jnp.max(kt - fw)
+    return jit_local_anti_erosion
+
+#Anti-erosion of f by k assuming k already transposed
+@jax.jit
+def anti_erosion_2D(f,index_f,kt):
+    """
+    Anti-erosion of 2D image.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A padded image
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    kt : jax.numpy.array
+
+        The transpose of the structuring element
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    l = math.floor(kt.shape[0]/2)
+    jit_local_anti_erosion = local_anti_erosion(f,kt,l)
+    return jnp.apply_along_axis(jit_local_anti_erosion,1,l + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
+
+#Anti-erosion in batches
+@jax.jit
+def anti_erosion(f,index_f,k):
+    """
+    Anti-erosion of batches of images.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A 3D array with the images
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    k : jax.numpy.array
+
+        Structuring element
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    l = math.floor(k.shape[0]/2)
+    f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
+    k = dmnn.transpose_se(k)
+    ae = jax.vmap(lambda f: anti_erosion_2D(f,index_f,k),in_axes = (0),out_axes = 0)(f)
+    return ae
+
+#Local smooth anti-erosion of f by k for pixel (i,j) assuming k already transposed
+def Slocal_anti_erosion(f,kt,l,alpha = 5):
+    """
+    Define function for smooth local anti-erosion.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        An image
+
+    kt : jax.numpy.array
+
+        The transpose of the structuring element
+
+    l : int
+
+        Length of structruring element. If k has shape d x d, then l is the greatest integer such that l <= d/2
+
+    alpha : float
+
+        Smoothing parameter
+
+    Returns
+    -------
+    a function that receives an index and returns the smooth local anti-erosion of f by k at this index
+    """
+    def jit_local_anti_erosion(index):
+        fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
+        return smoothExt(kt - fw,alpha)
+    return jit_local_anti_erosion
+
+#Smooth anti-erosion of f by k assuming k already transposed
+@jax.jit
+def Santi_erosion_2D(f,index_f,kt,alpha = 5):
+    """
+    Smoothing anti-erosion of 2D image.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A padded image
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    kt : jax.numpy.array
+
+        The transpose of the structuring element
+
+    alpha : float
+
+        Smoothing parameter
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    l = math.floor(kt.shape[0]/2)
+    jit_local_anti_erosion = Slocal_anti_erosion(f,kt,l,alpha)
+    return jnp.apply_along_axis(jit_local_anti_erosion,1,l + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
+
+#Smooth anti-erosion in batches
+@jax.jit
+def Santi_erosion(f,index_f,k,alpha = 5):
+    """
+    Smoothing anti-erosion of batches of images.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A 3D array with the images
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    k : jax.numpy.array
+
+        Structuring element
+
+    alpha : float
+
+        Smoothing parameter
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    l = math.floor(k.shape[0]/2)
+    f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
+    k = dmnn.transpose_se(k)
+    ae = jax.vmap(lambda f: Santi_erosion_2D(f,index_f,k,alpha),in_axes = (0),out_axes = 0)(f)
+    return ae
+
 
 #Opening of f by k
 @jax.jit
@@ -818,10 +1185,9 @@ def complement(f,m = 1):
     """
     return m - f
 
-############NEED REVIEW##############
 #Sup-generating with interval [k1,k2]
 @jax.jit
-def supgen(f,index_f,k1,k2,m = 1):
+def supgen(f,index_f,k1,k2):
     """
     Sup-generating operator applied to batches of images.
     -------
@@ -839,24 +1205,18 @@ def supgen(f,index_f,k1,k2,m = 1):
 
         Limits of interval [k1,k2]
 
-    m : int
-
-        Maximum value
-
     Returns
     -------
-
-    a JAX numpy array
-
+    jax.numpy.array
     """
-    return  jnp.minimum(erosion(f,index_f,k1),complement(dilation(f,index_f,complement(dmnn.transpose_se(k2 + m),m) - m),m))
+    return  jnp.minimum(erosion(f,index_f,k1),anti_dilation(f,index_f,k2))
 
-#Inf-generating with interval [k1,k2]
-def infgen(f,index_f,k1,k2,m = 1):
+#Smooth sup-generating with interval [k1,k2]
+@jax.jit
+def Ssupgen(f,index_f,k1,k2,alpha = 5):
     """
-    Inf-generating operator applied to batches of images.
+    Smooth sup-generating operator applied to batches of images.
     -------
-
     Parameters
     ----------
     f : jax.numpy.array
@@ -871,17 +1231,69 @@ def infgen(f,index_f,k1,k2,m = 1):
 
         Limits of interval [k1,k2]
 
-    m : int
+    alpha : float
 
-        Maximum value
+        Smoothing parameter
 
     Returns
     -------
-
-    a JAX numpy array
-
+    jax.numpy.array
     """
-    return jnp.maximum(dilation(f,index_f,k1),complement(erosion(f,index_f,complement(dmnn.transpose_se(k2 + m),m) - m),m))
+    return  jnp.minimum(Serosion(f,index_f,k1,alpha),Santi_dilation(f,index_f,k2,alpha))
+
+#Inf-generating with interval [k1,k2]
+def infgen(f,index_f,k1,k2):
+    """
+    Inf-generating operator applied to batches of images.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A 3D array with the binary images
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    k1,k2 : jax.numpy.array
+
+        Limits of interval [k1,k2]
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    return jnp.maximum(anti_erosion(f,index_f,dmm.transpose_se(k1)),dilation(f,index_f,(-1)*dmm.transpose_se(k2)))
+
+#Smooth inf-generating with interval [k1,k2]
+def Sinfgen(f,index_f,k1,k2):
+    """
+    Smooth inf-generating operator applied to batches of images.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A 3D array with the binary images
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    k1,k2 : jax.numpy.array
+
+        Limits of interval [k1,k2]
+
+    alpha : float
+
+        Smoothing parameter
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    return jnp.maximum(Santi_erosion(f,index_f,k1,alpha),Sdilation(f,index_f,(-1)*k2,alpha))
 
 #Sup of array of images
 @jax.jit
@@ -964,6 +1376,10 @@ def operator(type,smooth = False,alpha = 5):
             oper = lambda x,index_x,k: erosion(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
         elif type == 'dilation':
             oper = lambda x,index_x,k: dilation(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
+        elif type == 'anti-erosion':
+            oper = lambda x,index_x,k: anti_erosion(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
+        elif type == 'anti-dilation':
+            oper = lambda x,index_x,k: anti_dilation(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
         elif type == 'opening':
             oper = lambda x,index_x,k: opening(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
         elif type == 'closing':
@@ -982,12 +1398,20 @@ def operator(type,smooth = False,alpha = 5):
             oper = lambda x,index_x,k: Serosion(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
         elif type == 'dilation':
             oper = lambda x,index_x,k: Sdilation(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
+        elif type == 'anti-erosion':
+            oper = lambda x,index_x,k: Santi_erosion(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
+        elif type == 'anti-dilation':
+            oper = lambda x,index_x,k: Santi_dilation(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
         elif type == 'opening':
             oper = lambda x,index_x,k: Sopening(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
         elif type == 'closing':
             oper = lambda x,index_x,k: Sclosing(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
         elif type == 'asf':
             oper = lambda x,index_x,k: Sasf(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
+        elif type == 'supgen':
+            oper = lambda x,index_x,k: Ssupgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])),alpha)
+        elif type == 'infgen':
+            oper = lambda x,index_x,k: Sinfgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])),alpha)
         else:
             print('Type of layer ' + type + 'is wrong!')
             return 1
