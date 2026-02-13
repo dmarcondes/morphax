@@ -1417,12 +1417,46 @@ def operator(type,smooth = False,alpha = 5):
             return 1
     return jax.jit(oper)
 
+#Create an index array for an array
+def index_array(shape):
+    """
+    Create a 2D JAX array with the indexes of an array with given 2D shape.
+    -------
+    Parameters
+    ----------
+    shape : list
+
+        List with shape of 2D array
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    return jnp.array([[x,y] for x in range(shape[0]) for y in range(shape[1])])
+
 #Compute tight structuring element for indentity erosion
 def tight_se_identity(data,d):
+    """
+    Get tight structuring element for applying erosion to a dataset.
+    -------
+    Parameters
+    ----------
+    data : jax.array
+
+        Dataset
+
+    d : int
+
+        Size of window
+
+    Returns
+    -------
+    jax.numpy.array
+    """
     #Data parameters
     l = math.floor(d/2)
     shape_data = (data.shape[1] - l,data.shape[2] - l)
-    index_data = l + mnn.index_array(shape_data)
+    index_data = l + index_array(shape_data)
     #Get neighbourhood for fixed image and pixel
     def jit_local_value(x,index):
         fw = jax.lax.dynamic_slice(x, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
