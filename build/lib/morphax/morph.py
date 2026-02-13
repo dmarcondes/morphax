@@ -1460,7 +1460,7 @@ def tight_se_identity(data,d):
     #Get neighbourhood for fixed image and pixel
     def jit_local_value(x,index):
         fw = jax.lax.dynamic_slice(x, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
-        return fw - fw[l,l]
+        return (-1.0)*jnp.abs(fw - fw[l,l])
     # Compute tight se
     neigh = jax.vmap(lambda x: jax.vmap(lambda index: jit_local_value(x,index))(index_data))(data)
     return jnp.min(neigh,(0,1))
