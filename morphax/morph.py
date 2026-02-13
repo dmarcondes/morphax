@@ -1417,84 +1417,16 @@ def operator(type,smooth = False,alpha = 5):
             return 1
     return jax.jit(oper)
 
-#Approximate supgen
-#@jax.jit
-#def actsupgen(x):
-#    return jnp.where(x < 0,jax.nn.relu(x + 1),1.0)
-
-#def local_supgen(f,k1,k2,l):
-#    def jit_local_supgen(index):
-#        fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
-#        return actsupgen(jnp.min(jnp.minimum(fw - k1,k2 - fw)))
-#    return jit_local_supgen
-
-#@jax.jit
-#def supgen_2D(f,index_f,k1,k2):
-#    l = math.floor(k1.shape[0]/2)
-#    jit_local_supgen = local_supgen(f,k1,k2,l)
-#    return jnp.apply_along_axis(jit_local_supgen,1,l + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
-
-#@jax.jit
-#def ap_supgen(f,index_f,k1,k2):
-#    l = math.floor(k1.shape[0]/2)
-#    f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
-#    k2 = k1 + k2 ** 2
-#    k2 = jnp.where(k2 > 0,0,k2)
-#    sg = jax.vmap(lambda f: supgen_2D(f,index_f,k1 + 1,k2 + 1),in_axes = (0),out_axes = 0)(f)
-#    return sg
-
-
-#Structuring element of the approximate identity operator in a sample
-#def struct_lower(x,d):
-#    #Function to apply to each index
-#    l = math.floor(d/2)
-#    x = jax.lax.pad(x,0.0,((0,0,0),(l,l,0),(l,l,0)))
-#    index_x = index_array((x.shape[1],x.shape[2]))
-#    def struct_lower(index,x):
-#        fw = jax.lax.dynamic_slice(x, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
-#        return fw - x[index[0],index[1]]
-#    k = jax.vmap(lambda x: jnp.apply_along_axis(lambda index: struct_lower(index,x),1,index_x))(x).reshape((x.shape[0],x.shape[1],x.shape[2],d,d))
-#    k = k.reshape((k.shape[0]*k.shape[1]*k.shape[2],d,d))
-#    k = jnp.apply_along_axis(lambda k: jnp.min(k),0,k)
-#    return k
-
-#Structuring element of upper limit of interval of supgen approximating identity operator
-#def struct_upper(x,d):
-#    #Function to apply to each index
-#    l = math.floor(d/2)
-#    x = jax.lax.pad(x,0.0,((0,0,0),(l,l,0),(l,l,0)))
-#    index_x = index_array((x.shape[1],x.shape[2]))
-#    def struct_upper(index,x):
-#        fw = jax.lax.dynamic_slice(x, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
-#        return fw + x[index[0],index[1]]
-#    k = jax.vmap(lambda x: jnp.apply_along_axis(lambda index: struct_upper(index,x),1,index_x))(x).reshape((x.shape[0],x.shape[1],x.shape[2],d,d))
-#    k = k.reshape((k.shape[0]*k.shape[1]*k.shape[2],d,d))
-#    k = jnp.apply_along_axis(lambda k: jnp.max(k),0,k)
-#    return k
-
-#Approximate maximum
-#def max(x,h = 1/5):
-#    return h * jnp.log(jnp.sum(jnp.exp(x/h)))
-
-#def maximum(x,y,h = 1/50):
-#    if len(x.shape) == 2:
-#        x = x.reshape((1,x.shape[0],x.shape[1]))
-#        y = y.reshape((1,y.shape[0],y.shape[1]))
-#    return jax.vmap(jax.vmap(jax.vmap(lambda x,y: h * jnp.log(jnp.sum(jnp.exp(jnp.append(x,y)/h))))))(x,y)
-
-#def maximum_array_number(arr,x,h = 1/5):
-#    return h * jnp.log(jnp.exp(arr/h) + jnp.exp(x/h))
-
-#Approximate minimum
-#def min(x,h = 1/5):
-#    return max(x,-h)
-
-#def minimum(x,y,h = 1/5):
-#    return maximum(x,y,-h)
-
-#def minimum_array_number(arr,x,h = 1/5):
-#    return maximum_array_number(arr,x,-h)
-
-#def struct_function_w(k,w,d):
-#    k = jnp.array(k(w))
-#    return jnp.transpose(k.reshape((d,d)))
+#Compute tight structuring element for indentity erosion
+def tight_se_identity(data,d):
+    #Data parameters
+    l = math.floor(d/2)
+    shape_data = (data.shape[1] - l,data.shape[2] - l)
+    index_data = l + mnn.index_array(shape_data)
+    #Get neighbourhood for fixed image and pixel
+    def jit_local_value(x,index):
+        fw = jax.lax.dynamic_slice(x, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
+        return fw - fw[l,l]
+    # Compute tight se
+    neigh = jax.vmap(lambda x: jax.vmap(lambda index: jit_local_value(x,index))(index_data))(data)
+    return jnp.min(neigh,(0,1))

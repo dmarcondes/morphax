@@ -548,7 +548,7 @@ def apply_morph_layer(x,type,params,index_x,forward_wop = None,activate = lambda
     return fx
 
 #Canonical Morphological NN
-def cmnn(type,width,size,shape_x,sample = False,mean = 0.5,sd = 0.1,key = 0,width_wop = None,activation = jax.nn.relu,activate = lambda x: x,smooth = False,alpha = 5):
+def cmnn(type,width,size,shape_x,sample = False,a_init = None,mean = 0.5,sd = 0.1,key = 0,width_wop = None,activation = jax.nn.relu,activate = lambda x: x,smooth = False,alpha = 5):
     """
     Initialize a Morphological Neural Network as the identity operator.
     ----------
@@ -573,6 +573,10 @@ def cmnn(type,width,size,shape_x,sample = False,mean = 0.5,sd = 0.1,key = 0,widt
     sample : logical
 
         Whether to sample initial parameters or initialise by a random perturbation of the indentity operator
+
+    a_init : jnp.array
+
+        Initial structuring element
 
     mean,sd : float
 
@@ -659,9 +663,17 @@ def cmnn(type,width,size,shape_x,sample = False,mean = 0.5,sd = 0.1,key = 0,widt
                         interval = jnp.append(ll,ul,1)
                         p = jnp.append(p,interval,0)
                 else:
-                    ll = np.zeros((1,1,size[i],size[i]),dtype = int) - 1.0
-                    ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 0
-                    ll = jnp.array(ll)
+                    if a_init is not None:
+                        if type[i] == 'erosion':
+                            ll = a_init
+                        elif type[i] == 'dilation':
+                            ll = dmp.transpose_se(a_init)
+                        elif type[i] == 'opening' or type[i] == 'closing' or type[i] == 'asf':
+                            ll = jnp.min(a_init,dmp.transpose_se(a_init))
+                    else:
+                        ll = np.zeros((1,1,size[i],size[i]),dtype = int) - 1.0
+                        ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 0
+                        ll = jnp.array(ll)
                     p = ll
                     for j in range(width[i] - 1):
                         interval = ll
