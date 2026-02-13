@@ -664,7 +664,7 @@ def cmnn(type,width,size,shape_x,sample = False,a_init = None,mean = 0.5,sd = 0.
                         p = jnp.append(p,interval,0)
                 else:
                     if a_init is not None:
-                        a_init = a_init.resize((1,1,size[i],size[i]))
+                        a_init = a_init.reshape((1,1,size[i],size[i]))
                         if type[i] == 'erosion':
                             ll = a_init
                         elif type[i] == 'dilation':
