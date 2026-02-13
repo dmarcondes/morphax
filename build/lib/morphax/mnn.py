@@ -669,7 +669,7 @@ def cmnn(type,width,size,shape_x,sample = False,a_init = None,mean = 0.5,sd = 0.
                         elif type[i] == 'dilation':
                             ll = dmp.transpose_se(a_init)
                         elif type[i] == 'opening' or type[i] == 'closing' or type[i] == 'asf':
-                            ll = jnp.min(a_init,dmp.transpose_se(a_init))
+                            ll = jnp.minimum(a_init,dmp.transpose_se(a_init))
                     else:
                         ll = np.zeros((1,1,size[i],size[i]),dtype = int) - 1.0
                         ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 0
