@@ -13,6 +13,8 @@ from morphax import morph as mp
 from morphax import dmorph_jax as dmp
 import sys
 import itertools
+from jax.scipy.stats import rankdata
+import copy
 
 __docformat__ = "numpy"
 
@@ -905,3 +907,181 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,initialize = False,width_wop = N
 
     #Return initial parameters and forward function
     return {'params': params,'forward': forward,'compute_struct': compute_struct,'forward_wop': forward_wop,'forward_inner': forward_inner,'width': width,'size': size,'type': type}
+
+# Genetic algorithm
+def genetic_nn_train(x,y,forward,params,loss,generations = 100,sigma = 0.1,x_val = None,y_val = None,key = 0,notebook = False,gen_print = 1000,trace = False,gen_trace = 100,trace_file = 'trace.csv'):
+    """
+    Stochastic gradient descent algorithm
+    ----------
+    Parameters
+    ----------
+    x,y : jax.numpy.array
+
+        Input and output data
+
+    forward : function
+
+        Forward function
+
+    params : list
+
+        Initial parameters of each initial model
+
+    loss : function
+
+        Loss function
+
+    generations : int
+
+        Number of training generations
+
+    sigma : float
+
+        Mutation standard deviation
+
+    x_val,y_val : jax.numpy.array
+
+        Validation data
+
+    key : int
+
+        Seed for parameters initialization. Default 0
+
+    notebook : logical
+
+        Whether code is being executed in a notebook
+
+    gen_print : int
+
+        Number of generations to print training error
+
+    trace : logical
+
+        Whether to trace the algorithm
+
+    gen_trace : int
+
+        Number of generations to store trace of algorithm after
+
+    trace_file : str
+
+        File name to save the trace of the algorithm
+
+    Returns
+    -------
+    list of parameters of best model
+    """
+    #Key
+    key = jax.random.split(jax.random.PRNGKey(key),generations)
+
+    # Size of population
+    N = len(params) # List of lists
+
+    #Trace
+    if trace:
+        tab_trace = {'generations': [],'time': [],'loss': [],'val_loss': []}
+
+    #Loss function
+    @jax.jit
+    def lf(params,x,y):
+        return jnp.mean(jax.vmap(loss,in_axes = (0,0))(forward(x,params),y))
+
+    # Compute first generation loss
+    gen_loss = jnp.array([])
+    for m in range(N):
+        gen_loss = jnp.append(gen_loss,lf(params[m],x,y))
+
+    #Train
+    t0 = time.time()
+    with alive_bar(generations) as bar:
+        for e in range(generations):
+            # Compute probabilities of survival
+            prob_survival = 1/gen_loss
+            prob_survival = prob_survival/jnp.sum(prob_survival)
+
+            # Crossover
+            parents = jax.random.choice(jax.random.PRNGKey(key[e,0]),jnp.arange(N),(N,2))
+            weights = jax.random.uniform(jax.random.PRNGKey(key[e,1]),(N,))
+            new_params = copy.deepcopy(params)
+            for i in range(N):
+                for j in range(len(params[i])):
+                    if isinstance(params[i][j],list):
+                        for k in range(len(params[i][j])):
+                            for l in range(len(params[i][j][k])):
+                                new_params[i][j][k][l]['W'] = weights[i]*params[parents[i,0]][j][k][l]['W'] + (1 - weights[i])*params[parents[i,1]][j][k][l]['W']
+                                new_params[i][j][k][l]['B'] = weights[i]*params[parents[i,0]][j][k][l]['B'] + (1 - weights[i])*params[parents[i,1]][j][k][l]['B']
+                    else:
+                        new_params[i][j] = weights[i]*params[parents[i,0]][j] + (1 - weights[i])*params[parents[i,1]][j]
+
+            # Mutate
+            key_mutate = jax.random.split(jax.random.PRNGKey(key[e,0] + key[e,1]),N*1000)
+            ki = 0
+            for i in range(N):
+                for j in range(len(params[i])):
+                    if isinstance(params[i][j],list):
+                        for k in range(len(params[i][j])):
+                            for l in range(len(params[i][j][k])):
+                                new_params[i][j][k][l]['W'] = new_params[i][j][k][l]['W'] + sigma*jax.random.normal(jax.random.PRNGKey(key_mutate[ki,0]),new_params[i][j][k][l]['W'].shape)
+                                new_params[i][j][k][l]['B'] = new_params[i][j][k][l]['B'] + sigma*jax.random.normal(jax.random.PRNGKey(key_mutate[ki,1]),new_params[i][j][k][l]['B'].shape)
+                                ki = ki + 1
+                    else:
+                        new_params[i][j] = new_params[i][j] + sigma*jax.random.normal(jax.random.PRNGKey(key_mutate[ki,0]),new_params[i][j].shape)
+                        ki = ki + 1
+
+            # Loss of new models
+            offs_loss = jnp.array([])
+            for m in range(N):
+                offs_loss = jnp.append(offs_loss,lf(new_params[m],x,y))
+
+            # Append params
+            all_params = params + new_params
+            all_loss = jnp.append(gen_loss,offs_loss)
+            del params, new_params, gen_loss, offs_loss
+
+            # Keep best N models
+            _, best = jax.lax.approx_min_k(all_loss, N)
+            params = list()
+            for i in best:
+                params.append(all_params[i])
+
+            del all_params, all_loss
+
+            # Compute generation loss
+            gen_loss = jnp.array([])
+            for m in range(N):
+                gen_loss = jnp.append(gen_loss,lf(params[m],x,y))
+
+            if not notebook:
+                bar()
+            if (e % gen_print == 0 or e % gen_trace == 0):
+                l = jnp.min(gen_loss)
+                pl = str(jnp.round(l,10))
+                if x_val is not None:
+                    vl = lf(params[jnp.where(gen_loss == jnp.min(gen_loss))[0][0]],x_val,y_val)
+                    pl = pl + ' Val loss: ' + str(jnp.round(vl,10))
+                if notebook and e % gen_print == 0:
+                    print('Epoch: ' + str(e) + ' Time: ' + str(jnp.round(time.time() - t0,2)) + ' s Loss: ' + pl)
+                if not notebook and e % gen_print == 0:
+                    bar.title("Loss: " + pl)
+                if (trace and e % gen_trace == 0):
+                    tab_trace['generations'] = tab_trace['generations'] + [e]
+                    tab_trace['time'] = tab_trace['time'] + [time.time() - t0]
+                    tab_trace['loss'] = tab_trace['loss'] + [l]
+                    if x_val is not None:
+                        tab_trace['val_loss'] = tab_trace['val_loss'] + [vl]
+                    else:
+                        tab_trace['val_loss'] = tab_trace['val_loss'] + [-1]
+
+    if trace:
+        tab_trace['generations'] = tab_trace['generations'] + [e]
+        tab_trace['time'] = tab_trace['time'] + [time.time() - t0]
+        tab_trace['loss'] = tab_trace['loss'] + [l]
+        if x_val is not None:
+            vl = lf(params[jnp.where(gen_loss == jnp.min(gen_loss))[0][0]],x_val,y_val)
+            tab_trace['val_loss'] = tab_trace['val_loss'] + [vl]
+        else:
+            tab_trace['val_loss'] = tab_trace['val_loss'] + [-1]
+        tab_trace = pd.DataFrame(tab_trace)
+        tab_trace.to_csv(trace_file)
+
+    return params[jnp.where(gen_loss == jnp.min(gen_loss))[0][0]]
