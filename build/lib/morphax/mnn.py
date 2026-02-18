@@ -633,18 +633,14 @@ def cmnn(type,width,size,shape_x,sample = False,a_init = None,mean = 0.5,sd = 0.
         else:
             if sample:
                 if type[i] == 'supgen' or type[i] == 'infgen':
-                    ll = np.zeros((1,1,size[i],size[i]),dtype = float)
-                    ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 1.0
-                    ll = jnp.array(ll)
-                    ul = 1.0 + jnp.zeros((1,1,size[i],size[i]),dtype = float)
                     for j in range(width[i]):
+                        ll = mean + sd*jax.random.normal(jax.random.PRNGKey(key[k,0,j]),shape = (1,1,size[i],size[i]))
+                        ul = jnp.sqrt(mean + sd*jax.random.normal(jax.random.PRNGKey(key[k,1,j]),shape = (1,1,size[i],size[i])))
                         s = jax.random.choice(jax.random.PRNGKey(key[k,0,0]),2,p = jnp.array([1 - p1,p1]),shape = (1,1,size[i],size[i]))
-                        k = k + 1
-                        s = jnp.maximum(ll,s)
+                        interval = jnp.append(ll,ul,1)
                         if j == 0:
-                            p = jnp.append(s,ul,1)
+                            p = interval
                         else:
-                            interval = jnp.append(s,ul,1)
                             p = jnp.append(p,interval,0)
                 else:
                     for j in range(width[i]):
