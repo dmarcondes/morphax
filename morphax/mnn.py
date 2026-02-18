@@ -913,7 +913,7 @@ def crossover_GA(params,weights,parents,N):
             if isinstance(params[i][j],list):
                 for k in range(len(params[i][j])):
                     for l in range(len(params[i][j][k])):
-                        if isinstance(new_params[i][j][l],list):
+                        if isinstance(new_params[i][j][k][l],list):
                             for m in range(len(new_params[i][j][l])):
                                 new_params[i][j][k][l][m]['W'] = weights[i]*params[parents[i,0]][j][k][l][m]['W'] + (1 - weights[i])*params[parents[i,1]][j][k][l][m]['W']
                                 new_params[i][j][k][l][m]['B'] = weights[i]*params[parents[i,0]][j][k][l][m]['B'] + (1 - weights[i])*params[parents[i,1]][j][k][l][m]['B']
@@ -932,7 +932,7 @@ def mutate_GA(new_params,key_mutate,N,sigma):
             if isinstance(new_params[i][j],list):
                 for k in range(len(new_params[i][j])):
                     for l in range(len(new_params[i][j][k])):
-                        if isinstance(new_params[i][j][l],list):
+                        if isinstance(new_params[i][j][k][l],list):
                             for m in range(len(new_params[i][j][l])):
                                 new_params[i][j][k][l][m]['W'] = new_params[i][j][k][l][m]['W'] + sigma*jax.random.normal(jax.random.PRNGKey(key_mutate[ki,0]),new_params[i][j][k][l][m]['W'].shape)
                                 new_params[i][j][k][l][m]['B'] = new_params[i][j][k][l][m]['B'] + sigma*jax.random.normal(jax.random.PRNGKey(key_mutate[ki,1]),new_params[i][j][k][l][m]['B'].shape)
