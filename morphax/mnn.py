@@ -635,8 +635,7 @@ def cmnn(type,width,size,shape_x,sample = False,a_init = None,mean = 0.5,sd = 0.
                 if type[i] == 'supgen' or type[i] == 'infgen':
                     for j in range(width[i]):
                         ll = mean + sd*jax.random.normal(jax.random.PRNGKey(key[k,0,j]),shape = (1,1,size[i],size[i]))
-                        ul = jnp.sqrt(mean + sd*jax.random.normal(jax.random.PRNGKey(key[k,1,j]),shape = (1,1,size[i],size[i])))
-                        s = jax.random.choice(jax.random.PRNGKey(key[k,0,0]),2,p = jnp.array([1 - p1,p1]),shape = (1,1,size[i],size[i]))
+                        ul = mean + sd*jax.random.normal(jax.random.PRNGKey(key[k,1,j]),shape = (1,1,size[i],size[i]))
                         interval = jnp.append(ll,ul,1)
                         if j == 0:
                             p = interval
@@ -921,7 +920,6 @@ def crossover_GA(params,weights,parents,N):
     return new_params
 
 # Mutate
-@partial(jax.jit, static_argnums=(2,3,))
 def mutate_GA(new_params,key_mutate,N,sigma):
     ki = 0
     for i in range(N):
@@ -929,15 +927,20 @@ def mutate_GA(new_params,key_mutate,N,sigma):
             if isinstance(new_params[i][j],list):
                 for k in range(len(new_params[i][j])):
                     for l in range(len(new_params[i][j][k])):
-                        new_params[i][j][k][l]['W'] = new_params[i][j][k][l]['W'] + sigma*jax.random.normal(jax.random.PRNGKey(key_mutate[ki,0]),new_params[i][j][k][l]['W'].shape)
-                        new_params[i][j][k][l]['B'] = new_params[i][j][k][l]['B'] + sigma*jax.random.normal(jax.random.PRNGKey(key_mutate[ki,1]),new_params[i][j][k][l]['B'].shape)
-                        ki = ki + 1
+                        if isinstance(new_params[i][j][l],list):
+                            for m in len(new_params[i][j][l]):
+                                new_params[i][j][k][l][m]['W'] = new_params[i][j][k][l][m]['W'] + sigma*jax.random.normal(jax.random.PRNGKey(key_mutate[ki,0]),new_params[i][j][k][l][m]['W'].shape)
+                                new_params[i][j][k][l][m]['B'] = new_params[i][j][k][l][m]['B'] + sigma*jax.random.normal(jax.random.PRNGKey(key_mutate[ki,1]),new_params[i][j][k][l][m]['B'].shape)
+                                ki = ki + 1
+                        else:
+                            new_params[i][j][k][l]['W'] = new_params[i][j][k][l]['W'] + sigma*jax.random.normal(jax.random.PRNGKey(key_mutate[ki,0]),new_params[i][j][k][l]['W'].shape)
+                            new_params[i][j][k][l]['B'] = new_params[i][j][k][l]['B'] + sigma*jax.random.normal(jax.random.PRNGKey(key_mutate[ki,1]),new_params[i][j][k][l]['B'].shape)
+                            ki = ki + 1
             else:
                 new_params[i][j] = new_params[i][j] + sigma*jax.random.normal(jax.random.PRNGKey(key_mutate[ki,0]),new_params[i][j].shape)
                 ki = ki + 1
 
 # Get loss GA
-@partial(jax.jit, static_argnums=(3,4,))
 def get_loss_GA(params,x,y,lf,N):
     loss = jnp.array([])
     for m in range(N):
