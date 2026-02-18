@@ -911,7 +911,6 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,initialize = False,width_wop = N
 
 
 # Crossover
-@partial(jax.jit, static_argnums=(3,))
 def crossover_GA(params,weights,parents,N):
     new_params = copy.deepcopy(params)
     for i in range(N):
