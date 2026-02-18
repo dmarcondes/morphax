@@ -913,8 +913,13 @@ def crossover_GA(params,weights,parents,N):
             if isinstance(params[i][j],list):
                 for k in range(len(params[i][j])):
                     for l in range(len(params[i][j][k])):
-                        new_params[i][j][k][l]['W'] = weights[i]*params[parents[i,0]][j][k][l]['W'] + (1 - weights[i])*params[parents[i,1]][j][k][l]['W']
-                        new_params[i][j][k][l]['B'] = weights[i]*params[parents[i,0]][j][k][l]['B'] + (1 - weights[i])*params[parents[i,1]][j][k][l]['B']
+                        if isinstance(new_params[i][j][l],list):
+                            for m in len(new_params[i][j][l]):
+                                new_params[i][j][k][l][m]['W'] = weights[i]*params[parents[i,0]][j][k][l][m]['W'] + (1 - weights[i])*params[parents[i,1]][j][k][l][m]['W']
+                                new_params[i][j][k][l][m]['B'] = weights[i]*params[parents[i,0]][j][k][l][m]['B'] + (1 - weights[i])*params[parents[i,1]][j][k][l][m]['B']
+                        else:
+                            new_params[i][j][k][l]['W'] = weights[i]*params[parents[i,0]][j][k][l]['W'] + (1 - weights[i])*params[parents[i,1]][j][k][l]['W']
+                            new_params[i][j][k][l]['B'] = weights[i]*params[parents[i,0]][j][k][l]['B'] + (1 - weights[i])*params[parents[i,1]][j][k][l]['B']
             else:
                 new_params[i][j] = weights[i]*params[parents[i,0]][j] + (1 - weights[i])*params[parents[i,1]][j]
     return new_params
