@@ -15,6 +15,7 @@ import sys
 import itertools
 from jax.scipy.stats import rankdata
 import copy
+from functools import partial
 
 __docformat__ = "numpy"
 
@@ -908,6 +909,46 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,initialize = False,width_wop = N
     #Return initial parameters and forward function
     return {'params': params,'forward': forward,'compute_struct': compute_struct,'forward_wop': forward_wop,'forward_inner': forward_inner,'width': width,'size': size,'type': type}
 
+
+# Crossover
+@partial(jax.jit, static_argnums=(3,))
+def crossover_GA(params,weights,parents,N):
+    new_params = copy.deepcopy(params)
+    for i in range(N):
+        for j in range(len(params[i])):
+            if isinstance(params[i][j],list):
+                for k in range(len(params[i][j])):
+                    for l in range(len(params[i][j][k])):
+                        new_params[i][j][k][l]['W'] = weights[i]*params[parents[i,0]][j][k][l]['W'] + (1 - weights[i])*params[parents[i,1]][j][k][l]['W']
+                        new_params[i][j][k][l]['B'] = weights[i]*params[parents[i,0]][j][k][l]['B'] + (1 - weights[i])*params[parents[i,1]][j][k][l]['B']
+            else:
+                new_params[i][j] = weights[i]*params[parents[i,0]][j] + (1 - weights[i])*params[parents[i,1]][j]
+    return new_params
+
+# Mutate
+@partial(jax.jit, static_argnums=(2,))
+def mutate_GA(new_params,key_mutate,N):
+    ki = 0
+    for i in range(N):
+        for j in range(len(new_params[i])):
+            if isinstance(new_params[i][j],list):
+                for k in range(len(new_params[i][j])):
+                    for l in range(len(new_params[i][j][k])):
+                        new_params[i][j][k][l]['W'] = new_params[i][j][k][l]['W'] + sigma*jax.random.normal(jax.random.PRNGKey(key_mutate[ki,0]),new_params[i][j][k][l]['W'].shape)
+                        new_params[i][j][k][l]['B'] = new_params[i][j][k][l]['B'] + sigma*jax.random.normal(jax.random.PRNGKey(key_mutate[ki,1]),new_params[i][j][k][l]['B'].shape)
+                        ki = ki + 1
+            else:
+                new_params[i][j] = new_params[i][j] + sigma*jax.random.normal(jax.random.PRNGKey(key_mutate[ki,0]),new_params[i][j].shape)
+                ki = ki + 1
+
+# Get loss GA
+@partial(jax.jit, static_argnums=(1,2,))
+def get_loss_GA(params,lf,N):
+    loss = jnp.array([])
+    for m in range(N):
+        loss = jnp.append(loss,lf(params[m],x,y))
+    return loss
+
 # Genetic algorithm
 def genetic_nn_train(x,y,forward,params,loss,generations = 100,sigma = 0.1,x_val = None,y_val = None,key = 0,notebook = False,gen_print = 1000,trace = False,gen_trace = 100,trace_file = 'trace.csv'):
     """
@@ -987,9 +1028,7 @@ def genetic_nn_train(x,y,forward,params,loss,generations = 100,sigma = 0.1,x_val
         return jnp.mean(jax.vmap(loss,in_axes = (0,0))(forward(x,params),y))
 
     # Compute first generation loss
-    gen_loss = jnp.array([])
-    for m in range(N):
-        gen_loss = jnp.append(gen_loss,lf(params[m],x,y))
+    gen_loss = get_loss_GA(params,lf,N)
 
     #Train
     t0 = time.time()
@@ -1002,36 +1041,14 @@ def genetic_nn_train(x,y,forward,params,loss,generations = 100,sigma = 0.1,x_val
             # Crossover
             parents = jax.random.choice(jax.random.PRNGKey(key[e,0]),jnp.arange(N),(N,2))
             weights = jax.random.uniform(jax.random.PRNGKey(key[e,1]),(N,))
-            new_params = copy.deepcopy(params)
-            for i in range(N):
-                for j in range(len(params[i])):
-                    if isinstance(params[i][j],list):
-                        for k in range(len(params[i][j])):
-                            for l in range(len(params[i][j][k])):
-                                new_params[i][j][k][l]['W'] = weights[i]*params[parents[i,0]][j][k][l]['W'] + (1 - weights[i])*params[parents[i,1]][j][k][l]['W']
-                                new_params[i][j][k][l]['B'] = weights[i]*params[parents[i,0]][j][k][l]['B'] + (1 - weights[i])*params[parents[i,1]][j][k][l]['B']
-                    else:
-                        new_params[i][j] = weights[i]*params[parents[i,0]][j] + (1 - weights[i])*params[parents[i,1]][j]
+            new_params = crossover_GA(params,weights,parents,N)
 
             # Mutate
             key_mutate = jax.random.split(jax.random.PRNGKey(key[e,0] + key[e,1]),N*1000)
-            ki = 0
-            for i in range(N):
-                for j in range(len(params[i])):
-                    if isinstance(params[i][j],list):
-                        for k in range(len(params[i][j])):
-                            for l in range(len(params[i][j][k])):
-                                new_params[i][j][k][l]['W'] = new_params[i][j][k][l]['W'] + sigma*jax.random.normal(jax.random.PRNGKey(key_mutate[ki,0]),new_params[i][j][k][l]['W'].shape)
-                                new_params[i][j][k][l]['B'] = new_params[i][j][k][l]['B'] + sigma*jax.random.normal(jax.random.PRNGKey(key_mutate[ki,1]),new_params[i][j][k][l]['B'].shape)
-                                ki = ki + 1
-                    else:
-                        new_params[i][j] = new_params[i][j] + sigma*jax.random.normal(jax.random.PRNGKey(key_mutate[ki,0]),new_params[i][j].shape)
-                        ki = ki + 1
+            mutate_GA(new_params,key_mutate,N)
 
             # Loss of new models
-            offs_loss = jnp.array([])
-            for m in range(N):
-                offs_loss = jnp.append(offs_loss,lf(new_params[m],x,y))
+            offs_loss = get_loss_GA(new_params,lf,N)
 
             # Append params
             all_params = params + new_params
@@ -1047,9 +1064,7 @@ def genetic_nn_train(x,y,forward,params,loss,generations = 100,sigma = 0.1,x_val
             del all_params, all_loss
 
             # Compute generation loss
-            gen_loss = jnp.array([])
-            for m in range(N):
-                gen_loss = jnp.append(gen_loss,lf(params[m],x,y))
+            gen_loss = get_loss_GA(params,lf,N)
 
             if not notebook:
                 bar()
