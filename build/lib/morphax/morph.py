@@ -1387,9 +1387,9 @@ def operator(type,smooth = False,alpha = 5):
         elif type == 'asf':
             oper = lambda x,index_x,k: asf(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
         elif type == 'supgen':
-            oper = lambda x,index_x,k: supgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])))
+            oper = lambda x,index_x,k: supgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])) + jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])) ** 2)
         elif type == 'infgen':
-            oper = lambda x,index_x,k: infgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])))
+            oper = lambda x,index_x,k: infgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])) + jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])) ** 2)
         else:
             print('Type of layer ' + type + 'is wrong!')
             return 1
@@ -1409,9 +1409,9 @@ def operator(type,smooth = False,alpha = 5):
         elif type == 'asf':
             oper = lambda x,index_x,k: Sasf(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
         elif type == 'supgen':
-            oper = lambda x,index_x,k: Ssupgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])),alpha)
+            oper = lambda x,index_x,k: Ssupgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])) + jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])) ** 2,alpha)
         elif type == 'infgen':
-            oper = lambda x,index_x,k: Sinfgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])),alpha)
+            oper = lambda x,index_x,k: Sinfgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2]))+ jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])) ** 2,alpha)
         else:
             print('Type of layer ' + type + 'is wrong!')
             return 1
