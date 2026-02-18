@@ -925,8 +925,8 @@ def crossover_GA(params,weights,parents,N):
     return new_params
 
 # Mutate
-@partial(jax.jit, static_argnums=(2,))
-def mutate_GA(new_params,key_mutate,N):
+@partial(jax.jit, static_argnums=(2,3,))
+def mutate_GA(new_params,key_mutate,N,sigma):
     ki = 0
     for i in range(N):
         for j in range(len(new_params[i])):
@@ -1044,7 +1044,7 @@ def genetic_nn_train(x,y,forward,params,loss,generations = 100,sigma = 0.1,x_val
 
             # Mutate
             key_mutate = jax.random.split(jax.random.PRNGKey(key[e,0] + key[e,1]),N*1000)
-            mutate_GA(new_params,key_mutate,N)
+            mutate_GA(new_params,key_mutate,N,sigma)
 
             # Loss of new models
             offs_loss = get_loss_GA(new_params,x,y,lf,N)
