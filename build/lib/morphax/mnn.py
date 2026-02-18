@@ -942,8 +942,8 @@ def mutate_GA(new_params,key_mutate,N):
                 ki = ki + 1
 
 # Get loss GA
-@partial(jax.jit, static_argnums=(1,2,))
-def get_loss_GA(params,lf,N):
+@partial(jax.jit, static_argnums=(3,4,))
+def get_loss_GA(params,x,y,lf,N):
     loss = jnp.array([])
     for m in range(N):
         loss = jnp.append(loss,lf(params[m],x,y))
@@ -1028,7 +1028,7 @@ def genetic_nn_train(x,y,forward,params,loss,generations = 100,sigma = 0.1,x_val
         return jnp.mean(jax.vmap(loss,in_axes = (0,0))(forward(x,params),y))
 
     # Compute first generation loss
-    gen_loss = get_loss_GA(params,lf,N)
+    gen_loss = get_loss_GA(params,x,y,lf,N)
 
     #Train
     t0 = time.time()
@@ -1048,7 +1048,7 @@ def genetic_nn_train(x,y,forward,params,loss,generations = 100,sigma = 0.1,x_val
             mutate_GA(new_params,key_mutate,N)
 
             # Loss of new models
-            offs_loss = get_loss_GA(new_params,lf,N)
+            offs_loss = get_loss_GA(new_params,x,y,lf,N)
 
             # Append params
             all_params = params + new_params
@@ -1064,7 +1064,7 @@ def genetic_nn_train(x,y,forward,params,loss,generations = 100,sigma = 0.1,x_val
             del all_params, all_loss
 
             # Compute generation loss
-            gen_loss = get_loss_GA(params,lf,N)
+            gen_loss = get_loss_GA(params,x,y,lf,N)
 
             if not notebook:
                 bar()
