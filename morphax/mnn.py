@@ -549,7 +549,7 @@ def apply_morph_layer(x,type,params,index_x,forward_wop = None,activate = lambda
 #Canonical Morphological NN
 def cmnn(type,width,size,shape_x,sample = False,a_init = None,mean = 0.5,sd = 0.1,key = 0,width_wop = None,activation = jax.nn.relu,activate = lambda x: x,alpha = 5):
     """
-    Initialize a Morphological Neural Network as the identity operator.
+    Initialize a Morphological Neural Network
     ----------
     Parameters
     ----------
@@ -623,54 +623,25 @@ def cmnn(type,width,size,shape_x,sample = False,a_init = None,mean = 0.5,sd = 0.
             forward_wop = net['forward']
             params.append(net['params'])
         else:
-            if sample:
-                if type[i] == 'supgen' or type[i] == 'infgen' or type[i] == 'Ssupgen' or type[i] == 'Sinfgen':
-                    for j in range(width[i]):
-                        ll = mean + sd*jax.random.normal(jax.random.PRNGKey(key[k,0,j]),shape = (1,1,size[i],size[i]))
-                        ul = mean + sd*jax.random.normal(jax.random.PRNGKey(key[k,1,j]),shape = (1,1,size[i],size[i]))
-                        interval = jnp.append(ll,ul,1)
-                        if j == 0:
-                            p = interval
-                        else:
-                            p = jnp.append(p,interval,0)
-                else:
-                    for j in range(width[i]):
-                        s = mean + sd*jax.random.normal(jax.random.PRNGKey(key[k,0,0]),shape = (1,1,size[i],size[i]))
-                        k = k + 1
-                        if j == 0:
-                            p = jnp.array(s)
-                        else:
-                            p = jnp.append(p,s,0)
-                params.append(p.astype(jnp.float32))
-            else:
-                if type[i] == 'supgen' or type[i] == 'infgen' or type[i] == 'Ssupgen' or type[i] == 'Sinfgen':
-                    ll = np.zeros((1,1,size[i],size[i]),dtype = int)
-                    ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 1
-                    ll = jnp.array(ll)
-                    ul = jnp.sqrt(1 + jnp.zeros((1,1,size[i],size[i]),dtype = int) - ll)
-                    p = jnp.append(ll,ul,1)
-                    for j in range(width[i] - 1):
-                        interval = jnp.append(ll,ul,1)
-                        p = jnp.append(p,interval,0)
-                else:
-                    if a_init is not None:
-                        a_init = a_init.reshape((1,1,size[i],size[i]))
-                        if type[i] == 'erosion' or type[i] == 'Serosion':
-                            ll = a_init
-                        elif type[i] == 'dilation' or type[i] == 'Sdilation':
-                            ll = dmp.transpose_se(a_init)
-                        elif type[i] == 'opening' or type[i] == 'closing' or type[i] == 'asf' or type[i] == 'Sopening' or type[i] == 'Sclosing' or type[i] == 'Sasf':
-                            ll = jnp.minimum(a_init,dmp.transpose_se(a_init))
+            if type[i] in ['supgen','infgen','Ssupgen','Sinfgen']:
+                for j in range(width[i]):
+                    ll = mean + sd*jax.random.normal(jax.random.PRNGKey(key[k,0,j]),shape = (1,1,size[i],size[i]))
+                    ul = mean + sd*jax.random.normal(jax.random.PRNGKey(key[k,1,j]),shape = (1,1,size[i],size[i]))
+                    interval = jnp.append(ll,ul,1)
+                    if j == 0:
+                        p = interval
                     else:
-                        ll = np.zeros((1,1,size[i],size[i]),dtype = int) - 1.0
-                        ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 0
-                        ll = jnp.array(ll)
-                    p = ll
-                    for j in range(width[i] - 1):
-                        interval = ll
                         p = jnp.append(p,interval,0)
-                params.append(p.astype(jnp.float32) + mean + sd*jax.random.normal(key[k,0],p.shape,jnp.float32))
-                k = k + 1
+            else:
+                for j in range(width[i]):
+                    s = mean + sd*jax.random.normal(jax.random.PRNGKey(key[k,0,0]),shape = (1,1,size[i],size[i]))
+                    k = k + 1
+                    if j == 0:
+                        p = jnp.array(s)
+                    else:
+                        p = jnp.append(p,s,0)
+            params.append(p.astype(jnp.float32))
+
 
     #Forward pass
     @jax.jit
