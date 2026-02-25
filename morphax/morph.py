@@ -347,6 +347,88 @@ def erosion(f,index_f,k):
     eb = jax.vmap(lambda f: erosion_2D(f,index_f,k),in_axes = (0),out_axes = 0)(f)
     return eb
 
+#Local general erosion of f by basis b for pixel (i,j)
+def local_Gerosion(f,b):
+    """
+    Define function for local general erosion.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        An image
+
+    b : jax.numpy.array
+
+        Array of dimension m x d x d with the left-limit of the basis at each level 0,...,m
+
+    Returns
+    -------
+    a function that receives an index and returns the local general erosion of f with basis b at this index
+    """
+    l = math.floor(b.shape[1]/2)
+    levels = jnp.arange(b.shape[0])
+    def jit_local_Gerosion(index):
+        fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
+        return jnp.max((levels * (jax.vmap(lambda b: jnp.min(fw - b))(b) >= 0))/(b.shape[0] - 1))
+    return jit_local_Gerosion
+
+#General erosion of f with basis b
+@jax.jit
+def Gerosion_2D(f,index_f,b):
+    """
+    General erosion of 2D image.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A padded image
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    b : jax.numpy.array
+
+        Array of dimension m x d x d with the left-limit of the basis at each level 0,...,m
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    jit_local_Gerosion = local_Gerosion(f,b)
+    return jnp.apply_along_axis(jit_local_Gerosion,1,l + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
+
+#General erosion in batches
+@jax.jit
+def Gerosion(f,index_f,b):
+    """
+    General erosion of batches of images.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A 3D array with the images
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    b : jax.numpy.array
+
+        Array of dimension m x d x d with the left-limit of the basis at each level 0,...,m
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    l = math.floor(b.shape[1]/2)
+    f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
+    eb = jax.vmap(lambda f: Gerosion_2D(f,index_f,b),in_axes = (0),out_axes = 0)(f)
+    return eb
+
 #Smooth local erosion of f by k for pixel (i,j)
 def Slocal_erosion(f,k,l,alpha = 5):
     """
@@ -527,6 +609,88 @@ def anti_dilation(f,index_f,k):
     l = math.floor(k.shape[0]/2)
     f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
     ad = jax.vmap(lambda f: anti_dilation_2D(f,index_f,k),in_axes = (0),out_axes = 0)(f)
+    return ad
+
+#Local general anti dilation of f by basis b for pixel (i,j)
+def local_Ganti_dilation(f,b):
+    """
+    Define function for local general anti-dilation.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        An image
+
+    b : jax.numpy.array
+
+        Array of dimension m x d x d with the right-limit of the basis at each level 0,...,m
+
+    Returns
+    -------
+    a function that receives an index and returns the local general anti-dilation of f with basis b at this index
+    """
+    l = math.floor(b.shape[1]/2)
+    levels = jnp.arange(b.shape[0])
+    def jit_local_Ganti_dilation(index):
+        fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
+        return jnp.max((levels * (jax.vmap(lambda b: jnp.max(fw - b))(b) <= 0))/(b.shape[0] - 1))
+    return jit_local_Ganti_dilation
+
+#General anti-dilation of f with basis b
+@jax.jit
+def Ganti_dilation_2D(f,index_f,b):
+    """
+    General anti-dilation of 2D image.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A padded image
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    b : jax.numpy.array
+
+        Array of dimension m x d x d with the right-limit of the basis at each level 0,...,m
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    jit_local_Ganti_dilation = local_Ganti_dilation(f,b)
+    return jnp.apply_along_axis(jit_local_Ganti_dilation,1,l + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
+
+#General anti-dilation in batches
+@jax.jit
+def Ganti_dilation(f,index_f,b):
+    """
+    General anti-dilation of batches of images.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A 3D array with the images
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    b : jax.numpy.array
+
+        Array of dimension m x d x d with the right-limit of the basis at each level 0,...,m
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    l = math.floor(b.shape[1]/2)
+    f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
+    ad = jax.vmap(lambda f: Ganti_dilation_2D(f,index_f,b),in_axes = (0),out_axes = 0)(f)
     return ad
 
 #Local smoth anti-dilation of f by k for pixel (i,j)
@@ -710,6 +874,89 @@ def dilation(f,index_f,k):
     f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
     k = dmnn.transpose_se(k)
     db = jax.vmap(lambda f: dilation_2D(f,index_f,k),in_axes = (0),out_axes = 0)(f)
+    return db
+
+#Local general dilation of f with right-basis b for pixel (i,j)
+def local_Gdilation(f,b):
+    """
+    Define function for local general dilation.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        An image
+
+    b : jax.numpy.array
+
+        Array of dimension m x d x d with the right-limit of the right-basis at each level 0,...,m
+
+    Returns
+    -------
+    a function that receives an index and returns the local general dilation of f with right-basis b at this index
+    """
+    l = math.floor(b.shape[1]/2)
+    b = b[:-1,:,:]
+    levels = jnp.arange(b.shape[0])
+    def jit_local_Gdilation(index):
+        fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
+        return (jnp.max(levels * (jax.vmap(lambda b: jnp.max(fw - b))(b) > 0)) + 1)/(b.shape[0])
+    return jit_local_Gdilation
+
+#General dilation of f with basis b
+@jax.jit
+def Gdilation_2D(f,index_f,b):
+    """
+    General dilation of 2D image.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A padded image
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    b : jax.numpy.array
+
+        Array of dimension m x d x d with the right-limit of the right-basis at each level 0,...,m
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    jit_local_Gdilation = local_Gdilation(f,b)
+    return jnp.apply_along_axis(jit_local_Gdilation,1,l + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
+
+#General dilation in batches
+@jax.jit
+def Gdilation(f,index_f,b):
+    """
+    General dilation of batches of images.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A 3D array with the images
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    b : jax.numpy.array
+
+        Array of dimension m x d x d with the right-limit of the right-basis at each level 0,...,m
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    l = math.floor(b.shape[1]/2)
+    f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
+    db = jax.vmap(lambda f: Gdilation_2D(f,index_f,b),in_axes = (0),out_axes = 0)(f)
     return db
 
 #Local smooth dilation of f by k for pixel (i,j) assuming k already transposed
@@ -896,6 +1143,89 @@ def anti_erosion(f,index_f,k):
     ae = jax.vmap(lambda f: anti_erosion_2D(f,index_f,k),in_axes = (0),out_axes = 0)(f)
     return ae
 
+#Local general anti-erosion of f with right-basis b for pixel (i,j)
+def local_Ganti_erosion(f,b):
+    """
+    Define function for local general anti-erosion.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        An image
+
+    b : jax.numpy.array
+
+        Array of dimension m x d x d with the left-limit of the right-basis at each level 0,...,m
+
+    Returns
+    -------
+    a function that receives an index and returns the local general anti-erosion of f with right-basis b at this index
+    """
+    l = math.floor(b.shape[1]/2)
+    b = b[:-1,:,:]
+    levels = jnp.arange(b.shape[0])
+    def jit_local_Ganti_erosion(index):
+        fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
+        return (jnp.max(levels * (jax.vmap(lambda b: jnp.min(fw - b))(b) < 0)) + 1)/(b.shape[0])
+    return jit_local_Ganti_erosion
+
+#General anti-erosion of f with basis b
+@jax.jit
+def Ganti_erosion_2D(f,index_f,b):
+    """
+    General anti-erosion of 2D image.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A padded image
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    b : jax.numpy.array
+
+        Array of dimension m x d x d with the left-limit of the right-basis at each level 0,...,m
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    jit_local_Ganti_erosion = local_Ganti_erosion(f,b)
+    return jnp.apply_along_axis(jit_local_Ganti_erosion,1,l + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
+
+#General anti-erosion in batches
+@jax.jit
+def Ganti_erosion(f,index_f,b):
+    """
+    General anti-erosion of batches of images.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A 3D array with the images
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    b : jax.numpy.array
+
+        Array of dimension m x d x d with the left-limit of the right-basis at each level 0,...,m
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    l = math.floor(b.shape[1]/2)
+    f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
+    aeb = jax.vmap(lambda f: Ganti_erosion_2D(f,index_f,b),in_axes = (0),out_axes = 0)(f)
+    return aeb
+
 #Local smooth anti-erosion of f by k for pixel (i,j) assuming k already transposed
 def Slocal_anti_erosion(f,kt,l,alpha = 5):
     """
@@ -994,7 +1324,6 @@ def Santi_erosion(f,index_f,k,alpha = 5):
     ae = jax.vmap(lambda f: Santi_erosion_2D(f,index_f,k,alpha),in_axes = (0),out_axes = 0)(f)
     return ae
 
-
 #Opening of f by k
 @jax.jit
 def opening(f,index_f,k):
@@ -1020,6 +1349,32 @@ def opening(f,index_f,k):
     jax.numpy.array
     """
     return dilation(erosion(f,index_f,k),index_f,k)
+
+#General opening of f by b
+@jax.jit
+def Gopening(f,index_f,b):
+    """
+    General opening of batches of images.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A 3D array with the images
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    b : jax.numpy.array
+
+        Array of dimension m x d x d with the right-limit of the basis of an erosion and right-basis of a dilation at each level 0,...,m
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    return Gdilation(Gerosion(f,index_f,b),index_f,b)
 
 #Opening of f by k
 @jax.jit
@@ -1051,7 +1406,7 @@ def Sopening(f,index_f,k,alpha = 5):
     """
     return Sdilation(Serosion(f,index_f,k,alpha),index_f,k,alpha)
 
-#Colosing of f by k
+#Closing of f by k
 @jax.jit
 def closing(f,index_f,k):
     """
@@ -1076,6 +1431,32 @@ def closing(f,index_f,k):
     jax.numpy.array
     """
     return erosion(dilation(f,index_f,k),index_f,k)
+
+#General closing of f by b
+@jax.jit
+def Gclosing(f,index_f,b):
+    """
+    General closing of batches of images.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A 3D array with the images
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    b : jax.numpy.array
+
+        Array of dimension m x d x d with the right-limit of the basis of an erosion and right-basis of a dilation at each level 0,...,m
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    return Gerosion(Gdilation(f,index_f,b),index_f,b)
 
 #Colosing of f by k
 @jax.jit
@@ -1132,6 +1513,32 @@ def asf(f,index_f,k):
     jax.numpy.array
     """
     return closing(opening(f,index_f,k),index_f,k)
+
+#General alternate-sequential filter of f by b
+@jax.jit
+def Gasf(f,index_f,b):
+    """
+    General alternate-sequential filter applied to batches of images.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A 3D array with the images
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    b : jax.numpy.array
+
+        Array of dimension m x d x d with the right-limit of the basis of an erosion and right-basis of a dilation at each level 0,...,m
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    return Gclosing(Gopening(f,index_f,b),index_f,b)
 
 #Alternate-sequential filter of f by k
 @jax.jit
@@ -1211,6 +1618,32 @@ def supgen(f,index_f,k1,k2):
     """
     return  jnp.minimum(erosion(f,index_f,k1),anti_dilation(f,index_f,k2))
 
+#General sup-generating with interval [b1,b2]
+@jax.jit
+def Gsupgen(f,index_f,k1,k2):
+    """
+    Sup-generating operator applied to batches of images.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A 3D array with the binary images
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    b1,b2 : jax.numpy.array
+
+        Limits of interval [b1,b2]
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    return  jnp.minimum(Gerosion(f,index_f,b1),Ganti_dilation(f,index_f,b2))
+
 #Smooth sup-generating with interval [k1,k2]
 @jax.jit
 def Ssupgen(f,index_f,k1,k2,alpha = 5):
@@ -1265,6 +1698,31 @@ def infgen(f,index_f,k1,k2):
     jax.numpy.array
     """
     return jnp.maximum(anti_erosion(f,index_f,dmnn.transpose_se(k1)),dilation(f,index_f,(-1)*dmnn.transpose_se(k2)))
+
+#General inf-generating with interval [b1,b2]
+def Ginfgen(f,index_f,k1,k2):
+    """
+    General inf-generating operator applied to batches of images.
+    -------
+    Parameters
+    ----------
+    f : jax.numpy.array
+
+        A 3D array with the binary images
+
+    index_f : jax.numpy.array
+
+        Array with the indexes of f
+
+    b1,b2 : jax.numpy.array
+
+        Limits of interval [b1,b2]
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    return jnp.maximum(Ganti_erosion(f,index_f,b1),Gdilation(f,index_f,b2))
 
 #Smooth inf-generating with interval [k1,k2]
 def Sinfgen(f,index_f,k1,k2):
@@ -1346,7 +1804,7 @@ def inf(f):
 vmap_inf = lambda f: jax.jit(jax.vmap(lambda f: inf(f),in_axes = (1),out_axes = 1))(f)
 
 #Return operator by name
-def operator(type,smooth = False,alpha = 5):
+def operator(type,alpha = 5):
     """
     Get a morphological operator by name.
     -------
@@ -1371,50 +1829,63 @@ def operator(type,smooth = False,alpha = 5):
     a function that applies a morphological operator
 
     """
-    if not smooth:
-        if type == 'erosion':
-            oper = lambda x,index_x,k: erosion(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
-        elif type == 'dilation':
-            oper = lambda x,index_x,k: dilation(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
-        elif type == 'anti-erosion':
-            oper = lambda x,index_x,k: anti_erosion(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
-        elif type == 'anti-dilation':
-            oper = lambda x,index_x,k: anti_dilation(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
-        elif type == 'opening':
-            oper = lambda x,index_x,k: opening(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
-        elif type == 'closing':
-            oper = lambda x,index_x,k: closing(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
-        elif type == 'asf':
-            oper = lambda x,index_x,k: asf(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
-        elif type == 'supgen':
-            oper = lambda x,index_x,k: supgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])) + jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])) ** 2)
-        elif type == 'infgen':
-            oper = lambda x,index_x,k: infgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])) + jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])) ** 2)
-        else:
-            print('Type of layer ' + type + 'is wrong!')
-            return 1
+    if type == 'erosion':
+        oper = lambda x,index_x,k: erosion(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
+    elif type == 'dilation':
+        oper = lambda x,index_x,k: dilation(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
+    elif type == 'anti-erosion':
+        oper = lambda x,index_x,k: anti_erosion(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
+    elif type == 'anti-dilation':
+        oper = lambda x,index_x,k: anti_dilation(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
+    elif type == 'opening':
+        oper = lambda x,index_x,k: opening(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
+    elif type == 'closing':
+        oper = lambda x,index_x,k: closing(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
+    elif type == 'asf':
+        oper = lambda x,index_x,k: asf(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])))
+    elif type == 'supgen':
+        oper = lambda x,index_x,k: supgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])) + jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])) ** 2)
+    elif type == 'infgen':
+        oper = lambda x,index_x,k: infgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])) + jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])) ** 2)
+    elif type == 'Serosion':
+        oper = lambda x,index_x,k: Serosion(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
+    elif type == 'Sdilation':
+        oper = lambda x,index_x,k: Sdilation(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
+    elif type == 'Santi-erosion':
+        oper = lambda x,index_x,k: Santi_erosion(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
+    elif type == 'Santi-dilation':
+        oper = lambda x,index_x,k: Santi_dilation(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
+    elif type == 'Sopening':
+        oper = lambda x,index_x,k: Sopening(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
+    elif type == 'Sclosing':
+        oper = lambda x,index_x,k: Sclosing(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
+    elif type == 'Sasf':
+        oper = lambda x,index_x,k: Sasf(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
+    elif type == 'Ssupgen':
+        oper = lambda x,index_x,k: Ssupgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])) + jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])) ** 2,alpha)
+    elif type == 'Sinfgen':
+        oper = lambda x,index_x,k: Sinfgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2]))+ jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])) ** 2,alpha)
+    if type == 'Gerosion':
+        oper = Gerosion
+    elif type == 'Gdilation':
+        oper = Gdilation
+    elif type == 'Ganti-erosion':
+        oper = Ganti_erosion
+    elif type == 'Ganti-dilation':
+        oper = Ganti_dilation
+    elif type == 'Gopening':
+        oper = Gopening
+    elif type == 'Gclosing':
+        oper = Gclosing
+    elif type == 'Gasf':
+        oper = Gasf
+    elif type == 'Gsupgen':
+        oper = Gsupgen
+    elif type == 'Ginfgen':
+        oper = Ginfgen
     else:
-        if type == 'erosion':
-            oper = lambda x,index_x,k: Serosion(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
-        elif type == 'dilation':
-            oper = lambda x,index_x,k: Sdilation(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
-        elif type == 'anti-erosion':
-            oper = lambda x,index_x,k: Santi_erosion(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
-        elif type == 'anti-dilation':
-            oper = lambda x,index_x,k: Santi_dilation(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
-        elif type == 'opening':
-            oper = lambda x,index_x,k: Sopening(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
-        elif type == 'closing':
-            oper = lambda x,index_x,k: Sclosing(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
-        elif type == 'asf':
-            oper = lambda x,index_x,k: Sasf(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),alpha)
-        elif type == 'supgen':
-            oper = lambda x,index_x,k: Ssupgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])) + jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])) ** 2,alpha)
-        elif type == 'infgen':
-            oper = lambda x,index_x,k: Sinfgen(x,index_x,jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2])),jax.lax.slice_in_dim(k,0,1).reshape((k.shape[1],k.shape[2]))+ jax.lax.slice_in_dim(k,1,2).reshape((k.shape[1],k.shape[2])) ** 2,alpha)
-        else:
-            print('Type of layer ' + type + 'is wrong!')
-            return 1
+        print('Type of layer ' + type + 'is wrong!')
+        return 1
     return jax.jit(oper)
 
 #Create an index array for an array

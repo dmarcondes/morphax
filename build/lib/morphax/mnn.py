@@ -491,7 +491,7 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0,epochs = 1000,train = Fa
     return {'params': params,'forward': forward,'width': width}
 
 #Apply a morphological layer
-def apply_morph_layer(x,type,params,index_x,forward_wop = None,activate = lambda x: x,smooth = False,alpha = 5,d = None):
+def apply_morph_layer(x,type,params,index_x,forward_wop = None,activate = lambda x: x,alpha = 5,d = None):
     """
     Apply a morphological layer.
     ----------
@@ -521,10 +521,6 @@ def apply_morph_layer(x,type,params,index_x,forward_wop = None,activate = lambda
 
         Activation function for operator parameters
 
-    smooth : logical
-
-        Whether to consider smooth operators
-
     alpha : float
 
         Smoothing parameter
@@ -539,7 +535,7 @@ def apply_morph_layer(x,type,params,index_x,forward_wop = None,activate = lambda
     """
     #Apply each operator
     if type != "wop":
-        oper = mp.operator(type,smooth,alpha)
+        oper = mp.operator(type,alpha)
         fx = None
         for i in range(params.shape[0]):
             if fx is None:
@@ -551,7 +547,7 @@ def apply_morph_layer(x,type,params,index_x,forward_wop = None,activate = lambda
     return fx
 
 #Canonical Morphological NN
-def cmnn(type,width,size,shape_x,sample = False,a_init = None,mean = 0.5,sd = 0.1,key = 0,width_wop = None,activation = jax.nn.relu,activate = lambda x: x,smooth = False,alpha = 5):
+def cmnn(type,width,size,shape_x,sample = False,a_init = None,mean = 0.5,sd = 0.1,key = 0,width_wop = None,activation = jax.nn.relu,activate = lambda x: x,alpha = 5):
     """
     Initialize a Morphological Neural Network as the identity operator.
     ----------
@@ -601,10 +597,6 @@ def cmnn(type,width,size,shape_x,sample = False,a_init = None,mean = 0.5,sd = 0.
 
         Activation function for operator parameters
 
-    smooth : logical
-
-        Whether to consider smooth operators
-
     alpha : float
 
         Smoothing parameter
@@ -632,7 +624,7 @@ def cmnn(type,width,size,shape_x,sample = False,a_init = None,mean = 0.5,sd = 0.
             params.append(net['params'])
         else:
             if sample:
-                if type[i] == 'supgen' or type[i] == 'infgen':
+                if type[i] == 'supgen' or type[i] == 'infgen' or type[i] == 'Ssupgen' or type[i] == 'Sinfgen':
                     for j in range(width[i]):
                         ll = mean + sd*jax.random.normal(jax.random.PRNGKey(key[k,0,j]),shape = (1,1,size[i],size[i]))
                         ul = mean + sd*jax.random.normal(jax.random.PRNGKey(key[k,1,j]),shape = (1,1,size[i],size[i]))
@@ -651,7 +643,7 @@ def cmnn(type,width,size,shape_x,sample = False,a_init = None,mean = 0.5,sd = 0.
                             p = jnp.append(p,s,0)
                 params.append(p.astype(jnp.float32))
             else:
-                if type[i] == 'supgen' or type[i] == 'infgen':
+                if type[i] == 'supgen' or type[i] == 'infgen' or type[i] == 'Ssupgen' or type[i] == 'Sinfgen':
                     ll = np.zeros((1,1,size[i],size[i]),dtype = int)
                     ll[0,0,int(np.round(size[i]/2 - 0.1)),int(np.round(size[i]/2 - 0.1))] = 1
                     ll = jnp.array(ll)
@@ -663,11 +655,11 @@ def cmnn(type,width,size,shape_x,sample = False,a_init = None,mean = 0.5,sd = 0.
                 else:
                     if a_init is not None:
                         a_init = a_init.reshape((1,1,size[i],size[i]))
-                        if type[i] == 'erosion':
+                        if type[i] == 'erosion' or type[i] == 'Serosion':
                             ll = a_init
-                        elif type[i] == 'dilation':
+                        elif type[i] == 'dilation' or type[i] == 'Sdilation':
                             ll = dmp.transpose_se(a_init)
-                        elif type[i] == 'opening' or type[i] == 'closing' or type[i] == 'asf':
+                        elif type[i] == 'opening' or type[i] == 'closing' or type[i] == 'asf' or type[i] == 'Sopening' or type[i] == 'Sclosing' or type[i] == 'Sasf':
                             ll = jnp.minimum(a_init,dmp.transpose_se(a_init))
                     else:
                         ll = np.zeros((1,1,size[i],size[i]),dtype = int) - 1.0
@@ -701,7 +693,7 @@ def cmnn(type,width,size,shape_x,sample = False,a_init = None,mean = 0.5,sd = 0.
     return {'params': params,'forward': forward,'forward_wop': forward_wop,'type': type,'width': width,'size': size}
 
 #Canonical Morphological NN with FCNN representing strucring elements
-def cmnn_fcnn(type,width,width_str,size,shape_x,initialize = False,width_wop = None,activation = jax.nn.relu,sample = True,mean = 0,sd = 0,key = 0,loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 5000,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False,epochs_print = 500,activate = lambda x: x,smooth = False,alpha = 5):
+def cmnn_fcnn(type,width,width_str,size,shape_x,initialize = False,width_wop = None,activation = jax.nn.relu,sample = True,mean = 0,sd = 0,key = 0,loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 5000,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False,epochs_print = 500,activate = lambda x: x,alpha = 5):
     """
     Initialize a Morphological Neural Network with FCNN representing the structuring elements.
     ----------
@@ -783,10 +775,6 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,initialize = False,width_wop = N
 
         Activation function for operator parameters
 
-    smooth : logical
-
-        Whether to consider smooth operators
-
     alpha : float
 
         Smoothing parameter
@@ -806,7 +794,7 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,initialize = False,width_wop = N
         w[str(d)] = jnp.array([[x1.tolist(),x2.tolist()] for x1 in jnp.linspace(-jnp.floor(d/2),jnp.floor(d/2),d) for x2 in jnp.linspace(jnp.floor(d/2),-jnp.floor(d/2),d)])
 
     #Init params
-    init_net = cmnn(type,width,size,shape_x,sample = sample,mean = mean,sd = sd,width_wop = width_wop,activation = activation,activate = lambda x: x,smooth = smooth,alpha = alpha) #Initialise as identity
+    init_net = cmnn(type,width,size,shape_x,sample = sample,mean = mean,sd = sd,width_wop = width_wop,activation = activation,activate = lambda x: x,alpha = alpha) #Initialise as identity
     init_params = init_net['params']
     forward_wop = init_net['forward_wop']
 
@@ -816,7 +804,7 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,initialize = False,width_wop = N
         if type[i] in ['sup','inf','complement','wop']:
             params.append(init_params[i])
         else:
-            if type[i] in ['supgen','infgen']:
+            if type[i] in ['supgen','infgen','Ssupgen','Sinfgen']:
                 par_layer = list()
                 for j in range(width[i]):
                     #Lower
@@ -869,7 +857,7 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,initialize = False,width_wop = N
         for i in range(len(type)):
             if type[i] in ['sup','inf','complement','wop']:
                 struct.append(params[i])
-            elif type[i] in ['infgen','supgen']:
+            elif type[i] in ['infgen','supgen','Sinfgen','Ssupgen']:
                 par = forward_inner(w[str(size[i])],params[i][0][0]).reshape((size[i],size[i])).transpose().reshape((1,size[i],size[i]))
                 par = jnp.append(par,par + jax.nn.relu(forward_inner(w[str(size[i])],params[i][0][1])).reshape((size[i],size[i])).transpose().reshape((1,size[i],size[i])),0).reshape((1,2,size[i],size[i]))
                 for j in range(width[i] - 1):
@@ -898,7 +886,7 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,initialize = False,width_wop = N
             elif type[i] == 'complement':
                 x = 1 - x
             else:
-                x = apply_morph_layer(x[0,:,:,:],type[i],params_array[i],index_x,forward_wop,activate,smooth,alpha,size[i])
+                x = apply_morph_layer(x[0,:,:,:],type[i],params_array[i],index_x,forward_wop,activate,alpha,size[i])
         return x[0,:,:,:]
 
     #Return initial parameters and forward function
