@@ -492,7 +492,7 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0,epochs = 1000,train = Fa
     return {'params': params,'forward': forward,'width': width}
 
 #Apply a morphological layer
-def apply_morph_layer(x,type,params,index_x,forward_wop = None,alpha = 5,d = None):
+def apply_morph_layer(x,type,params,index_x,forward_wop = None,alpha = 5,d = None,m = 255):
     """
     Apply a morphological layer.
     ----------
