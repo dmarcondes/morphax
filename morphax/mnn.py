@@ -689,7 +689,6 @@ def cmnn(type,width,size,shape_x,sample = False,a_init = None,mean = 0.5,sd = 0.
     def forward(x,params):
         x = x.reshape((1,x.shape[0],x.shape[1],x.shape[2]))
         for i in range(len(type)):
-            print(i)
             #Apply sup and inf
             if type[i] == 'sup':
                 x = mp.vmap_sup(x)
