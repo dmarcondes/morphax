@@ -16,6 +16,7 @@ import itertools
 from jax.scipy.stats import rankdata
 import copy
 from functools import partial
+from quadax import quadgk
 
 __docformat__ = "numpy"
 
