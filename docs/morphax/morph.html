@@ -1881,7 +1881,7 @@
 </span><span id="L-1624"><a href="#L-1624"><span class="linenos">1624</span></a>
 </span><span id="L-1625"><a href="#L-1625"><span class="linenos">1625</span></a><span class="c1">#General sup-generating with interval [b1,b2]</span>
 </span><span id="L-1626"><a href="#L-1626"><span class="linenos">1626</span></a><span class="nd">@jax</span><span class="o">.</span><span class="n">jit</span>
-</span><span id="L-1627"><a href="#L-1627"><span class="linenos">1627</span></a><span class="k">def</span> <span class="nf">Gsupgen</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">index_f</span><span class="p">,</span><span class="n">k1</span><span class="p">,</span><span class="n">k2</span><span class="p">):</span>
+</span><span id="L-1627"><a href="#L-1627"><span class="linenos">1627</span></a><span class="k">def</span> <span class="nf">Gsupgen</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">index_f</span><span class="p">,</span><span class="n">b1</span><span class="p">,</span><span class="n">b2</span><span class="p">):</span>
 </span><span id="L-1628"><a href="#L-1628"><span class="linenos">1628</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span id="L-1629"><a href="#L-1629"><span class="linenos">1629</span></a><span class="sd">    Sup-generating operator applied to batches of images.</span>
 </span><span id="L-1630"><a href="#L-1630"><span class="linenos">1630</span></a><span class="sd">    -------</span>
@@ -1961,7 +1961,7 @@
 </span><span id="L-1704"><a href="#L-1704"><span class="linenos">1704</span></a>    <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">anti_erosion</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">index_f</span><span class="p">,</span><span class="n">dmnn</span><span class="o">.</span><span class="n">transpose_se</span><span class="p">(</span><span class="n">k1</span><span class="p">)),</span><span class="n">dilation</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">index_f</span><span class="p">,(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">dmnn</span><span class="o">.</span><span class="n">transpose_se</span><span class="p">(</span><span class="n">k2</span><span class="p">)))</span>
 </span><span id="L-1705"><a href="#L-1705"><span class="linenos">1705</span></a>
 </span><span id="L-1706"><a href="#L-1706"><span class="linenos">1706</span></a><span class="c1">#General inf-generating with interval [b1,b2]</span>
-</span><span id="L-1707"><a href="#L-1707"><span class="linenos">1707</span></a><span class="k">def</span> <span class="nf">Ginfgen</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">index_f</span><span class="p">,</span><span class="n">k1</span><span class="p">,</span><span class="n">k2</span><span class="p">):</span>
+</span><span id="L-1707"><a href="#L-1707"><span class="linenos">1707</span></a><span class="k">def</span> <span class="nf">Ginfgen</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">index_f</span><span class="p">,</span><span class="n">b1</span><span class="p">,</span><span class="n">b2</span><span class="p">):</span>
 </span><span id="L-1708"><a href="#L-1708"><span class="linenos">1708</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span id="L-1709"><a href="#L-1709"><span class="linenos">1709</span></a><span class="sd">    General inf-generating operator applied to batches of images.</span>
 </span><span id="L-1710"><a href="#L-1710"><span class="linenos">1710</span></a><span class="sd">    -------</span>
@@ -6057,14 +6057,14 @@
                     <div class="decorator decorator-jax.jit">@jax.jit</div>
 
         <span class="def">def</span>
-        <span class="name">Gsupgen</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">f</span>, </span><span class="param"><span class="n">index_f</span>, </span><span class="param"><span class="n">k1</span>, </span><span class="param"><span class="n">k2</span></span><span class="return-annotation">):</span></span>
+        <span class="name">Gsupgen</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">f</span>, </span><span class="param"><span class="n">index_f</span>, </span><span class="param"><span class="n">b1</span>, </span><span class="param"><span class="n">b2</span></span><span class="return-annotation">):</span></span>
 
                 <label class="view-source-button" for="Gsupgen-view-source"><span>View Source</span></label>
 
     </div>
     <a class="headerlink" href="#Gsupgen"></a>
             <div class="pdoc-code codehilite"><pre><span></span><span id="Gsupgen-1627"><a href="#Gsupgen-1627"><span class="linenos">1627</span></a><span class="nd">@jax</span><span class="o">.</span><span class="n">jit</span>
-</span><span id="Gsupgen-1628"><a href="#Gsupgen-1628"><span class="linenos">1628</span></a><span class="k">def</span> <span class="nf">Gsupgen</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">index_f</span><span class="p">,</span><span class="n">k1</span><span class="p">,</span><span class="n">k2</span><span class="p">):</span>
+</span><span id="Gsupgen-1628"><a href="#Gsupgen-1628"><span class="linenos">1628</span></a><span class="k">def</span> <span class="nf">Gsupgen</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">index_f</span><span class="p">,</span><span class="n">b1</span><span class="p">,</span><span class="n">b2</span><span class="p">):</span>
 </span><span id="Gsupgen-1629"><a href="#Gsupgen-1629"><span class="linenos">1629</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span id="Gsupgen-1630"><a href="#Gsupgen-1630"><span class="linenos">1630</span></a><span class="sd">    Sup-generating operator applied to batches of images.</span>
 </span><span id="Gsupgen-1631"><a href="#Gsupgen-1631"><span class="linenos">1631</span></a><span class="sd">    -------</span>
@@ -6258,13 +6258,13 @@
 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">Ginfgen</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">f</span>, </span><span class="param"><span class="n">index_f</span>, </span><span class="param"><span class="n">k1</span>, </span><span class="param"><span class="n">k2</span></span><span class="return-annotation">):</span></span>
+        <span class="name">Ginfgen</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">f</span>, </span><span class="param"><span class="n">index_f</span>, </span><span class="param"><span class="n">b1</span>, </span><span class="param"><span class="n">b2</span></span><span class="return-annotation">):</span></span>
 
                 <label class="view-source-button" for="Ginfgen-view-source"><span>View Source</span></label>
 
     </div>
     <a class="headerlink" href="#Ginfgen"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="Ginfgen-1708"><a href="#Ginfgen-1708"><span class="linenos">1708</span></a><span class="k">def</span> <span class="nf">Ginfgen</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">index_f</span><span class="p">,</span><span class="n">k1</span><span class="p">,</span><span class="n">k2</span><span class="p">):</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="Ginfgen-1708"><a href="#Ginfgen-1708"><span class="linenos">1708</span></a><span class="k">def</span> <span class="nf">Ginfgen</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">index_f</span><span class="p">,</span><span class="n">b1</span><span class="p">,</span><span class="n">b2</span><span class="p">):</span>
 </span><span id="Ginfgen-1709"><a href="#Ginfgen-1709"><span class="linenos">1709</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span id="Ginfgen-1710"><a href="#Ginfgen-1710"><span class="linenos">1710</span></a><span class="sd">    General inf-generating operator applied to batches of images.</span>
 </span><span id="Ginfgen-1711"><a href="#Ginfgen-1711"><span class="linenos">1711</span></a><span class="sd">    -------</span>

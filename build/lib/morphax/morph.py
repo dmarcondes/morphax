@@ -1624,7 +1624,7 @@ def supgen(f,index_f,k1,k2):
 
 #General sup-generating with interval [b1,b2]
 @jax.jit
-def Gsupgen(f,index_f,k1,k2):
+def Gsupgen(f,index_f,b1,b2):
     """
     Sup-generating operator applied to batches of images.
     -------
@@ -1704,7 +1704,7 @@ def infgen(f,index_f,k1,k2):
     return jnp.maximum(anti_erosion(f,index_f,dmnn.transpose_se(k1)),dilation(f,index_f,(-1)*dmnn.transpose_se(k2)))
 
 #General inf-generating with interval [b1,b2]
-def Ginfgen(f,index_f,k1,k2):
+def Ginfgen(f,index_f,b1,b2):
     """
     General inf-generating operator applied to batches of images.
     -------
