@@ -705,7 +705,7 @@ def cmnn(type,width,size,shape_x,sample = False,a_init = None,mean = 0.5,sd = 0.
     return {'params': params,'forward': forward,'forward_wop': forward_wop,'type': type,'width': width,'size': size}
 
 #Canonical Morphological NN with FCNN representing strucring elements
-def cmnn_fcnn(type,width,width_str,size,shape_x,width_wop = None,activation = jax.nn.relu,sample = True,mean = 0,sd = 0,key = 0,loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 5000,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False,epochs_print = 500,alpha = 5):
+def cmnn_fcnn(type,width,width_str,size,shape_x,width_wop = None,activation = jax.nn.relu,sample = True,mean = 0,sd = 0,key = 0,loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 5000,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False,epochs_print = 500,alpha = 5,m = 255):
     """
     Initialize a Morphological Neural Network with FCNN representing the structuring elements.
     ----------
@@ -782,6 +782,9 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,width_wop = None,activation = ja
     alpha : float
 
         Smoothing parameter
+
+    m : int
+        Maximum value of pixel intensity
 
     Returns
     -------
