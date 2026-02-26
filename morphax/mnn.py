@@ -874,7 +874,7 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,width_wop = None,activation = ja
         ax = forward_inner(w,params[0]).reshape((d,d))
         ftau = lambda tau: jax.nn.elu(forward_Ginner(jnp.append(w,tau + jnp.zeros((w.shape[0],1)),1),params[1])).reshape((d,d)) + 1
         bx = jax.vmap(lambda s: quadgk(ftau,[0., s])[0])((jnp.arange(m) + 1)/m)
-        return jax.vmap(lambda x: x + ax)(bx)
+        return jax.vmap(lambda x: x + ax)(bx)/m
 
     @jax.jit
     def compute_struct(params):
