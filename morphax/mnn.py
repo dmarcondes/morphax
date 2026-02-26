@@ -544,22 +544,22 @@ def apply_morph_layer(x,type,params,index_x,forward_wop = None,alpha = 5,d = Non
         fx = None
         for i in range(params.shape[0]):
             if type == 'Gerosion':
-                fx_tmp = oper(x,index_x,jnp.append(jnp.zeros((1,params.shape[2],params.shape[3])),(1 + jax.nn.sigmod(jnp.cumsum(jax.nn.relu(params[i,:,:,:]),0)))/2,0)).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+                fx_tmp = oper(x,index_x,jnp.append(jnp.zeros((1,params.shape[2],params.shape[3])),(1 + jax.nn.sigmoid(jnp.cumsum(jax.nn.relu(params[i,:,:,:]),0)))/2,0)).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
             elif type == 'Gdilation':
-                fx_tmp = oper(x,index_x,jnp.append((1 + jax.nn.sigmod(jnp.cumsum(jax.nn.relu(params[i,:,:,:]),0)))/2,jnp.zeros((1,params.shape[2],params.shape[3])) + 1.0,0)).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+                fx_tmp = oper(x,index_x,jnp.append((1 + jax.nn.sigmoid(jnp.cumsum(jax.nn.relu(params[i,:,:,:]),0)))/2,jnp.zeros((1,params.shape[2],params.shape[3])) + 1.0,0)).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
             elif type == 'Ganti-erosion':
-                fx_tmp = oper(x,index_x,jnp.append(1.0 - (1 + jax.nn.sigmod(jnp.cumsum(jax.nn.relu(params[i,:,:,:]),0)))/2,jnp.zeros((1,params.shape[2],params.shape[3])),0)).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+                fx_tmp = oper(x,index_x,jnp.append(1.0 - (1 + jax.nn.sigmoid(jnp.cumsum(jax.nn.relu(params[i,:,:,:]),0)))/2,jnp.zeros((1,params.shape[2],params.shape[3])),0)).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
             elif type == 'Ganti-dilation':
-                fx_tmp = oper(x,index_x,jnp.append(1.0 + jnp.zeros((1,params.shape[2],params.shape[3])),1.0 - (1 + jax.nn.sigmod(jnp.cumsum(jax.nn.relu(params[i,:,:,:]),0)))/2,0)).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+                fx_tmp = oper(x,index_x,jnp.append(1.0 + jnp.zeros((1,params.shape[2],params.shape[3])),1.0 - (1 + jax.nn.sigmoid(jnp.cumsum(jax.nn.relu(params[i,:,:,:]),0)))/2,0)).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
             elif type in ['Gopening','Gclosing','Gasf']:
-                fx_tmp = oper(x,index_x,jnp.append(jnp.append(jnp.zeros((1,params.shape[2],params.shape[3])),(1 + jax.nn.sigmod(jnp.cumsum(jax.nn.relu(params[i,:-1,:,:]),0)))/2,0),jnp.zeros((1,params.shape[2],params.shape[3])) + 1.0,0)).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+                fx_tmp = oper(x,index_x,jnp.append(jnp.append(jnp.zeros((1,params.shape[2],params.shape[3])),(1 + jax.nn.sigmoid(jnp.cumsum(jax.nn.relu(params[i,:-1,:,:]),0)))/2,0),jnp.zeros((1,params.shape[2],params.shape[3])) + 1.0,0)).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
             elif type == 'Gsupgen':
-                b1 = jnp.append(jnp.zeros((1,params.shape[3],params.shape[4])),(1 + jax.nn.sigmod(jnp.cumsum(jax.nn.relu(params[i,0,:,:,:]),0)))/2,0)
-                b2 = jnp.append(1.0 + jnp.zeros((1,params.shape[3],params.shape[4])),1.0 - (1 + jax.nn.sigmod(jnp.cumsum(jax.nn.relu(params[i,1,:,:,:]),0)))/2,0)
+                b1 = jnp.append(jnp.zeros((1,params.shape[3],params.shape[4])),(1 + jax.nn.sigmoid(jnp.cumsum(jax.nn.relu(params[i,0,:,:,:]),0)))/2,0)
+                b2 = jnp.append(1.0 + jnp.zeros((1,params.shape[3],params.shape[4])),1.0 - (1 + jax.nn.sigmoid(jnp.cumsum(jax.nn.relu(params[i,1,:,:,:]),0)))/2,0)
                 fx_tmp = oper(x,index_x,jnp.minimum(b1,b2),jnp.maximum(b1,b2)).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
             elif type == 'Ginfgen':
-                b1 = jnp.append(1.0 - (1 + jax.nn.sigmod(jnp.cumsum(jax.nn.relu(params[i,0,:,:]),0)))/2,jnp.zeros((1,params.shape[3],params.shape[4])),0)
-                b2 = jnp.append((1 + jax.nn.sigmod(jnp.cumsum(jax.nn.relu(params[i,1,:,:]),0)))/2,jnp.zeros((1,params.shape[3],params.shape[4])) + 1.0,0)
+                b1 = jnp.append(1.0 - (1 + jax.nn.sigmoid(jnp.cumsum(jax.nn.relu(params[i,0,:,:]),0)))/2,jnp.zeros((1,params.shape[3],params.shape[4])),0)
+                b2 = jnp.append((1 + jax.nn.sigmoid(jnp.cumsum(jax.nn.relu(params[i,1,:,:]),0)))/2,jnp.zeros((1,params.shape[3],params.shape[4])) + 1.0,0)
                 fx_tmp = oper(x,index_x,jnp.minimum(b1,b2),jnp.maximum(b1,b2)).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
             if fx is None:
                 fx = fx_tmp
