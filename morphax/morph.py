@@ -397,8 +397,9 @@ def Gerosion_2D(f,index_f,b):
     -------
     jax.numpy.array
     """
+    l = math.floor(b.shape[1]/2)
     jit_local_Gerosion = local_Gerosion(f,b)
-    return jnp.apply_along_axis(jit_local_Gerosion,1,math.floor(b.shape[1]/2) + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
+    return jnp.apply_along_axis(jit_local_Gerosion,1,l + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
 
 #General erosion in batches
 @jax.jit
@@ -661,8 +662,9 @@ def Ganti_dilation_2D(f,index_f,b):
     -------
     jax.numpy.array
     """
+    l = math.floor(b.shape[1]/2)
     jit_local_Ganti_dilation = local_Ganti_dilation(f,b)
-    return jnp.apply_along_axis(jit_local_Ganti_dilation,1,math.floor(b.shape[1]/2) + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
+    return jnp.apply_along_axis(jit_local_Ganti_dilation,1,l + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
 
 #General anti-dilation in batches
 @jax.jit
@@ -927,8 +929,9 @@ def Gdilation_2D(f,index_f,b):
     -------
     jax.numpy.array
     """
+    l = math.floor(b.shape[1]/2)
     jit_local_Gdilation = local_Gdilation(f,b)
-    return jnp.apply_along_axis(jit_local_Gdilation,1,math.floor(b.shape[1]/2) + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
+    return jnp.apply_along_axis(jit_local_Gdilation,1,l + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
 
 #General dilation in batches
 @jax.jit
@@ -1194,8 +1197,9 @@ def Ganti_erosion_2D(f,index_f,b):
     -------
     jax.numpy.array
     """
+    l = math.floor(b.shape[1]/2)
     jit_local_Ganti_erosion = local_Ganti_erosion(f,b)
-    return jnp.apply_along_axis(jit_local_Ganti_erosion,1,math.floor(b.shape[1]/2) + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
+    return jnp.apply_along_axis(jit_local_Ganti_erosion,1,l + index_f).reshape((f.shape[0] - 2*l,f.shape[1] - 2*l))
 
 #General anti-erosion in batches
 @jax.jit
