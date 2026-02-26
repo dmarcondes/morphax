@@ -370,7 +370,7 @@ def local_Gerosion(f,b):
     levels = jnp.arange(b.shape[0])
     def jit_local_Gerosion(index):
         fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
-        tau = eta = 0.5
+        tau = eta = 0.05
         gs = -tau*jnp.log(jnp.mean(jnp.exp(jax.vmap(lambda b: (b - fw)/tau)(b)),(1,2)))
         #jnp.max((levels * (jax.vmap(lambda b: jnp.min(fw - b)/tau)(b) >= 0))/(b.shape[0] - 1))
         return (jnp.sum(1/(1 + jnp.exp(-gs/eta))) - 1)/(b.shape[0] - 1)
