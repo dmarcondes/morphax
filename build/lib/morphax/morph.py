@@ -370,7 +370,7 @@ def local_Gerosion(f,b):
     levels = jnp.arange(b.shape[0])
     def jit_local_Gerosion(index):
         fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
-        return jnp.max((levels * (jax.vmap(lambda b: jnp.min(fw - b))(b) >= 0))/(b.shape[0] - 1))
+        return smoothExt((levels * (jax.vmap(lambda b: jnp.min(fw - b))(b) >= 0))/(b.shape[0] - 1),50)
     return jit_local_Gerosion
 
 #General erosion of f with basis b
@@ -635,7 +635,7 @@ def local_Ganti_dilation(f,b):
     levels = jnp.arange(b.shape[0])
     def jit_local_Ganti_dilation(index):
         fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
-        return jnp.max((levels * (jax.vmap(lambda b: jnp.max(fw - b))(b) <= 0))/(b.shape[0] - 1))
+        return smoothExt((levels * (jax.vmap(lambda b: jnp.max(fw - b))(b) <= 0))/(b.shape[0] - 1),50)
     return jit_local_Ganti_dilation
 
 #General anti-dilation of f with basis b
@@ -902,7 +902,7 @@ def local_Gdilation(f,b):
     levels = jnp.arange(b.shape[0])
     def jit_local_Gdilation(index):
         fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
-        return (jnp.max(levels * (jax.vmap(lambda b: jnp.max(fw - b))(b) > 0)) + 1)/(b.shape[0])
+        return smoothExt((levels * (jax.vmap(lambda b: jnp.max(fw - b))(b) > 0) + 1)/b.shape[0],50)
     return jit_local_Gdilation
 
 #General dilation of f with basis b
@@ -1170,7 +1170,7 @@ def local_Ganti_erosion(f,b):
     levels = jnp.arange(b.shape[0])
     def jit_local_Ganti_erosion(index):
         fw = jax.lax.dynamic_slice(f, (index[0] - l, index[1] - l), (2*l + 1, 2*l + 1))
-        return (jnp.max(levels * (jax.vmap(lambda b: jnp.min(fw - b))(b) < 0)) + 1)/(b.shape[0])
+        return smoothExt((levels * (jax.vmap(lambda b: jnp.min(fw - b))(b) < 0) + 1)/b.shape[0],50)
     return jit_local_Ganti_erosion
 
 #General anti-erosion of f with basis b
