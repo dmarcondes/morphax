@@ -658,8 +658,8 @@ def cmnn(type,width,size,shape_x,sample = False,a_init = None,mean = 0.5,sd = 0.
             elif type[i][0] == 'G':
                 if type[i] in ['Gsupgen','Ginfgen']:
                     for j in range(width[i]):
-                        ll = mean/m + sd*jax.random.normal(jax.random.PRNGKey(key[k,0,j]),shape = (1,1,m,size[i],size[i]))
-                        ul = mean/m + sd*jax.random.normal(jax.random.PRNGKey(key[k,1,j]),shape = (1,1,m,size[i],size[i]))
+                        ll = mean/m + sd*jax.random.normal(jax.random.PRNGKey(key[k,0,j]),shape = (1,1,m,size[i],size[i]))/m
+                        ul = mean/m + sd*jax.random.normal(jax.random.PRNGKey(key[k,1,j]),shape = (1,1,m,size[i],size[i]))/m
                         interval = jnp.append(ll,ul,1)
                         k = k + 1
                         if j == 0:
@@ -668,7 +668,7 @@ def cmnn(type,width,size,shape_x,sample = False,a_init = None,mean = 0.5,sd = 0.
                             p = jnp.append(p,interval,0)
                 else:
                     for j in range(width[i]):
-                        s = mean/m + jnp.abs(sd*jax.random.normal(jax.random.PRNGKey(key[k,0,j]),shape = (1,m,size[i],size[i])))
+                        s = mean/m + jnp.abs(sd*jax.random.normal(jax.random.PRNGKey(key[k,0,j]),shape = (1,m,size[i],size[i])))/m
                         k = k + 1
                         if j == 0:
                             p = s
