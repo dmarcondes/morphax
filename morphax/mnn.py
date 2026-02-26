@@ -491,7 +491,7 @@ def fconNN_wop(width,d,activation = jax.nn.tanh,key = 0,epochs = 1000,train = Fa
     return {'params': params,'forward': forward,'width': width}
 
 #Apply a morphological layer
-def apply_morph_layer(x,type,params,index_x,forward_wop = None,activate = lambda x: x,alpha = 5,d = None):
+def apply_morph_layer(x,type,params,index_x,forward_wop = None,alpha = 5,d = None):
     """
     Apply a morphological layer.
     ----------
@@ -517,10 +517,6 @@ def apply_morph_layer(x,type,params,index_x,forward_wop = None,activate = lambda
 
         Forward function of the W-operator
 
-    activate : function
-
-        Activation function for operator parameters
-
     alpha : float
 
         Smoothing parameter
@@ -534,20 +530,46 @@ def apply_morph_layer(x,type,params,index_x,forward_wop = None,activate = lambda
     jax.numpy.array with output of layer
     """
     #Apply each operator
-    if type != "wop":
+    if type != "wop" and type[0] != 'G':
         oper = mp.operator(type,alpha)
         fx = None
         for i in range(params.shape[0]):
             if fx is None:
-                fx = oper(x,index_x,activate(params[i,:,:,:])).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+                fx = oper(x,index_x,params[i,:,:,:]).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
             else:
-                fx = jnp.append(fx,oper(x,index_x,activate(params[i,:,:,:])).reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
+                fx = jnp.append(fx,oper(x,index_x,params[i,:,:,:]).reshape((1,x.shape[0],x.shape[1],x.shape[2])),0)
+    elif type[0] == 'G':
+        oper = mp.operator(type,alpha)
+        fx = None
+        for i in range(params.shape[0]):
+            if type == 'Gerosion':
+                fx_tmp = oper(x,index_x,jnp.append(jnp.zeros((1,params.shape[2],params.shape[3])),jnp.cumsum(jax.nn.relu(params[i,:,:,:]),0),0)).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+            elif type == 'Gdilation':
+                fx_tmp = oper(x,index_x,jnp.append(jnp.cumsum(jax.nn.relu(params[i,:,:,:]),0),jnp.zeros((1,params.shape[2],params.shape[3])) + 1.0,0)).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+            elif type == 'Ganti_erosion':
+                fx_tmp = oper(x,index_x,jnp.append(1.0 - jnp.cumsum(jax.nn.relu(params[i,:,:,:]),0),jnp.zeros((1,params.shape[2],params.shape[3])),0)).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+            elif type == 'Ganti_dilation':
+                fx_tmp = oper(x,index_x,jnp.append(1.0 + jnp.zeros((1,params.shape[2],params.shape[3])),1.0 - jnp.cumsum(jax.nn.relu(params[i,:,:,:]),0),0)).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+            elif type in ['Gopening','Gclosing','Gasf']:
+                fx_tmp = oper(x,index_x,jnp.append(jnp.append(jnp.zeros((1,params.shape[2],params.shape[3])),jnp.cumsum(jax.nn.relu(params[i,:-1,:,:]),0),0),jnp.zeros((1,params.shape[2],params.shape[3])) + 1.0,0)).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+            elif type == 'Gsupgen':
+                b1 = jnp.append(jnp.zeros((1,params.shape[2],params.shape[3])),jnp.cumsum(jax.nn.relu(params[i,0,:,:,:]),0),0)
+                b2 = jnp.append(1.0 + jnp.zeros((1,params.shape[2],params.shape[3])),1.0 - jnp.cumsum(jax.nn.relu(params[i,1,:,:,:]),0),0)
+                fx_tmp = oper(x,index_x,jnp.minimum(b1,b2),jnp.maximum(b1,b2)).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+            elif type == 'Ginfgen':
+                b1 = jnp.append(1.0 - jnp.cumsum(jax.nn.relu(params[i,:,:,:]),0),jnp.zeros((1,params.shape[2],params.shape[3])),0)
+                b2 = jnp.append(jnp.cumsum(jax.nn.relu(params[i,:,:,:]),0),jnp.zeros((1,params.shape[2],params.shape[3])) + 1.0,0)
+                fx_tmp = oper(x,index_x,jnp.minimum(b1,b2),jnp.maximum(b1,b2)).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
+            if fx is None:
+                fx = fx_tmp
+            else:
+                fx = jnp.append(fx,fx_tmp,0)
     else:
         fx = mp.w_operator_nn(x,index_x,forward_wop,params,d).reshape((1,x.shape[0],x.shape[1],x.shape[2]))
     return fx
 
 #Canonical Morphological NN
-def cmnn(type,width,size,shape_x,sample = False,a_init = None,mean = 0.5,sd = 0.1,key = 0,width_wop = None,activation = jax.nn.relu,activate = lambda x: x,alpha = 5):
+def cmnn(type,width,size,shape_x,sample = False,a_init = None,mean = 0.5,sd = 0.1,key = 0,width_wop = None,activation = jax.nn.relu,alpha = 5,m = 255):
     """
     Initialize a Morphological Neural Network
     ----------
@@ -593,13 +615,13 @@ def cmnn(type,width,size,shape_x,sample = False,a_init = None,mean = 0.5,sd = 0.
 
         Activation function for W-operator neural network
 
-    activate : function
-
-        Activation function for operator parameters
-
     alpha : float
 
         Smoothing parameter
+
+    m : int
+
+        Maximum value of pixel intesity
 
     Returns
     -------
@@ -626,12 +648,32 @@ def cmnn(type,width,size,shape_x,sample = False,a_init = None,mean = 0.5,sd = 0.
             if type[i] in ['supgen','infgen','Ssupgen','Sinfgen']:
                 for j in range(width[i]):
                     ll = mean + sd*jax.random.normal(jax.random.PRNGKey(key[k,0,j]),shape = (1,1,size[i],size[i]))
-                    ul = mean + sd*jax.random.normal(jax.random.PRNGKey(key[k,1,j]),shape = (1,1,size[i],size[i]))
+                    ul = jnp.abs(sd*jax.random.normal(jax.random.PRNGKey(key[k,1,j]),shape = (1,1,size[i],size[i])))
                     interval = jnp.append(ll,ul,1)
+                    k = k + 1
                     if j == 0:
                         p = interval
                     else:
                         p = jnp.append(p,interval,0)
+            elif type[i][0] == 'G':
+                if type[i] in ['Gsupgen','Ginfgen']:
+                    for j in range(width[i]):
+                        ll = mean/m + sd*jax.random.normal(jax.random.PRNGKey(key[k,0,j]),shape = (1,1,m,size[i],size[i]))
+                        ul = mean/m + sd*jax.random.normal(jax.random.PRNGKey(key[k,1,j]),shape = (1,1,m,size[i],size[i]))
+                        interval = jnp.append(ll,ul,1)
+                        k = k + 1
+                        if j == 0:
+                            p = interval
+                        else:
+                            p = jnp.append(p,interval,0)
+                else:
+                    for j in range(width[i]):
+                        s = mean/m + jnp.abs(sd*jax.random.normal(jax.random.PRNGKey(key[k,0,j]),shape = (1,m,size[i],size[i])))
+                        k = k + 1
+                        if j == 0:
+                            p = s
+                        else:
+                            p = jnp.append(p,s,0)
             else:
                 for j in range(width[i]):
                     s = mean + sd*jax.random.normal(jax.random.PRNGKey(key[k,0,0]),shape = (1,1,size[i],size[i]))
@@ -641,7 +683,6 @@ def cmnn(type,width,size,shape_x,sample = False,a_init = None,mean = 0.5,sd = 0.
                     else:
                         p = jnp.append(p,s,0)
             params.append(p.astype(jnp.float32))
-
 
     #Forward pass
     @jax.jit
@@ -657,14 +698,14 @@ def cmnn(type,width,size,shape_x,sample = False,a_init = None,mean = 0.5,sd = 0.
                 x = 1 - x
             else:
                 #Apply other layer
-                x = apply_morph_layer(x[0,:,:,:],type[i],params[i],index_x,forward_wop,activate,smooth,alpha,size[i])
+                x = apply_morph_layer(x[0,:,:,:],type[i],params[i],index_x,forward_wop,alpha,size[i])
         return x[0,:,:,:]
 
     #Return initial parameters and forward function
     return {'params': params,'forward': forward,'forward_wop': forward_wop,'type': type,'width': width,'size': size}
 
 #Canonical Morphological NN with FCNN representing strucring elements
-def cmnn_fcnn(type,width,width_str,size,shape_x,initialize = False,width_wop = None,activation = jax.nn.relu,sample = True,mean = 0,sd = 0,key = 0,loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 5000,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False,epochs_print = 500,activate = lambda x: x,alpha = 5):
+def cmnn_fcnn(type,width,width_str,size,shape_x,initialize = False,width_wop = None,activation = jax.nn.relu,sample = True,mean = 0,sd = 0,key = 0,loss = MSE_SA,sa = True,c = 100,q = 2,epochs = 5000,lr = 0.001,b1 = 0.9,b2 = 0.999,eps = 1e-08,eps_root = 0.0,notebook = False,epochs_print = 500,alpha = 5):
     """
     Initialize a Morphological Neural Network with FCNN representing the structuring elements.
     ----------
@@ -741,10 +782,6 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,initialize = False,width_wop = N
     epoch_print : int
 
         Number of epochs to print training error
-
-    activate : function
-
-        Activation function for operator parameters
 
     alpha : float
 
@@ -857,7 +894,7 @@ def cmnn_fcnn(type,width,width_str,size,shape_x,initialize = False,width_wop = N
             elif type[i] == 'complement':
                 x = 1 - x
             else:
-                x = apply_morph_layer(x[0,:,:,:],type[i],params_array[i],index_x,forward_wop,activate,alpha,size[i])
+                x = apply_morph_layer(x[0,:,:,:],type[i],params_array[i],index_x,forward_wop,alpha,size[i])
         return x[0,:,:,:]
 
     #Return initial parameters and forward function
