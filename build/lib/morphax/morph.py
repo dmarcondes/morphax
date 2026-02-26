@@ -416,10 +416,6 @@ def Gerosion(f,index_f,b):
 
         A 3D array with the images
 
-    index_f : jax.numpy.array
-
-        Array with the indexes of f
-
     b : jax.numpy.array
 
         Array of dimension m x d x d with the left-limit of the basis at each level 0,...,m
@@ -428,10 +424,16 @@ def Gerosion(f,index_f,b):
     -------
     jax.numpy.array
     """
-    l = math.floor(b.shape[1]/2)
-    f = jax.lax.pad(f,0.0,((0,0,0),(l,l,0),(l,l,0)))
-    eb = jax.vmap(lambda f: Gerosion_2D(f,index_f,b),in_axes = (0),out_axes = 0)(f)
-    return eb
+    patches = jax.lax.conv_general_dilated_patches(
+        lhs = f.reshape((f.shape[0],f.shape[1],f.shape[2],1)),
+        filter_shape=(b.shape[1],b.shape[1]),
+        window_strides=(1, 1),
+        padding="SAME",
+        dimension_numbers=("NHWC", "HWIO", "NHWC")
+    ).reshape((f.shape[0],f.shape[1],f.shape[2],b.shape[1],b.shape[1]))
+    tau = eta = 1
+    gs = jax.vmap(jax.vmap(jax.vmap(lambda fw: -tau*jnp.log(jnp.mean(jnp.exp(jax.vmap(lambda b: (b - fw)/tau)(b)),(1,2))))))(patches)
+    return (jnp.sum(1/(1 + jnp.exp(-gs/eta)),3) - 1)/(b.shape[0] - 1)
 
 #Smooth local erosion of f by k for pixel (i,j)
 def Slocal_erosion(f,k,l,alpha = 5):
